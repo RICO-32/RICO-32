@@ -1,3 +1,8 @@
+mod rua;
+
 fn main() {
-    println!("Hello, world!");
+    println!("Running main");
+    rua::lexer::run();
+    rua::ast::run();
+    rua::interpreter::run();
 }
