@@ -52,18 +52,11 @@ impl ScriptEngine {
 
             let code = fs::read_to_string(&path1)
                 .or_else(|_| fs::read_to_string(&path2))
-                .ok();
+                .or_else(|_| Ok::<String, String>(String::from("")))
+                .unwrap();
 
-            match code {
-                Some(c) => {
-                    let func = lua.load(&c).into_function()?;
-                    Ok(func)
-                }
-                None => {
-                    let func = lua.load("").into_function()?;
-                    Ok(func)
-                }
-            }
+            let func = lua.load(&code).into_function()?;
+            Ok(func)
         })?;
 
         let globals = self.lua.globals();
