@@ -4,10 +4,12 @@ use mlua::StdLib;
 use std::{fs, i32, thread, time};
 use std::time::Instant;
 
+const MILLIS_IN_SEC: u64 = 1000;
+
 pub struct ScriptEngine {
     lua: Lua,
     scripts_dir: String,
-    time: Instant,
+    last_time: Instant,
     frame_rate: Arc<Mutex<i32>>
 }
 
@@ -19,7 +21,7 @@ impl ScriptEngine {
         let mut engine = ScriptEngine {
             lua,
             scripts_dir: scripts_dir.into(),
-            time: Instant::now(),
+            last_time: Instant::now(),
             frame_rate: Arc::from(Mutex::from(60))
         };
 
@@ -29,6 +31,7 @@ impl ScriptEngine {
         Ok(engine)
     }
 
+    //Define all lua api functions here 
     fn register_api(&mut self) -> LuaResult<()> {
         let globals = self.lua.globals();
 
@@ -40,6 +43,7 @@ impl ScriptEngine {
             })?,
         )?;
 
+        //Mutex bs to deal with lua functions being global, avoids self going out of scope
         let frame_rate = self.frame_rate.clone();
         globals.set(
             "set_frame_rate",
@@ -54,6 +58,10 @@ impl ScriptEngine {
         Ok(())
     }
 
+    /* Only way I could think to allow modularization
+     * Just a wrapper to load in lua scripts and insert into main
+     * Keeps Lua API the same 
+     */
     fn register_loader(&self) -> LuaResult<()> {
         let scripts = self.scripts_dir.clone();
         let lua = &self.lua;
@@ -71,6 +79,7 @@ impl ScriptEngine {
             Ok(func)
         })?;
 
+        //Simply overwrite the inbuilt package loader with ours
         let globals = self.lua.globals();
         let package: LuaTable = globals.get("package")?;
         let searchers: LuaTable = package.get("searchers")?;
@@ -79,30 +88,41 @@ impl ScriptEngine {
         Ok(())
     }
 
+    //Execs the main lua file, mainly for global stuff
     pub fn boot(&self) -> LuaResult<()> {
         let path = format!("{}/main.lua", self.scripts_dir);
         let code = fs::read_to_string(path)?;
         self.lua.load(&code).exec()
     }
 
+    /*Calls start() in main.Lua 
+     * Requires users to call start() for other files if they have more
+     */
     pub fn call_start(&self) -> LuaResult<()> {
         let globals = self.lua.globals();
         let start: LuaFunction = globals.get("start")?;
-        start.call::<()>(())
+        start.call(())
     }
 
+    //Calls update with the delta time and syncs frame rate
     pub fn update(&mut self) -> LuaResult<()> {
         let now = Instant::now();
-        let dt = now.duration_since(self.time).as_millis();
-        self.time = now;
-        thread::sleep(time::Duration::from_millis(1000/(*self.frame_rate.lock().unwrap()) as u64));
+        let dt = now.duration_since(self.last_time).as_millis();
+        self.last_time = now;
+        self.sync();
         self.call_update(dt)
+    }
+
+    //Artifically syncs frame rate, idk a better way to do this
+    fn sync(&self){
+        let sync_wait = MILLIS_IN_SEC/(*self.frame_rate.lock().unwrap()) as u64;
+        thread::sleep(time::Duration::from_millis(sync_wait));
     }
 
     fn call_update(&self, dt: u128) -> LuaResult<()> {
         let globals = self.lua.globals();
         let update: LuaFunction = globals.get("update")?;
-        update.call::<()>(dt)
+        update.call(dt)
     }
 }
 
