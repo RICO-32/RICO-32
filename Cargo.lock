@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "rico-32"
+name = "goonmachine"
 version = "0.1.0"
