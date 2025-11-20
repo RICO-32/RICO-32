@@ -1,9 +1,9 @@
-mod rua;
+mod goon_lang;
 
 fn main() {
-    println!("Running main");
+    println!("Running the Goon Machine");
 
-    rua::lexer::run();
-    rua::ast::run();
-    rua::interpreter::run();
+    goon_lang::lexer::run();
+    goon_lang::ast::run();
+    goon_lang::interpreter::run();
 }
