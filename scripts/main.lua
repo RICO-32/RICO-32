@@ -18,7 +18,7 @@ function update(dt)
 		log("Pixel " .. tostring(x) .. " " .. tostring(y) .. " was " .. old_col)
 		set_pix(x, y, col)
 		local new_col = get_pix(x, y)
-		log("Pixel " .. tostring(x) .. " " .. tostring(y) .. " was " .. new_col)
+		log("Pixel " .. tostring(x) .. " " .. tostring(y) .. " is " .. new_col)
 	end
 	if player.x % 20 == 0 then
 		draw(1, 2, "WOWAZA")

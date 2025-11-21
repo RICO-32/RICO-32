@@ -8,6 +8,7 @@ use crate::colors::color_from_str;
 use crate::colors::str_from_color;
 use crate::game_engine::Commands;
 use crate::goon_engine::PixelsType;
+use crate::goon_engine::SCREEN_SIZE;
 
 pub struct ScriptEngine {
     pub lua: Lua,
@@ -33,8 +34,46 @@ impl ScriptEngine {
         Ok(engine)
     }
 
-    //Define all lua API functions here 
-    pub fn register_api(&mut self, commands: Rc<RefCell<Vec<Commands>>>, pixels: Rc<RefCell<PixelsType>>) -> LuaResult<()> {
+
+    pub fn register_api_in_place(&mut self, pixels: Rc<RefCell<PixelsType>>) -> LuaResult<()> {
+        let globals = self.lua.globals();
+
+        let pix_rc = pixels.clone();
+        globals.set(
+            "set_pix",
+            self.lua.create_function(move |_, (x, y, col): (usize, usize, String)| {
+                if let Some(val) = color_from_str(&col.to_string()){
+                    if y >= SCREEN_SIZE as usize || x >= SCREEN_SIZE as usize{
+                        return Err(LuaError::RuntimeError(format!(
+                                    "Pixel coordinates out of bounds: {}, {}",
+                                    x, y
+                        )));
+                    }
+                    pix_rc.borrow_mut()[y][x] = val;
+                }
+                Ok(())
+            })?,
+        )?;
+
+        let pix_rc = pixels.clone();
+        globals.set(
+            "get_pix",
+            self.lua.create_function(move |_, (x, y): (usize, usize)| {
+                if y >= SCREEN_SIZE as usize || x >= SCREEN_SIZE as usize{
+                    return Err(LuaError::RuntimeError(format!(
+                                "Pixel coordinates out of bounds: {}, {}",
+                                x, y
+                    )));
+                }
+                Ok(str_from_color(pix_rc.borrow()[y][x]))
+            })?,
+        )?;
+
+        Ok(())
+    }
+
+    //Define all lua API functions here that go into the commands vec in game engine
+    pub fn register_api_commands(&mut self, commands: Rc<RefCell<Vec<Commands>>>) -> LuaResult<()> {
         let globals = self.lua.globals();
 
         let com_rc = commands.clone();
@@ -72,40 +111,21 @@ impl ScriptEngine {
             com_rc.borrow_mut().push(Commands::Button(x, y, msg));
         });
 
-        let pix_rc = pixels.clone();
-        globals.set(
-            "set_pix",
-            self.lua.create_function(move |_, (x, y, col): (usize, usize, String)| {
-                if let Some(val) = color_from_str(&col.to_string()){
-                    pix_rc.borrow_mut()[y][x] = val;
-                }
-                Ok(())
-            })?,
-        )?;
-
-        let pix_rc = pixels.clone();
-        globals.set(
-            "get_pix",
-            self.lua.create_function(move |_, (x, y): (usize, usize)| {
-                Ok(str_from_color(pix_rc.borrow()[y][x]))
-            })?,
-        )?;
-
         Ok(())
     }
 
     fn populate_lua_api<F>(&self, name: &str, f: F) -> LuaResult<()>
-    where F: 'static + Fn(i32, i32, String){
-        let globals = self.lua.globals();
-        globals.set(
-            name,
-            self.lua.create_function(move |_, (x, y, msg): (i32, i32, String)| {
-                f(x, y, msg);
-                Ok(())
-            })?,
-        )?;
-        Ok(())
-    }
+        where F: 'static + Fn(i32, i32, String){
+            let globals = self.lua.globals();
+            globals.set(
+                name,
+                self.lua.create_function(move |_, (x, y, msg): (i32, i32, String)| {
+                    f(x, y, msg);
+                    Ok(())
+                })?,
+            )?;
+            Ok(())
+        }
 
     /* Only way I could think to allow modularization
      * Just a wrapper to load in lua scripts and insert into main

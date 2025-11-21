@@ -46,8 +46,8 @@ impl GameEngine{
         //All init functions
         game_engine.script_engine.boot()?;
 
-        let pixels_rc = game_engine.pixels.clone();
-        game_engine.script_engine.register_api(game_engine.commands.clone(), pixels_rc)?;
+        game_engine.script_engine.register_api_commands(game_engine.commands.clone())?;
+        game_engine.script_engine.register_api_in_place(game_engine.pixels.clone())?;
         game_engine.script_engine.call_start()?;
 
         Ok(game_engine)
