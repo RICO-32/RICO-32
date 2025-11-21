@@ -23,7 +23,7 @@ function update(dt)
 	if player.x % 20 == 0 then
 		draw(1, 2, "WOWAZA")
 		button(1, 2, "WOWAZA")
-		print_scr(1, 2, "WOWAZA")
+		print_scr(1, 2, "GREEN", "WOWAZA")
 	end
 	if player.x % 100 == 0 then
 		local new_frame_rate = math.floor(player.x / 10)

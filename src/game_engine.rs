@@ -3,6 +3,7 @@ use std::{thread, time};
 
 use mlua::prelude::LuaResult;
 
+use crate::bitmap::BITMAP;
 use crate::colors::COLORS;
 use crate::script_engine::ScriptEngine;
 use crate::goon_engine::{PixelsType, ScreenEngine};
@@ -16,9 +17,9 @@ const MILLIS_IN_SEC: u128 = 1000;
 pub enum Commands{
     Log(String),
     SetFrameRate(i32),
-    Draw(i32, i32, String),
-    Button(i32, i32, String),
-    PrintScr(i32, i32, String),
+    Draw(usize, usize, String),
+    Button(usize, usize, String),
+    PrintScr(usize, usize, COLORS, String),
 }
 
 pub struct GameEngine{
@@ -54,16 +55,32 @@ impl GameEngine{
     }
 
     //Place holder functions
-    pub fn draw(&mut self, x: i32, y: i32, file: String){
+    pub fn draw(&mut self, x: usize, y: usize, file: String){
         println!("Drawing {} at {} {}", file, x, y);
     }
 
-    pub fn button(&mut self, x: i32, y: i32, msg: String){
+    pub fn button(&mut self, x: usize, y: usize, msg: String){
         println!("Making button {} at {} {}", msg, x, y);
     }
 
-    pub fn print_src(&mut self, x: i32, y: i32, msg: String){
-        println!("Adding text {} at {} {}", msg, x, y);
+    pub fn print_scr(&mut self, x: usize, y: usize, col: COLORS, msg: String){
+        let pixels_rc = self.pixels.clone();
+        for i in 0..msg.len(){
+            let c = msg.as_bytes().iter().nth(i).unwrap();
+            let mut idx: usize = (*c).into();
+            idx -= 32;
+            if idx >= BITMAP.len() {
+                idx = 0;
+            }
+
+            for dx in 0..8{
+                for dy in 0..8{
+                    if BITMAP[idx][dy] >> (7-dx) & 1 == 1{
+                        pixels_rc.borrow_mut()[y+dy][x+dx+i*8] = col;
+                    }
+                }
+            }
+        }
     }
 
     //Run all commands and free up vector
@@ -73,7 +90,7 @@ impl GameEngine{
                 Commands::Log(msg) => println!("{}", format!("[Lua] {}", msg)),
                 Commands::SetFrameRate(rate) => *self.frame_rate.borrow_mut() = *rate,
                 Commands::Draw(x, y, file) => self.draw(*x, *y, file.clone()),
-                Commands::PrintScr(x, y, msg) => self.print_src(*x, *y, msg.clone()),
+                Commands::PrintScr(x, y, col, msg) => self.print_scr(*x, *y, *col, msg.clone()),
                 Commands::Button(x, y, msg) => self.button(*x, *y, msg.clone()),
             }
         }

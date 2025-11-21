@@ -13,7 +13,7 @@ use crate::game_engine::{GameEngine};
 use crate::colors::COLORS;
 
 pub const SCREEN_SIZE: u32 = 128;
-pub const WINDOW_SIZE: u32 = SCREEN_SIZE * 1;
+pub const WINDOW_SIZE: u32 = SCREEN_SIZE * 4;
 
 pub type PixelsType = [[COLORS; SCREEN_SIZE as usize]; SCREEN_SIZE as usize];
 

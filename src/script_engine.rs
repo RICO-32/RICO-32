@@ -97,35 +97,36 @@ impl ScriptEngine {
         )?;
 
         let com_rc = commands.clone();
-        let _ = self.populate_lua_api("draw", move |x, y, msg| {
-            com_rc.borrow_mut().push(Commands::Draw(x, y, msg));
-        });
+        globals.set(
+            "draw",
+            self.lua.create_function(move |_, (x, y, msg): (usize, usize, String)| {
+                com_rc.borrow_mut().push(Commands::Draw(x, y, msg));
+                Ok(())
+            })?,
+        )?;
 
         let com_rc = commands.clone();
-        let _ = self.populate_lua_api("print_scr", move |x, y, msg| {
-            com_rc.borrow_mut().push(Commands::PrintScr(x, y, msg));
-        });
+        globals.set(
+            "button",
+            self.lua.create_function(move |_, (x, y, msg): (usize, usize, String)| {
+                com_rc.borrow_mut().push(Commands::Button(x, y, msg));
+                Ok(())
+            })?,
+        )?;
 
         let com_rc = commands.clone();
-        let _ = self.populate_lua_api("button", move |x, y, msg| {
-            com_rc.borrow_mut().push(Commands::Button(x, y, msg));
-        });
+        globals.set(
+            "print_scr",
+            self.lua.create_function(move |_, (x, y, col, msg): (usize, usize, String, String)| {
+                if let Some(val) = color_from_str(col.as_str()){
+                    com_rc.borrow_mut().push(Commands::PrintScr(x, y, val, msg));
+                }
+                Ok(())
+            })?,
+        )?;
 
         Ok(())
     }
-
-    fn populate_lua_api<F>(&self, name: &str, f: F) -> LuaResult<()>
-        where F: 'static + Fn(i32, i32, String){
-            let globals = self.lua.globals();
-            globals.set(
-                name,
-                self.lua.create_function(move |_, (x, y, msg): (i32, i32, String)| {
-                    f(x, y, msg);
-                    Ok(())
-                })?,
-            )?;
-            Ok(())
-        }
 
     /* Only way I could think to allow modularization
      * Just a wrapper to load in lua scripts and insert into main
