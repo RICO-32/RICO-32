@@ -3,11 +3,13 @@ use std::{thread, time};
 
 use mlua::prelude::LuaResult;
 
+use crate::colors::COLORS;
 use crate::script_engine::ScriptEngine;
-use crate::goon_engine::ScreenEngine;
+use crate::goon_engine::{ScreenEngine, SCREEN_SIZE as SCREEN_U128};
 
 const BASE_FPS: i32 = 60;
 const MILLIS_IN_SEC: u128 = 1000;
+const SCREEN_SIZE: usize = SCREEN_U128 as usize;
 
 /* Enum of all command types
  * Add command here for any new defined commands
@@ -24,7 +26,8 @@ pub struct GameEngine{
     script_engine: ScriptEngine,
     last_time: Instant,
     frame_rate: Rc<RefCell<i32>>,
-    commands: Rc<RefCell<Vec<Commands>>>
+    commands: Rc<RefCell<Vec<Commands>>>,
+    pixels: [[COLORS; SCREEN_SIZE]; SCREEN_SIZE],
 }
 
 impl GameEngine{
@@ -38,6 +41,7 @@ impl GameEngine{
             last_time: Instant::now(),
             frame_rate: frame_rate.clone(),
             commands: Rc::from(RefCell::from(Vec::new())),
+            pixels: [[COLORS::BLACK; SCREEN_SIZE]; SCREEN_SIZE]
         };
 
         //All init functions
@@ -91,10 +95,12 @@ impl GameEngine{
         self.last_time = now;
         dt
     }
-
 }
 
 impl ScreenEngine for GameEngine{
+    fn pixels(&self) -> &[[COLORS; SCREEN_SIZE]; SCREEN_SIZE] {
+        &self.pixels
+    }
     //Syncs with frame rate, runs all queued up commands from this prev frame, calls main update
     fn update(&mut self) -> LuaResult<()> {
         let dt = self.sync();

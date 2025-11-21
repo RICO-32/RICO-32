@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, usize};
 
 use mlua::prelude::*;
 use pixels::{Pixels, SurfaceTexture};
@@ -10,13 +10,15 @@ use winit::{
 };
 
 use crate::game_engine::{GameEngine};
+use crate::colors::COLORS;
 
-const SCREEN_SIZE: u32 = 128;
+pub const SCREEN_SIZE: u32 = 128;
 
 /* All screen engines must implement
  * Game for now, sprite in the future, maybe IDE
  */
 pub trait ScreenEngine {
+    fn pixels(&self) -> &[[COLORS; SCREEN_SIZE as usize]; SCREEN_SIZE as usize];
     fn update(&mut self) -> LuaResult<()>;    
 }
 
@@ -36,7 +38,7 @@ impl GoonEngine{
             buffer: vec![0u8; (SCREEN_SIZE * SCREEN_SIZE * 4) as usize],
             game_engine: GameEngine::new()?,
             state: 0
-       };
+        };
 
         Ok(engine)
     }
@@ -67,48 +69,58 @@ impl GoonEngine{
             // Poll loop -> render as fast as possible
             *control_flow = ControlFlow::Poll;
 
-        match event {
-            Event::RedrawRequested(_) => {
-                let _ = engine_rc.borrow_mut().update();
-                let frame = pixels.get_frame_mut();
-                frame.copy_from_slice(&engine_rc.borrow().buffer);
+            match event {
+                Event::RedrawRequested(_) => {
+                    let _ = engine_rc.borrow_mut().update();
+                    let frame = pixels.get_frame_mut();
+                    frame.copy_from_slice(&engine_rc.borrow().buffer);
 
-                if let Err(_) = pixels.render() {
-                    *control_flow = ControlFlow::Exit;
+                    if let Err(_) = pixels.render() {
+                        *control_flow = ControlFlow::Exit;
+                    }
                 }
-            }
 
-            Event::MainEventsCleared => {
-                window.request_redraw();
-            }
-
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                ..
-            } => *control_flow = ControlFlow::Exit,
-
-            Event::WindowEvent {
-                event: WindowEvent::KeyboardInput { input, .. }, ..
-            } => {
-                if let Some(winit::event::VirtualKeyCode::Escape) = input.virtual_keycode {
-                    *control_flow = ControlFlow::Exit;
+                Event::MainEventsCleared => {
+                    window.request_redraw();
                 }
+
+                Event::WindowEvent {
+                    event: WindowEvent::CloseRequested,
+                    ..
+                } => *control_flow = ControlFlow::Exit,
+
+                Event::WindowEvent {
+                    event: WindowEvent::KeyboardInput { input, .. }, ..
+                } => {
+                    if let Some(winit::event::VirtualKeyCode::Escape) = input.virtual_keycode {
+                        *control_flow = ControlFlow::Exit;
+                    }
+                }
+
+                _ => {}
             }
-
-            _ => {}
-        }
-    });
-
+        });
     }
 
     //Make sure to update engines here based on which screen it's on
     pub fn update(&mut self) -> LuaResult<()> {
-        self.buffer[0] = 127;
-        self.buffer[1] = 127;
-        self.buffer[2] = 127;
+        let mut pixels = &[[COLORS::BLACK; SCREEN_SIZE as usize]; SCREEN_SIZE as usize];
         match self.state {
-            0 => Ok(self.game_engine.update()?),
-            _ => Ok(())
+            0 => {
+                self.game_engine.update()?;
+                pixels = self.game_engine.pixels();
+            }
+            _ => ()
+        };
+
+        for y in 0..SCREEN_SIZE as usize{
+            for x in 0..SCREEN_SIZE as usize{
+                self.buffer[(y * SCREEN_SIZE as usize + x) * 4 + 0] = pixels[y][x].0;
+                self.buffer[(y * SCREEN_SIZE as usize + x) * 4 + 1] = pixels[y][x].1;
+                self.buffer[(y * SCREEN_SIZE as usize + x) * 4 + 2] = pixels[y][x].2;
+            }
         }
+
+        Ok(())
     }
 }
