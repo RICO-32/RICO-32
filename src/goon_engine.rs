@@ -13,7 +13,7 @@ use crate::game_engine::{GameEngine};
 use crate::colors::COLORS;
 
 pub const SCREEN_SIZE: u32 = 128;
-pub const WINDOW_SIZE: u32 = SCREEN_SIZE * 4;
+pub const WINDOW_SIZE: u32 = SCREEN_SIZE * 1;
 
 pub type PixelsType = [[COLORS; SCREEN_SIZE as usize]; SCREEN_SIZE as usize];
 
@@ -109,10 +109,8 @@ impl GoonEngine{
                 for dy in 0..scale{
                     for dx in 0..scale{
                         let idx = (y * scale + dy) * WINDOW_SIZE as usize + (x * scale + dx);
-                        buffer[idx * 4 + 0] = pixels_rc[y][x].0;
-                        buffer[idx * 4 + 1] = pixels_rc[y][x].1;
-                        buffer[idx * 4 + 2] = pixels_rc[y][x].2;
-                        buffer[idx * 4 + 3] = 0xFF;
+                        let COLORS(r, g, b) = pixels_rc[y][x];
+                        buffer[idx*4..idx*4+4].copy_from_slice(&[r, g, b, 0xFF]);
                     }
                 }
             }

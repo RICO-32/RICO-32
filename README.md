@@ -20,7 +20,7 @@ The ultimate pico clone because it's a cool ass idea
 - log: Prints out a string in the console
 - set_frame_rate: Sets the frame rate of the game and how often update is called
 - set_pix(x, y, COLOR) sets the pixel at x, y to COLOR where color is one of the 16 strings defined
-- get_pox(x, y) gets the pixel at x, y and returns with one of the 16 colors
+- get_pix(x, y) gets the pixel at x, y and returns with one of the 16 colors
 - Placeholder draw/print_scr/button
 
 ## Things to note
