@@ -4,7 +4,10 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::{fs};
 
+use crate::colors::color_from_str;
+use crate::colors::str_from_color;
 use crate::game_engine::Commands;
+use crate::goon_engine::PixelsType;
 
 pub struct ScriptEngine {
     pub lua: Lua,
@@ -31,7 +34,7 @@ impl ScriptEngine {
     }
 
     //Define all lua API functions here 
-    pub fn register_api(&mut self, commands: Rc<RefCell<Vec<Commands>>>) -> LuaResult<()> {
+    pub fn register_api(&mut self, commands: Rc<RefCell<Vec<Commands>>>, pixels: Rc<RefCell<PixelsType>>) -> LuaResult<()> {
         let globals = self.lua.globals();
 
         let com_rc = commands.clone();
@@ -68,6 +71,25 @@ impl ScriptEngine {
         let _ = self.populate_lua_api("button", move |x, y, msg| {
             com_rc.borrow_mut().push(Commands::Button(x, y, msg));
         });
+
+        let pix_rc = pixels.clone();
+        globals.set(
+            "set_pix",
+            self.lua.create_function(move |_, (x, y, col): (usize, usize, String)| {
+                if let Some(val) = color_from_str(&col.to_string()){
+                    pix_rc.borrow_mut()[y][x] = val;
+                }
+                Ok(())
+            })?,
+        )?;
+
+        let pix_rc = pixels.clone();
+        globals.set(
+            "get_pix",
+            self.lua.create_function(move |_, (x, y): (usize, usize)| {
+                Ok(str_from_color(pix_rc.borrow()[y][x]))
+            })?,
+        )?;
 
         Ok(())
     }

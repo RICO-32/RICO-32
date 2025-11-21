@@ -14,11 +14,13 @@ use crate::colors::COLORS;
 
 pub const SCREEN_SIZE: u32 = 128;
 
+pub type PixelsType = [[COLORS; SCREEN_SIZE as usize]; SCREEN_SIZE as usize];
+
 /* All screen engines must implement
  * Game for now, sprite in the future, maybe IDE
  */
 pub trait ScreenEngine {
-    fn pixels(&self) -> &[[COLORS; SCREEN_SIZE as usize]; SCREEN_SIZE as usize];
+    fn pixels(&self) -> Rc<RefCell<PixelsType>>;
     fn update(&mut self) -> LuaResult<()>;    
 }
 
@@ -56,10 +58,10 @@ impl GoonEngine{
         for y in 0..SCREEN_SIZE {
             for x in 0..SCREEN_SIZE {
                 let i = ((y * SCREEN_SIZE + x) * 4) as usize;
-                self.buffer[i] = (x as u8).wrapping_mul(3);      // R
-                self.buffer[i + 1] = (y as u8).wrapping_mul(2);  // G
-                self.buffer[i + 2] = ((x ^ y) as u8).wrapping_mul(1); // B (simple xor pattern)
-                self.buffer[i + 3] = 0xFF;                      // A
+                self.buffer[i] = (x as u8).wrapping_mul(3);
+                self.buffer[i + 1] = (y as u8).wrapping_mul(2);
+                self.buffer[i + 2] = ((x ^ y) as u8).wrapping_mul(1);
+                self.buffer[i + 3] = 0xFF; 
             }
         }
 
@@ -104,20 +106,21 @@ impl GoonEngine{
 
     //Make sure to update engines here based on which screen it's on
     pub fn update(&mut self) -> LuaResult<()> {
-        let mut pixels = &[[COLORS::BLACK; SCREEN_SIZE as usize]; SCREEN_SIZE as usize];
+        let mut pixels = Rc::from(RefCell::from(COLORS::pixels()));
         match self.state {
             0 => {
                 self.game_engine.update()?;
                 pixels = self.game_engine.pixels();
-            }
+            },
             _ => ()
         };
 
+        let pixels_rc = pixels.borrow();
         for y in 0..SCREEN_SIZE as usize{
             for x in 0..SCREEN_SIZE as usize{
-                self.buffer[(y * SCREEN_SIZE as usize + x) * 4 + 0] = pixels[y][x].0;
-                self.buffer[(y * SCREEN_SIZE as usize + x) * 4 + 1] = pixels[y][x].1;
-                self.buffer[(y * SCREEN_SIZE as usize + x) * 4 + 2] = pixels[y][x].2;
+                self.buffer[(y * SCREEN_SIZE as usize + x) * 4 + 0] = pixels_rc[y][x].0;
+                self.buffer[(y * SCREEN_SIZE as usize + x) * 4 + 1] = pixels_rc[y][x].1;
+                self.buffer[(y * SCREEN_SIZE as usize + x) * 4 + 2] = pixels_rc[y][x].2;
             }
         }
 
