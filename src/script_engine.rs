@@ -47,10 +47,9 @@ impl ScriptEngine {
         let com_rc = commands.clone();
         globals.set(
             "set_frame_rate",
-            self.lua.create_function(move |_, msg: String| {
-                let x = msg.parse::<i32>()
-                    .map_err(|_| mlua::Error::RuntimeError(format!("Invalid frame rate: {}", msg)))?;
-                com_rc.borrow_mut().push(Commands::SetFrameRate(x));
+            self.lua.create_function(move |_, rate: i32| {
+                println!("{}", rate);
+                com_rc.borrow_mut().push(Commands::SetFrameRate(rate));
                 Ok(())
             })?,
         )?;
@@ -58,31 +57,29 @@ impl ScriptEngine {
         let com_rc = commands.clone();
         let _ = self.populate_lua_api("draw", move |x, y, msg| {
             com_rc.borrow_mut().push(Commands::Draw(x, y, msg));
-            Ok(())
         });
 
         let com_rc = commands.clone();
         let _ = self.populate_lua_api("print_scr", move |x, y, msg| {
             com_rc.borrow_mut().push(Commands::PrintScr(x, y, msg));
-            Ok(())
         });
 
         let com_rc = commands.clone();
         let _ = self.populate_lua_api("button", move |x, y, msg| {
             com_rc.borrow_mut().push(Commands::Button(x, y, msg));
-            Ok(())
         });
 
         Ok(())
     }
 
     fn populate_lua_api<F>(&self, name: &str, f: F) -> LuaResult<()>
-    where F: 'static + Fn(i32, i32, String) -> LuaResult<()>{
+    where F: 'static + Fn(i32, i32, String){
         let globals = self.lua.globals();
         globals.set(
             name,
             self.lua.create_function(move |_, (x, y, msg): (i32, i32, String)| {
-                f(x, y, msg)
+                f(x, y, msg);
+                Ok(())
             })?,
         )?;
         Ok(())
