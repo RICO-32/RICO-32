@@ -6,9 +6,9 @@ mod game_engine;
 use game_engine::GameEngine;
 
 fn main() -> LuaResult<()> {
-    let mut engine = GameEngine::new()?;
+    let engine = GameEngine::new()?;
 
     loop {
-        engine.update()?;
+        engine.borrow_mut().update()?;
     }
 }

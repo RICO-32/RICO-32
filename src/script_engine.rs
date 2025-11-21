@@ -4,8 +4,11 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::{fs};
 
+use crate::game_engine;
+use crate::game_engine::GameEngine;
+
 pub struct ScriptEngine {
-    lua: Lua,
+    pub lua: Lua,
     scripts_dir: String,
 }
 
@@ -14,23 +17,22 @@ impl ScriptEngine {
      * Redo the engine initialization whenever restarting the game in the engine
      * Call new, boot, and call_start
      */
-    pub fn new(scripts_dir: &str, frame_rate: Rc<RefCell<i32>>) -> LuaResult<Self> {
+    pub fn new(scripts_dir: &str) -> LuaResult<Self> {
         let options = LuaOptions::new();
         let lua = Lua::new_with(StdLib::ALL_SAFE, options).expect("Could not load lua state");
 
-        let mut engine = ScriptEngine {
+        let engine = ScriptEngine {
             lua,
             scripts_dir: String::from(scripts_dir),
         };
 
-        engine.register_api(frame_rate)?;
         engine.register_loader()?;
 
         Ok(engine)
     }
 
     //Define all lua API functions here 
-    fn register_api(&mut self, frame_rate: Rc<RefCell<i32>>) -> LuaResult<()> {
+    pub fn register_api(&mut self, frame_rate: Rc<RefCell<i32>>, game_engine: Rc<RefCell<GameEngine>>) -> LuaResult<()> {
         let globals = self.lua.globals();
 
         globals.set(
