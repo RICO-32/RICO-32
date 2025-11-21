@@ -44,6 +44,7 @@ impl GoonEngine{
         Ok(engine)
     }
 
+    //Base boot function, needs to take in whole self cause borrowing bs
     pub fn start(self) -> Result<(), Box<dyn std::error::Error>>{
         let event_loop = EventLoop::new();
         let window = WindowBuilder::new()
@@ -55,21 +56,23 @@ impl GoonEngine{
         let mut pixels = Pixels::new(WINDOW_SIZE, WINDOW_SIZE, surface_texture)?;
 
         let engine_rc = Rc::new(RefCell::new(self)).clone();
-        // Event loop: Poll so we run as fast as possible and continuously request redraws.
+        // Event loop: Poll so we run as fast as possible and continuously request redraws
         event_loop.run(move |event, _, control_flow| {
             // Poll loop -> render as fast as possible
             *control_flow = ControlFlow::Poll;
 
             match event {
                 Event::RedrawRequested(_) => {
-                    let frame = pixels.get_frame_mut();
-                    let _ = engine_rc.borrow_mut().update(frame);
+                    //Pass in buffer and redraw all based pixels every frame
+                    let buffer = pixels.get_frame_mut();
+                    let _ = engine_rc.borrow_mut().update(buffer);
 
                     if let Err(_) = pixels.render() {
                         *control_flow = ControlFlow::Exit;
                     }
                 }
 
+                //Redraw every frame
                 Event::MainEventsCleared => {
                     window.request_redraw();
                 }
@@ -79,6 +82,7 @@ impl GoonEngine{
                     ..
                 } => *control_flow = ControlFlow::Exit,
 
+                //Will add keyboard and mouse events here
                 Event::WindowEvent {
                     event: WindowEvent::KeyboardInput { input, .. }, ..
                 } => {
@@ -102,6 +106,7 @@ impl GoonEngine{
             _ => Rc::from(RefCell::from(COLORS::pixels()))
         };
 
+        //Hydrate the screen based on scaling factors and stuff
         let pixels_rc = pixels.borrow();
         let scale = (WINDOW_SIZE / SCREEN_SIZE) as usize;
         for y in 0..SCREEN_SIZE as usize{
