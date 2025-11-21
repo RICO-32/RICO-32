@@ -4,6 +4,8 @@ use mlua::StdLib;
 use std::{fs, i32, thread, time};
 use std::time::Instant;
 
+use crate::sprite::Sprite;
+
 const MILLIS_IN_SEC: u64 = 1000;
 
 pub struct ScriptEngine {
@@ -14,6 +16,10 @@ pub struct ScriptEngine {
 }
 
 impl ScriptEngine {
+    /* Will also handle rebooting
+     * Redo the engine initialization whenever restarting the game in the engine
+     * Call new, boot, and call_start
+     */
     pub fn new(scripts_dir: impl Into<String>) -> LuaResult<Self> {
         let options = LuaOptions::new();
         let lua = Lua::new_with(StdLib::ALL_SAFE, options).expect("Could not load lua state");
@@ -35,6 +41,13 @@ impl ScriptEngine {
     fn register_api(&mut self) -> LuaResult<()> {
         let globals = self.lua.globals();
 
+        let sprite_table = self.lua.create_table()?;
+        let new_fn = self.lua.create_function(|_, (file, x, y, size): (String, i32, i32, i32)| {
+            Ok(Sprite::new(file, x, y, size))
+        })?;
+        sprite_table.set("new", new_fn)?;
+        globals.set("Sprite", sprite_table)?;
+        
         globals.set(
             "log",
             self.lua.create_function(|_, msg: String| {
@@ -54,6 +67,8 @@ impl ScriptEngine {
                 Ok(())
             })?,
         )?;
+
+
 
         Ok(())
     }

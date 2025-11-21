@@ -1,4 +1,5 @@
 local player = require("player")
+local sprite = Sprite.new("wow", 1, 2, 3);
 
 function start()
     log("Start function")
@@ -8,6 +9,11 @@ function update(dt)
 	player.upd()
 	if player.x % 10 == 0 then
 		log("Player's X is: " .. tostring(player.x) .. " and " .. tostring(dt) .. " time has passed")
+	end
+	if player.x % 20 == 0 then
+		log("Sprite x was " .. tostring(sprite.x))
+		sprite.x = player.x
+		log("Sprite x is " .. tostring(sprite.x))
 	end
 	if player.x % 100 == 0 then
 		local new_frame_rate = math.floor(player.x / 10)
