@@ -1,13 +1,14 @@
 use mlua::prelude::*;
+use mlua::StdLib;
 use std::cell::RefCell;
 use std::rc::Rc;
-use mlua::StdLib;
-use std::{fs, i32, thread, time};
+use std::{fs, thread, time};
 use std::time::Instant;
 
 use crate::sprite::{Sprite, SpriteHandle};
 
 const MILLIS_IN_SEC: u64 = 1000;
+const BASE_FPS: i32 = 60;
 
 pub struct ScriptEngine {
     lua: Lua,
@@ -30,7 +31,7 @@ impl ScriptEngine {
             lua,
             scripts_dir: String::from(scripts_dir),
             last_time: Instant::now(),
-            frame_rate: Rc::from(RefCell::from(60)),
+            frame_rate: Rc::from(RefCell::from(BASE_FPS)),
             sprites: Rc::from(RefCell::from(Vec::new())),
         };
 
@@ -40,7 +41,7 @@ impl ScriptEngine {
         Ok(engine)
     }
 
-    /* Expose the sprites api to Lua
+    /* Expose the sprites API to Lua
      * Functions defined in readme
      */
     fn register_sprites(&mut self) -> LuaResult<()>{
@@ -61,7 +62,7 @@ impl ScriptEngine {
         Ok(())
     }
 
-    //Define all lua api functions here 
+    //Define all lua API functions here 
     fn register_api(&mut self) -> LuaResult<()> {
         let globals = self.lua.globals();
 
@@ -152,7 +153,7 @@ impl ScriptEngine {
         self.call_update(dt)
     }
 
-    //Artifically syncs frame rate, idk a better way to do this
+    //Artificially syncs frame rate, idk a better way to do this
     fn sync(&self){
         let sync_wait = MILLIS_IN_SEC/(*self.frame_rate.borrow()) as u64;
         thread::sleep(time::Duration::from_millis(sync_wait));
