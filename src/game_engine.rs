@@ -8,6 +8,9 @@ use crate::script_engine::ScriptEngine;
 const BASE_FPS: i32 = 60;
 const MILLIS_IN_SEC: u64 = 1000;
 
+/* Enum of all command types
+ * Add command here for any new defined commands
+ */
 pub enum Commands{
     Log(String),
     SetFrameRate(i32),
@@ -28,6 +31,7 @@ impl GameEngine{
         let frame_rate = Rc::from(RefCell::from(BASE_FPS));
         let engine = ScriptEngine::new("scripts")?;
 
+        //Make engine using script
         let mut game_engine = GameEngine {
             script_engine: engine,
             last_time: Instant::now(),
@@ -35,6 +39,7 @@ impl GameEngine{
             commands: Rc::from(RefCell::from(Vec::new())),
         };
 
+        //All init functions
         game_engine.script_engine.boot()?;
         game_engine.script_engine.register_api(game_engine.commands.clone())?;
         game_engine.script_engine.call_start()?;
@@ -42,6 +47,7 @@ impl GameEngine{
         Ok(game_engine)
     }
 
+    //Place holder functions
     pub fn draw(&mut self, x: i32, y: i32, file: String){
         println!("Drawing {} at {} {}", file, x, y);
     }
@@ -54,6 +60,7 @@ impl GameEngine{
         println!("Adding text {} at {} {}", msg, x, y);
     }
 
+    //Syncs with frame rate, runs all queued up commands from this prev frame, calls main update
     pub fn update(&mut self) -> LuaResult<()> {
         let now = Instant::now();
         let dt = now.duration_since(self.last_time).as_millis();
@@ -63,6 +70,7 @@ impl GameEngine{
         self.script_engine.call_update(dt)
     }
 
+    //Run all commands and free up vector
     fn run_commands(&mut self){
         for command in self.commands.clone().borrow().iter(){
             match command{
