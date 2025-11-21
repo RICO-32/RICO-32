@@ -146,8 +146,7 @@ impl ScriptEngine {
         let dt = now.duration_since(self.last_time).as_millis();
         self.last_time = now;
         self.sync();
-        let sprites_vec = self.sprites.clone();
-        for sprite in sprites_vec.borrow().iter(){
+        for sprite in self.sprites.borrow().iter(){
             sprite.borrow().draw();
         }
         self.call_update(dt)
