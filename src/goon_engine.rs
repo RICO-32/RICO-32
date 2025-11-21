@@ -64,9 +64,8 @@ impl GoonEngine{
 
             match event {
                 Event::RedrawRequested(_) => {
-                    let _ = engine_rc.borrow_mut().update();
                     let frame = pixels.get_frame_mut();
-                    frame.copy_from_slice(&engine_rc.borrow().buffer);
+                    let _ = engine_rc.borrow_mut().update(frame);
 
                     if let Err(_) = pixels.render() {
                         *control_flow = ControlFlow::Exit;
@@ -96,7 +95,7 @@ impl GoonEngine{
     }
 
     //Make sure to update engines here based on which screen it's on
-    pub fn update(&mut self) -> LuaResult<()> {
+    pub fn update(&mut self, buffer: &mut [u8]) -> LuaResult<()> {
         let pixels = match self.state {
             0 => {
                 self.game_engine.update()?;
@@ -112,10 +111,10 @@ impl GoonEngine{
                 for dy in 0..scale{
                     for dx in 0..scale{
                         let idx = (y * scale + dy) * WINDOW_SIZE as usize + (x * scale + dx);
-                        self.buffer[idx * 4 + 0] = pixels_rc[y][x].0;
-                        self.buffer[idx * 4 + 1] = pixels_rc[y][x].1;
-                        self.buffer[idx * 4 + 2] = pixels_rc[y][x].2;
-                        self.buffer[idx * 4 + 3] = 0xFF;
+                        buffer[idx * 4 + 0] = pixels_rc[y][x].0;
+                        buffer[idx * 4 + 1] = pixels_rc[y][x].1;
+                        buffer[idx * 4 + 2] = pixels_rc[y][x].2;
+                        buffer[idx * 4 + 3] = 0xFF;
                     }
                 }
             }
