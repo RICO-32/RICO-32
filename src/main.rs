@@ -4,6 +4,7 @@ mod game_engine;
 mod goon_engine;
 mod colors;
 mod bitmap;
+mod utils;
 use goon_engine::GoonEngine;
 
 fn main() -> LuaResult<()> {

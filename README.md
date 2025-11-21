@@ -21,7 +21,9 @@ The ultimate pico clone because it's a cool ass idea
 - set_frame_rate: Sets the frame rate of the game and how often update is called
 - set_pix(x, y, COLOR) sets the pixel at x, y to COLOR where color is one of the 16 strings defined
 - get_pix(x, y) gets the pixel at x, y and returns with one of the 16 colors
-- Placeholder draw/print_scr/button
+- print_scr(x, y, COLOR, text) prints the text to the screen at x, y
+- draw(x, y, file) draws the image at assets/file at x, y
+- Placeholder button
 
 ## Things to note
 - Do not call nested API funcs (Ex: log(get_pix(0, 0))), not supported for now

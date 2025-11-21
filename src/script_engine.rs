@@ -9,6 +9,7 @@ use crate::colors::str_from_color;
 use crate::game_engine::Commands;
 use crate::goon_engine::PixelsType;
 use crate::goon_engine::SCREEN_SIZE;
+use crate::utils::set_pix;
 
 pub struct ScriptEngine {
     pub lua: Lua,
@@ -49,7 +50,7 @@ impl ScriptEngine {
                                     x, y
                         )));
                     }
-                    pix_rc.borrow_mut()[y][x] = val;
+                    set_pix(pix_rc.clone(), y, x, val);
                 }
                 Ok(())
             })?,

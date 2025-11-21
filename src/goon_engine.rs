@@ -114,8 +114,8 @@ impl GoonEngine{
                 for dy in 0..scale{
                     for dx in 0..scale{
                         let idx = (y * scale + dy) * WINDOW_SIZE as usize + (x * scale + dx);
-                        let COLORS(r, g, b) = pixels_rc[y][x];
-                        buffer[idx*4..idx*4+4].copy_from_slice(&[r, g, b, 0xFF]);
+                        let COLORS(r, g, b, a) = pixels_rc[y][x];
+                        buffer[idx*4..idx*4+4].copy_from_slice(&[r, g, b, a]);
                     }
                 }
             }

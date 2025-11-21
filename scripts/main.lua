@@ -21,9 +21,10 @@ function update(dt)
 		log("Pixel " .. tostring(x) .. " " .. tostring(y) .. " is " .. new_col)
 	end
 	if player.x % 20 == 0 then
-		draw(1, 2, "WOWAZA")
+		draw(1, 2, "main.png")
 		button(1, 2, "WOWAZA")
-		print_scr(1, 2, "GREEN", "WOWAZA")
+		print_scr(1, 50, "GREEN", "WOWAZA")
+		draw(1, 45, "correct.png")
 	end
 	if player.x % 100 == 0 then
 		local new_frame_rate = math.floor(player.x / 10)

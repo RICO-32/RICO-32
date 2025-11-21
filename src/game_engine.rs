@@ -1,12 +1,15 @@
+use std::error::Error;
 use std::{cell::RefCell, rc::Rc, time::Instant};
 use std::{thread, time};
 
+use image::ImageReader;
 use mlua::prelude::LuaResult;
 
 use crate::bitmap::BITMAP;
 use crate::colors::COLORS;
 use crate::script_engine::ScriptEngine;
-use crate::goon_engine::{PixelsType, ScreenEngine};
+use crate::goon_engine::{PixelsType, ScreenEngine, SCREEN_SIZE};
+use crate::utils::set_pix;
 
 const BASE_FPS: i32 = 60;
 const MILLIS_IN_SEC: u128 = 1000;
@@ -55,16 +58,36 @@ impl GameEngine{
     }
 
     //Place holder functions
-    pub fn draw(&mut self, x: usize, y: usize, file: String){
-        println!("Drawing {} at {} {}", file, x, y);
+    pub fn draw(&mut self, x: usize, y: usize, file: String) -> Result<(), Box<dyn Error>> {
+        let img = ImageReader::open(format!("assets/{}", file))?.decode()?;
+        let img = img.to_rgba8();
+        let (width, height) = img.dimensions();
+        println!("size: {} x {}", width, height);
+
+        if width != height || (width != 8 && width != 16 && width != 32) {
+            return Ok(());
+        }
+
+        for (dx, dy, pixel) in img.enumerate_pixels() {
+            let [r, g, b, a] = pixel.0;
+            if y+dy as usize >= SCREEN_SIZE as usize || x + dx as usize >= SCREEN_SIZE as usize {
+                continue;
+            }
+
+            set_pix(self.pixels.clone(), y+dy as usize, x+dx as usize, COLORS(r, g, b, a));
+        }
+
+        Ok(())
     }
 
     pub fn button(&mut self, x: usize, y: usize, msg: String){
         println!("Making button {} at {} {}", msg, x, y);
     }
 
+    /* Loop over every character and use the 8x8 bitmap
+     * Use bitmasking to check which pixels to be set 
+     */
     pub fn print_scr(&mut self, x: usize, y: usize, col: COLORS, msg: String){
-        let pixels_rc = self.pixels.clone();
         for i in 0..msg.len(){
             let c = msg.as_bytes().iter().nth(i).unwrap();
             let mut idx: usize = (*c).into();
@@ -75,8 +98,11 @@ impl GameEngine{
 
             for dx in 0..8{
                 for dy in 0..8{
+                    if y+dy >= SCREEN_SIZE as usize || x + dx >= SCREEN_SIZE as usize {
+                        continue;
+                    }
                     if BITMAP[idx][dy] >> (7-dx) & 1 == 1{
-                        pixels_rc.borrow_mut()[y+dy][x+dx+i*8] = col;
+                        set_pix(self.pixels.clone(), y+dy, x+dx+i*8, col);
                     }
                 }
             }
@@ -89,7 +115,7 @@ impl GameEngine{
             match command{
                 Commands::Log(msg) => println!("{}", format!("[Lua] {}", msg)),
                 Commands::SetFrameRate(rate) => *self.frame_rate.borrow_mut() = *rate,
-                Commands::Draw(x, y, file) => self.draw(*x, *y, file.clone()),
+                Commands::Draw(x, y, file) => { let _ = self.draw(*x, *y, file.clone()); },
                 Commands::PrintScr(x, y, col, msg) => self.print_scr(*x, *y, *col, msg.clone()),
                 Commands::Button(x, y, msg) => self.button(*x, *y, msg.clone()),
             }
