@@ -9,6 +9,8 @@ Lua bindings for the GoonMachine
 ## Features
 - Implemented modularization for vanilla Lua API
 - Auto runs main.lua in /scripts
+- Implements sprites and exposes them to lua
+    - the draw function is defined and called each frame for every sprite
 
 ## API
 - start() is called at the start of the program

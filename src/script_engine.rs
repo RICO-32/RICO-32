@@ -1,10 +1,11 @@
 use mlua::prelude::*;
-use std::sync::{Arc, Mutex};
+use std::cell::RefCell;
+use std::rc::Rc;
 use mlua::StdLib;
 use std::{fs, i32, thread, time};
 use std::time::Instant;
 
-use crate::sprite::Sprite;
+use crate::sprite::{Sprite, SpriteHandle};
 
 const MILLIS_IN_SEC: u64 = 1000;
 
@@ -12,7 +13,8 @@ pub struct ScriptEngine {
     lua: Lua,
     scripts_dir: String,
     last_time: Instant,
-    frame_rate: Arc<Mutex<i32>>
+    frame_rate: Rc<RefCell<i32>>,
+    sprites: Rc<RefCell<Vec<Rc<RefCell<Sprite>>>>>,
 }
 
 impl ScriptEngine {
@@ -28,7 +30,8 @@ impl ScriptEngine {
             lua,
             scripts_dir: scripts_dir.into(),
             last_time: Instant::now(),
-            frame_rate: Arc::from(Mutex::from(60))
+            frame_rate: Rc::from(RefCell::from(60)),
+            sprites: Rc::from(RefCell::from(Vec::new())),
         };
 
         engine.register_api()?;
@@ -37,16 +40,30 @@ impl ScriptEngine {
         Ok(engine)
     }
 
+    /* Expose the sprites api to Lua
+     * Functions defined in readme
+     */
+    fn register_sprites(&mut self) -> LuaResult<()>{
+        let globals = self.lua.globals();
+
+        let sprites_vec = self.sprites.clone();
+        let sprite_table = self.lua.create_table()?;
+        let new_fn = self.lua.create_function(move |_, (file, x, y, size): (String, i32, i32, i32)| {
+                let sprite = Rc::new(RefCell::new(Sprite::new(file, x, y, size)));
+                sprites_vec.borrow_mut().push(Rc::clone(&sprite));
+                Ok(SpriteHandle(sprite)) 
+            }
+        )?;
+        sprite_table.set("new", new_fn)?;
+        globals.set("Sprite", sprite_table)?;
+        Ok(())
+    }
+
     //Define all lua api functions here 
     fn register_api(&mut self) -> LuaResult<()> {
         let globals = self.lua.globals();
 
-        let sprite_table = self.lua.create_table()?;
-        let new_fn = self.lua.create_function(|_, (file, x, y, size): (String, i32, i32, i32)| {
-            Ok(Sprite::new(file, x, y, size))
-        })?;
-        sprite_table.set("new", new_fn)?;
-        globals.set("Sprite", sprite_table)?;
+        let _ = self.register_sprites();
         
         globals.set(
             "log",
@@ -63,7 +80,7 @@ impl ScriptEngine {
             self.lua.create_function(move |_, msg: String| {
                 let x = msg.parse::<i32>()
                     .map_err(|_| mlua::Error::RuntimeError(format!("Invalid frame rate: {}", msg)))?;
-                *frame_rate.lock().unwrap() = x;
+                *frame_rate.borrow_mut() = x;
                 Ok(())
             })?,
         )?;
@@ -126,12 +143,16 @@ impl ScriptEngine {
         let dt = now.duration_since(self.last_time).as_millis();
         self.last_time = now;
         self.sync();
+        let sprites_vec = self.sprites.clone();
+        for sprite in sprites_vec.borrow().iter(){
+            sprite.borrow().draw();
+        }
         self.call_update(dt)
     }
 
     //Artifically syncs frame rate, idk a better way to do this
     fn sync(&self){
-        let sync_wait = MILLIS_IN_SEC/(*self.frame_rate.lock().unwrap()) as u64;
+        let sync_wait = MILLIS_IN_SEC/(*self.frame_rate.borrow()) as u64;
         thread::sleep(time::Duration::from_millis(sync_wait));
     }
 
