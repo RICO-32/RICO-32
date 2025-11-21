@@ -22,13 +22,13 @@ impl ScriptEngine {
      * Redo the engine initialization whenever restarting the game in the engine
      * Call new, boot, and call_start
      */
-    pub fn new(scripts_dir: impl Into<String>) -> LuaResult<Self> {
+    pub fn new(scripts_dir: &str) -> LuaResult<Self> {
         let options = LuaOptions::new();
         let lua = Lua::new_with(StdLib::ALL_SAFE, options).expect("Could not load lua state");
 
         let mut engine = ScriptEngine {
             lua,
-            scripts_dir: scripts_dir.into(),
+            scripts_dir: String::from(scripts_dir),
             last_time: Instant::now(),
             frame_rate: Rc::from(RefCell::from(60)),
             sprites: Rc::from(RefCell::from(Vec::new())),
@@ -49,6 +49,8 @@ impl ScriptEngine {
         let sprites_vec = self.sprites.clone();
         let sprite_table = self.lua.create_table()?;
         let new_fn = self.lua.create_function(move |_, (file, x, y, size): (String, i32, i32, i32)| {
+                //LOTS of bullshit to use references instead of direct objects
+                //Necessary cause we want both Rust and Lua to have full access to these objects
                 let sprite = Rc::new(RefCell::new(Sprite::new(file, x, y, size)));
                 sprites_vec.borrow_mut().push(Rc::clone(&sprite));
                 Ok(SpriteHandle(sprite)) 

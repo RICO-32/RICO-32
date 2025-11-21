@@ -1,6 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 use mlua::UserData;
 
+//Base sprite struct to hold all data
 pub struct Sprite{
     file: String,
     x: i32,
@@ -13,13 +14,21 @@ impl Sprite{
         Sprite { file, x, y, size }
     }
 
+    //Will be called every frame
     pub fn draw(&self){
         println!("Trying to draw {}", self.file);
     }
 }
 
+/* Don't wanna give Lua full access to the sprite so that we can keep access to it too
+ * Just hands it a mutable reference wrapped in a handler
+ * Kind of jank but doesn't really matter cause we have to implement the bindings ourselves anyway
+ */
 pub struct SpriteHandle(pub Rc<RefCell<Sprite>>);
 
+/* mlua specific, add bindings for lua object to interact
+ * with our custom struct
+ */
 impl UserData for SpriteHandle {
     fn add_fields<F: mlua::UserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("x", |_, this| Ok(this.0.borrow().x));
