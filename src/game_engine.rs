@@ -8,27 +8,36 @@ use crate::script_engine::ScriptEngine;
 const BASE_FPS: i32 = 60;
 const MILLIS_IN_SEC: u64 = 1000;
 
+pub enum Commands{
+    Log(String),
+    SetFrameRate(i32),
+    Draw(i32, i32, String),
+    Button(i32, i32, String),
+    PrintScr(i32, i32, String),
+}
+
 pub struct GameEngine{
     script_engine: ScriptEngine,
     last_time: Instant,
     frame_rate: Rc<RefCell<i32>>,
+    commands: Rc<RefCell<Vec<Commands>>>
 }
 
 impl GameEngine{
-    pub fn new() -> LuaResult<Rc<RefCell<Self>>> {
+    pub fn new() -> LuaResult<Self> {
         let frame_rate = Rc::from(RefCell::from(BASE_FPS));
         let engine = ScriptEngine::new("scripts")?;
 
-        let game_engine = Rc::from(RefCell::from(GameEngine {
+        let mut game_engine = GameEngine {
             script_engine: engine,
             last_time: Instant::now(),
             frame_rate: frame_rate.clone(),
-        }));
+            commands: Rc::from(RefCell::from(Vec::new())),
+        };
 
-        game_engine.borrow().script_engine.boot()?;
-        let ge_clone = Rc::clone(&game_engine);
-        game_engine.borrow_mut().script_engine.register_api(frame_rate.clone(), ge_clone)?;
-        game_engine.borrow().script_engine.call_start()?;
+        game_engine.script_engine.boot()?;
+        game_engine.script_engine.register_api(game_engine.commands.clone())?;
+        game_engine.script_engine.call_start()?;
 
         Ok(game_engine)
     }
@@ -50,7 +59,21 @@ impl GameEngine{
         let dt = now.duration_since(self.last_time).as_millis();
         self.last_time = now;
         self.sync();
+        self.run_commands();
         self.script_engine.call_update(dt)
+    }
+
+    fn run_commands(&mut self){
+        for command in self.commands.clone().borrow().iter(){
+            match command{
+                Commands::Log(msg) => println!("{}", format!("[Lua] {}", msg)),
+                Commands::SetFrameRate(rate) => *self.frame_rate.borrow_mut() = *rate,
+                Commands::Draw(x, y, file) => self.draw(*x, *y, file.clone()),
+                Commands::PrintScr(x, y, msg) => self.print_src(*x, *y, msg.clone()),
+                Commands::Button(x, y, msg) => self.button(*x, *y, msg.clone()),
+            }
+        }
+        self.commands.borrow_mut().clear();
     }
     
     //Artificially syncs frame rate, idk a better way to do this

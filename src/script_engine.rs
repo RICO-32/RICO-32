@@ -4,8 +4,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::{fs};
 
-use crate::game_engine;
-use crate::game_engine::GameEngine;
+use crate::game_engine::Commands;
 
 pub struct ScriptEngine {
     pub lua: Lua,
@@ -32,28 +31,60 @@ impl ScriptEngine {
     }
 
     //Define all lua API functions here 
-    pub fn register_api(&mut self, frame_rate: Rc<RefCell<i32>>, game_engine: Rc<RefCell<GameEngine>>) -> LuaResult<()> {
+    pub fn register_api(&mut self, commands: Rc<RefCell<Vec<Commands>>>) -> LuaResult<()> {
         let globals = self.lua.globals();
 
+        let com_rc = commands.clone();
         globals.set(
             "log",
-            self.lua.create_function(|_, msg: String| {
-                println!("[Lua] {}", msg);
+            self.lua.create_function(move |_, msg: String| {
+                com_rc.borrow_mut().push(Commands::Log(msg.clone()));
                 Ok(())
             })?,
         )?;
 
         //Mutex bs to deal with lua functions being global, avoids self going out of scope
+        let com_rc = commands.clone();
         globals.set(
             "set_frame_rate",
             self.lua.create_function(move |_, msg: String| {
                 let x = msg.parse::<i32>()
                     .map_err(|_| mlua::Error::RuntimeError(format!("Invalid frame rate: {}", msg)))?;
-                *frame_rate.borrow_mut() = x;
+                com_rc.borrow_mut().push(Commands::SetFrameRate(x));
                 Ok(())
             })?,
         )?;
 
+        let com_rc = commands.clone();
+        let _ = self.populate_lua_api("draw", move |x, y, msg| {
+            com_rc.borrow_mut().push(Commands::Draw(x, y, msg));
+            Ok(())
+        });
+
+        let com_rc = commands.clone();
+        let _ = self.populate_lua_api("print_scr", move |x, y, msg| {
+            com_rc.borrow_mut().push(Commands::PrintScr(x, y, msg));
+            Ok(())
+        });
+
+        let com_rc = commands.clone();
+        let _ = self.populate_lua_api("button", move |x, y, msg| {
+            com_rc.borrow_mut().push(Commands::Button(x, y, msg));
+            Ok(())
+        });
+
+        Ok(())
+    }
+
+    fn populate_lua_api<F>(&self, name: &str, f: F) -> LuaResult<()>
+    where F: 'static + Fn(i32, i32, String) -> LuaResult<()>{
+        let globals = self.lua.globals();
+        globals.set(
+            name,
+            self.lua.create_function(move |_, (x, y, msg): (i32, i32, String)| {
+                f(x, y, msg)
+            })?,
+        )?;
         Ok(())
     }
 
