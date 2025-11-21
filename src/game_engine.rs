@@ -82,18 +82,23 @@ impl GameEngine{
 
     //Artificially syncs frame rate, idk a better way to do this
     fn sync(&mut self) -> u128 {
-        let mut sync_wait = MILLIS_IN_SEC/(*self.frame_rate.borrow()) as u128;
-        let now = Instant::now();
-        let time_since = now.duration_since(self.last_time).as_millis();
-
-        if time_since > 0 && time_since < sync_wait{
-            sync_wait -= time_since;
+        let frame_rate = *self.frame_rate.borrow();
+        if frame_rate <= 0 {
+            let now = Instant::now();
+            let dt = self.last_time.elapsed().as_millis();
+            self.last_time = now;
+            return dt;
         }
 
-        thread::sleep(time::Duration::from_millis(sync_wait as u64));
-        let now = Instant::now();
-        let dt = now.duration_since(self.last_time).as_millis();
-        self.last_time = now;
+        let target_frame_time = time::Duration::from_millis((MILLIS_IN_SEC as f64 / frame_rate as f64) as u64);
+        let elapsed_time = self.last_time.elapsed();
+
+        if elapsed_time < target_frame_time {
+            thread::sleep(target_frame_time - elapsed_time);
+        }
+
+        let dt = self.last_time.elapsed().as_millis();
+        self.last_time = Instant::now();
         dt
     }
 }

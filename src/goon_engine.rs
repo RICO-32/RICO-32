@@ -30,7 +30,6 @@ pub trait ScreenEngine {
  * Engines should implement the Engine trait
  */
 pub struct GoonEngine{
-    buffer: Vec<u8>,
     game_engine: GameEngine,
     state: i32
 }
@@ -38,7 +37,6 @@ pub struct GoonEngine{
 impl GoonEngine{
     pub fn new() -> LuaResult<Self>{
         let engine = GoonEngine{
-            buffer: vec![0u8; (WINDOW_SIZE * WINDOW_SIZE * 4) as usize],
             game_engine: GameEngine::new()?,
             state: 0
         };
