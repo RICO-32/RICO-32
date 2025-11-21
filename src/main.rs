@@ -1,15 +1,12 @@
 use mlua::prelude::*;
 
 mod script_engine;
-use script_engine::ScriptEngine;
 
-mod sprite;
+mod game_engine;
+use game_engine::GameEngine;
 
 fn main() -> LuaResult<()> {
-    let mut engine = ScriptEngine::new("scripts")?;
-
-    engine.boot()?;
-    engine.call_start()?;
+    let mut engine = GameEngine::new()?;
 
     loop {
         engine.update()?;
