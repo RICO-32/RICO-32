@@ -4,9 +4,10 @@ use std::{thread, time};
 use mlua::prelude::LuaResult;
 
 use crate::script_engine::ScriptEngine;
+use crate::goon_engine::ScreenEngine;
 
 const BASE_FPS: i32 = 60;
-const MILLIS_IN_SEC: u64 = 1000;
+const MILLIS_IN_SEC: u128 = 1000;
 
 /* Enum of all command types
  * Add command here for any new defined commands
@@ -60,16 +61,6 @@ impl GameEngine{
         println!("Adding text {} at {} {}", msg, x, y);
     }
 
-    //Syncs with frame rate, runs all queued up commands from this prev frame, calls main update
-    pub fn update(&mut self) -> LuaResult<()> {
-        let now = Instant::now();
-        let dt = now.duration_since(self.last_time).as_millis();
-        self.last_time = now;
-        self.sync();
-        self.run_commands();
-        self.script_engine.call_update(dt)
-    }
-
     //Run all commands and free up vector
     fn run_commands(&mut self){
         for command in self.commands.clone().borrow().iter(){
@@ -85,9 +76,29 @@ impl GameEngine{
     }
     
     //Artificially syncs frame rate, idk a better way to do this
-    fn sync(&self){
-        let sync_wait = MILLIS_IN_SEC/(*self.frame_rate.borrow()) as u64;
-        thread::sleep(time::Duration::from_millis(sync_wait));
+    fn sync(&mut self) -> u128 {
+        let mut sync_wait = MILLIS_IN_SEC/(*self.frame_rate.borrow()) as u128;
+        let now = Instant::now();
+        let time_since = now.duration_since(self.last_time).as_millis();
+
+        if time_since > 0 && time_since < sync_wait{
+            sync_wait -= time_since;
+        }
+
+        thread::sleep(time::Duration::from_millis(sync_wait as u64));
+        let now = Instant::now();
+        let dt = now.duration_since(self.last_time).as_millis();
+        self.last_time = now;
+        dt
     }
 
+}
+
+impl ScreenEngine for GameEngine{
+    //Syncs with frame rate, runs all queued up commands from this prev frame, calls main update
+    fn update(&mut self) -> LuaResult<()> {
+        let dt = self.sync();
+        self.run_commands();
+        self.script_engine.call_update(dt)
+    }
 }
