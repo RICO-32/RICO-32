@@ -13,6 +13,7 @@ use crate::game_engine::{GameEngine};
 use crate::colors::COLORS;
 
 pub const SCREEN_SIZE: u32 = 128;
+pub const WINDOW_SIZE: u32 = SCREEN_SIZE * 4;
 
 pub type PixelsType = [[COLORS; SCREEN_SIZE as usize]; SCREEN_SIZE as usize];
 
@@ -37,7 +38,7 @@ pub struct GoonEngine{
 impl GoonEngine{
     pub fn new() -> LuaResult<Self>{
         let engine = GoonEngine{
-            buffer: vec![0u8; (SCREEN_SIZE * SCREEN_SIZE * 4) as usize],
+            buffer: vec![0u8; (WINDOW_SIZE * WINDOW_SIZE * 4) as usize],
             game_engine: GameEngine::new()?,
             state: 0
         };
@@ -45,25 +46,15 @@ impl GoonEngine{
         Ok(engine)
     }
 
-    pub fn start(mut self) -> Result<(), Box<dyn std::error::Error>>{
+    pub fn start(self) -> Result<(), Box<dyn std::error::Error>>{
         let event_loop = EventLoop::new();
         let window = WindowBuilder::new()
             .with_title("The Goon Engine")
-            .with_inner_size(LogicalSize::new(SCREEN_SIZE as f64, SCREEN_SIZE as f64))
+            .with_inner_size(LogicalSize::new(WINDOW_SIZE as f64, WINDOW_SIZE as f64))
             .build(&event_loop)?;
 
-        let surface_texture = SurfaceTexture::new(SCREEN_SIZE, SCREEN_SIZE, &window);
-        let mut pixels = Pixels::new(SCREEN_SIZE, SCREEN_SIZE, surface_texture)?;
-
-        for y in 0..SCREEN_SIZE {
-            for x in 0..SCREEN_SIZE {
-                let i = ((y * SCREEN_SIZE + x) * 4) as usize;
-                self.buffer[i] = (x as u8).wrapping_mul(3);
-                self.buffer[i + 1] = (y as u8).wrapping_mul(2);
-                self.buffer[i + 2] = ((x ^ y) as u8).wrapping_mul(1);
-                self.buffer[i + 3] = 0xFF; 
-            }
-        }
+        let surface_texture = SurfaceTexture::new(WINDOW_SIZE, WINDOW_SIZE, &window);
+        let mut pixels = Pixels::new(WINDOW_SIZE, WINDOW_SIZE, surface_texture)?;
 
         let engine_rc = Rc::new(RefCell::new(self)).clone();
         // Event loop: Poll so we run as fast as possible and continuously request redraws.
@@ -106,21 +97,27 @@ impl GoonEngine{
 
     //Make sure to update engines here based on which screen it's on
     pub fn update(&mut self) -> LuaResult<()> {
-        let mut pixels = Rc::from(RefCell::from(COLORS::pixels()));
-        match self.state {
+        let pixels = match self.state {
             0 => {
                 self.game_engine.update()?;
-                pixels = self.game_engine.pixels();
+                self.game_engine.pixels()
             },
-            _ => ()
+            _ => Rc::from(RefCell::from(COLORS::pixels()))
         };
 
         let pixels_rc = pixels.borrow();
+        let scale = (WINDOW_SIZE / SCREEN_SIZE) as usize;
         for y in 0..SCREEN_SIZE as usize{
             for x in 0..SCREEN_SIZE as usize{
-                self.buffer[(y * SCREEN_SIZE as usize + x) * 4 + 0] = pixels_rc[y][x].0;
-                self.buffer[(y * SCREEN_SIZE as usize + x) * 4 + 1] = pixels_rc[y][x].1;
-                self.buffer[(y * SCREEN_SIZE as usize + x) * 4 + 2] = pixels_rc[y][x].2;
+                for dy in 0..scale{
+                    for dx in 0..scale{
+                        let idx = (y * scale + dy) * WINDOW_SIZE as usize + (x * scale + dx);
+                        self.buffer[idx * 4 + 0] = pixels_rc[y][x].0;
+                        self.buffer[idx * 4 + 1] = pixels_rc[y][x].1;
+                        self.buffer[idx * 4 + 2] = pixels_rc[y][x].2;
+                        self.buffer[idx * 4 + 3] = 0xFF;
+                    }
+                }
             }
         }
 
