@@ -9,7 +9,6 @@ function update(dt)
 	player.upd()
 	clear("BLACK")
 	draw(1, 2, "main.png")
-	button(1, 2, "WOWAZA")
 	print_scr(1, 50, "GREEN", "WOWAZA")
 	draw(1, 45, "correct.png")
 	if player.x % 10 == 0 then

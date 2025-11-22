@@ -1,70 +1,147 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap};
 use std::{cell::RefCell, rc::Rc, time::Instant};
 use std::{thread, time};
 
+use image::{ImageBuffer, ImageReader, Rgba};
 use mlua::prelude::LuaResult;
 
-use crate::colors::COLORS;
+use crate::colors::{color_from_str, str_from_color, COLORS};
 use crate::script_engine::ScriptEngine;
-use crate::goon_engine::{PixelsType, ScreenEngine};
+use crate::goon_engine::{PixelsType, ScreenEngine, SCREEN_SIZE};
+use crate::utils::{clear, draw, print_scr, set_pix};
 
 const BASE_FPS: i32 = 60;
 const MILLIS_IN_SEC: u128 = 1000;
 
-/* Enum of all command types
- * Add command here for any new defined commands
- */
-pub enum Commands{
-    Log(String),
-    SetFrameRate(i32),
-    Button(usize, usize, String),
-}
-
 pub struct GameEngine{
-    script_engine: ScriptEngine,
+    pub script_engine: ScriptEngine,
     last_time: Instant,
     frame_rate: Rc<RefCell<i32>>,
-    commands: Rc<RefCell<VecDeque<Commands>>>,
     pixels: Rc<RefCell<PixelsType>>,
+    sprites: Rc<RefCell<HashMap<String, ImageBuffer<Rgba<u8>, Vec<u8>>>>>
 }
 
 impl GameEngine{
     pub fn new() -> LuaResult<Self> {
-        let frame_rate = Rc::from(RefCell::from(BASE_FPS));
-        let engine = ScriptEngine::new("scripts")?;
+        let frame_rate = Rc::new(RefCell::new(BASE_FPS));
+        let script_engine = ScriptEngine::new("scripts")?;
 
-        //Make engine using script
-        let mut game_engine = GameEngine {
-            script_engine: engine,
+        let mut eng = GameEngine {
+            script_engine,
             last_time: Instant::now(),
             frame_rate: frame_rate.clone(),
-            commands: Rc::from(RefCell::from(VecDeque::new())),
-            pixels: Rc::from(RefCell::from(COLORS::pixels())),
+            pixels: Rc::new(RefCell::new(COLORS::pixels())),
+            sprites: Rc::new(RefCell::new(HashMap::new())),
         };
 
-        //All init functions
-        game_engine.script_engine.boot()?;
+        eng.script_engine.boot()?;
+        let _ = eng.register_api();
+        eng.script_engine.call_start()?;
 
-        game_engine.script_engine.register_api_commands(game_engine.commands.clone())?;
-        game_engine.script_engine.register_api_in_place(game_engine.pixels.clone())?;
-        game_engine.script_engine.call_start()?;
-
-        Ok(game_engine)
+       Ok(eng)
     }
 
-    pub fn button(&mut self, _x: usize, _y: usize, _msg: String){
-    }
+    //Define all lua API functions here
+    pub fn register_api(&mut self) -> LuaResult<()> {
+        let eng_rc = Rc::from(RefCell::from(self));
+        let lua = &eng_rc.borrow().script_engine.lua;
+        let globals = lua.globals();
 
-    //Run all commands and free up vector
-    fn run_commands(&mut self){
-        while let Some(command) = self.commands.clone().borrow_mut().pop_front(){
-            match command{
-                Commands::Log(msg) => println!("{}", format!("[Lua] {}", msg)),
-                Commands::SetFrameRate(rate) => *self.frame_rate.borrow_mut() = rate,
-                Commands::Button(x, y, msg) => self.button(x, y, msg.clone()),
-            }
-        }
-        self.commands.borrow_mut().clear();
+        globals.set(
+            "log",
+            lua.create_function(move |_, msg: String| {
+                println!("{}", format!("[Lua] {}", msg));
+                Ok(())
+            })?,
+        )?;
+
+        let pix_rc = eng_rc.clone().borrow().pixels.clone();
+        globals.set(
+            "set_pix",
+            lua.create_function(move |_, (x, y, col): (usize, usize, String)| {
+                if let Some(val) = color_from_str(&col.to_string()){
+                    if y >= SCREEN_SIZE as usize || x >= SCREEN_SIZE as usize{
+                        return Err(mlua::prelude::LuaError::RuntimeError(format!(
+                                    "Pixel coordinates out of bounds: {}, {}",
+                                    x, y
+                        )));
+                    }
+                    set_pix(pix_rc.clone(), y, x, val);
+                }
+                Ok(())
+            })?,
+        )?;
+
+        let pix_rc = eng_rc.clone().borrow().pixels.clone();
+        globals.set(
+            "get_pix",
+            lua.create_function(move |_, (x, y): (usize, usize)| {
+                if y >= SCREEN_SIZE as usize || x >= SCREEN_SIZE as usize{
+                    return Err(mlua::prelude::LuaError::RuntimeError(format!(
+                                "Pixel coordinates out of bounds: {}, {}",
+                                x, y
+                    )));
+                }
+                Ok(str_from_color(pix_rc.borrow()[y][x]))
+            })?,
+        )?;
+
+        let pix_rc = eng_rc.borrow().pixels.clone();
+        globals.set(
+            "print_scr",
+            lua.create_function(move |_, (x, y, col, msg): (usize, usize, String, String)| {
+                if let Some(val) = color_from_str(col.as_str()){
+                    print_scr(pix_rc.clone(), x, y, val, msg);
+                }
+                Ok(())
+            })?,
+        )?;
+
+        let sprites_rc = eng_rc.borrow().sprites.clone();
+        let pix_rc = eng_rc.borrow().pixels.clone();
+        globals.set(
+            "draw",
+            lua.create_function(move |_, (x, y, file): (usize, usize, String)| {
+                let mut sprites = sprites_rc.borrow_mut();
+                let img = match sprites.get(&file) {
+                    Some(img) => img,
+                    None => {
+                        let loaded = ImageReader::open(format!("assets/{}", file))
+                            .map_err(mlua::Error::external)?
+                            .decode()
+                            .map_err(mlua::Error::external)?
+                            .to_rgba8();
+
+                        sprites.insert(file.clone(), loaded);
+                        sprites.get(&file).unwrap()
+                    }
+                };
+
+                draw(pix_rc.clone(), x, y, img).map_err(mlua::Error::external)
+            })?,
+        )?;
+
+        let frame_rate_rc = eng_rc.borrow().frame_rate.clone();
+        globals.set(
+            "set_frame_rate",
+            lua.create_function(move |_, rate: i32| {
+                *frame_rate_rc.borrow_mut() = rate;
+                Ok(())
+            })?,
+        )?;
+
+        let pix_rc = eng_rc.borrow().pixels.clone();
+        globals.set(
+            "clear",
+            lua.create_function(move |_, col: String| {
+                if let Some(val) = color_from_str(col.as_str()){
+                    clear(pix_rc.clone(), val);
+                }
+                Ok(())
+            })?,
+        )?;
+
+        Ok(())
     }
 
     //Artificially syncs frame rate, idk a better way to do this
@@ -97,7 +174,6 @@ impl ScreenEngine for GameEngine{
     //Syncs with frame rate, runs all queued up commands from this prev frame, calls main update
     fn update(&mut self) -> LuaResult<()> {
         let dt = self.sync();
-        self.run_commands();
         self.script_engine.call_update(dt)
     }
 }
