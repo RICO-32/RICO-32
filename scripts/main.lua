@@ -18,11 +18,9 @@ function update(dt)
 		local y = math.random(0, 127)
 		local cols = {"GREEN", "CYAN", "BLUE", "RED", "TEAL"}
 		local col = cols[math.random(1, #cols)]
-		local old_col = get_pix(x, y)
-		log("Pixel " .. tostring(x) .. " " .. tostring(y) .. " was " .. old_col)
+		log("Pixel " .. tostring(x) .. " " .. tostring(y) .. " was " .. get_pix(x,y))
 		set_pix(x, y, col)
-		local new_col = get_pix(x, y)
-		log("Pixel " .. tostring(x) .. " " .. tostring(y) .. " is " .. new_col)
+		log("Pixel " .. tostring(x) .. " " .. tostring(y) .. " is " .. get_pix(x,y))
 	end
 	if player.x % 20 == 0 then
 		clear("GREEN")

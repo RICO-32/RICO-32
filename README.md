@@ -30,9 +30,6 @@ The ultimate pico clone because it's a cool ass idea
 - Accessing from Lua API is simply the string "COLOR_NAME"
 - "BLACK", "WHITE", "RED", "LIME", "BLUE", "YELLOW", "CYAN", "MAGENTA", "SILVER", "GRAY", "MAROON", "OLIVE", "GREEN", "PURPLE", "TEAL", "NAVY"
 
-## Things to note
-- Do not call nested API funcs (Ex: log(get_pix(0, 0))), not supported for now
-
 ## License
 
 The Goon Machine is made available under the MIT [License](./LICENSE).
