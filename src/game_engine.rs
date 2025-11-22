@@ -5,10 +5,10 @@ use std::{thread, time};
 use image::{ImageBuffer, ImageReader, Rgba};
 use mlua::prelude::LuaResult;
 
-use crate::colors::{color_from_str, str_from_color, COLORS};
+use crate::utils::colors::{color_from_str, str_from_color, COLORS};
+use crate::utils::pixels::{clear, draw, print_scr, rect, rect_fill, set_pix};
 use crate::script_engine::ScriptEngine;
 use crate::goon_engine::{PixelsType, ScreenEngine, SCREEN_SIZE};
-use crate::utils::{clear, draw, print_scr, rect, rect_fill, set_pix};
 
 const BASE_FPS: i32 = 60;
 const MILLIS_IN_SEC: u128 = 1000;

@@ -2,7 +2,8 @@ use std::{cell::RefCell, error::Error, rc::Rc};
 
 use image::{ImageBuffer, Rgba};
 
-use crate::{bitmap::BITMAP, colors::COLORS, goon_engine::{PixelsType, SCREEN_SIZE}};
+use crate::utils::{bitmap::BITMAP, colors::COLORS};
+use crate::goon_engine::{PixelsType, SCREEN_SIZE};
 
 pub fn set_pix(pixels: Rc<RefCell<PixelsType>>, y: usize, x: usize, col: COLORS){
     //If the new pixel has 0 alpha, just keep the old guy

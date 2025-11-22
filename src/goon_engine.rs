@@ -10,7 +10,7 @@ use winit::{
 };
 
 use crate::game_engine::{GameEngine};
-use crate::colors::COLORS;
+use crate::utils::colors::COLORS;
 
 pub const SCREEN_SIZE: u32 = 128;
 pub const WINDOW_SIZE: u32 = SCREEN_SIZE * 4;
