@@ -1,6 +1,8 @@
 use mlua::prelude::*;
+
 use mlua::StdLib;
 use std::cell::RefCell;
+use std::collections::VecDeque;
 use std::rc::Rc;
 use std::{fs};
 
@@ -9,6 +11,8 @@ use crate::colors::str_from_color;
 use crate::game_engine::Commands;
 use crate::goon_engine::PixelsType;
 use crate::goon_engine::SCREEN_SIZE;
+use crate::utils::draw;
+use crate::utils::print_scr;
 use crate::utils::set_pix;
 
 pub struct ScriptEngine {
@@ -70,38 +74,48 @@ impl ScriptEngine {
             })?,
         )?;
 
+        let pix_rc = pixels.clone();
+        globals.set(
+            "print_scr",
+            self.lua.create_function(move |_, (x, y, col, msg): (usize, usize, String, String)| {
+                if let Some(val) = color_from_str(col.as_str()){
+                    print_scr(pix_rc.clone(), x, y, val, msg);
+                }
+                Ok(())
+            })?,
+        )?;
+
+        let pix_rc = pixels.clone();
+        globals.set(
+            "draw",
+            self.lua.create_function(move |_, (x, y, file): (usize, usize, String)| {
+                let _ = draw(pix_rc.clone(), x, y, file);
+                Ok(())
+            })?,
+        )?;
+
         Ok(())
     }
 
     //Define all lua API functions here that go into the commands vec in game engine
-    pub fn register_api_commands(&mut self, commands: Rc<RefCell<Vec<Commands>>>) -> LuaResult<()> {
+    pub fn register_api_commands(&mut self, commands: Rc<RefCell<VecDeque<Commands>>>) -> LuaResult<()> {
         let globals = self.lua.globals();
 
         let com_rc = commands.clone();
         globals.set(
             "log",
             self.lua.create_function(move |_, msg: String| {
-                com_rc.borrow_mut().push(Commands::Log(msg.clone()));
+                com_rc.borrow_mut().push_back(Commands::Log(msg.clone()));
                 Ok(())
             })?,
         )?;
 
-        //Mutex bs to deal with lua functions being global, avoids self going out of scope
         let com_rc = commands.clone();
         globals.set(
             "set_frame_rate",
             self.lua.create_function(move |_, rate: i32| {
                 println!("{}", rate);
-                com_rc.borrow_mut().push(Commands::SetFrameRate(rate));
-                Ok(())
-            })?,
-        )?;
-
-        let com_rc = commands.clone();
-        globals.set(
-            "draw",
-            self.lua.create_function(move |_, (x, y, msg): (usize, usize, String)| {
-                com_rc.borrow_mut().push(Commands::Draw(x, y, msg));
+                com_rc.borrow_mut().push_back(Commands::SetFrameRate(rate));
                 Ok(())
             })?,
         )?;
@@ -110,18 +124,7 @@ impl ScriptEngine {
         globals.set(
             "button",
             self.lua.create_function(move |_, (x, y, msg): (usize, usize, String)| {
-                com_rc.borrow_mut().push(Commands::Button(x, y, msg));
-                Ok(())
-            })?,
-        )?;
-
-        let com_rc = commands.clone();
-        globals.set(
-            "print_scr",
-            self.lua.create_function(move |_, (x, y, col, msg): (usize, usize, String, String)| {
-                if let Some(val) = color_from_str(col.as_str()){
-                    com_rc.borrow_mut().push(Commands::PrintScr(x, y, val, msg));
-                }
+                com_rc.borrow_mut().push_back(Commands::Button(x, y, msg));
                 Ok(())
             })?,
         )?;

@@ -1,15 +1,12 @@
-use std::error::Error;
+use std::collections::VecDeque;
 use std::{cell::RefCell, rc::Rc, time::Instant};
 use std::{thread, time};
 
-use image::ImageReader;
 use mlua::prelude::LuaResult;
 
-use crate::bitmap::BITMAP;
 use crate::colors::COLORS;
 use crate::script_engine::ScriptEngine;
-use crate::goon_engine::{PixelsType, ScreenEngine, SCREEN_SIZE};
-use crate::utils::set_pix;
+use crate::goon_engine::{PixelsType, ScreenEngine};
 
 const BASE_FPS: i32 = 60;
 const MILLIS_IN_SEC: u128 = 1000;
@@ -20,16 +17,14 @@ const MILLIS_IN_SEC: u128 = 1000;
 pub enum Commands{
     Log(String),
     SetFrameRate(i32),
-    Draw(usize, usize, String),
     Button(usize, usize, String),
-    PrintScr(usize, usize, COLORS, String),
 }
 
 pub struct GameEngine{
     script_engine: ScriptEngine,
     last_time: Instant,
     frame_rate: Rc<RefCell<i32>>,
-    commands: Rc<RefCell<Vec<Commands>>>,
+    commands: Rc<RefCell<VecDeque<Commands>>>,
     pixels: Rc<RefCell<PixelsType>>,
 }
 
@@ -43,7 +38,7 @@ impl GameEngine{
             script_engine: engine,
             last_time: Instant::now(),
             frame_rate: frame_rate.clone(),
-            commands: Rc::from(RefCell::from(Vec::new())),
+            commands: Rc::from(RefCell::from(VecDeque::new())),
             pixels: Rc::from(RefCell::from(COLORS::pixels())),
         };
 
@@ -57,67 +52,17 @@ impl GameEngine{
         Ok(game_engine)
     }
 
-    //Place holder functions
-    pub fn draw(&mut self, x: usize, y: usize, file: String) -> Result<(), Box<dyn Error>> {
-        let img = ImageReader::open(format!("assets/{}", file))?.decode()?;
-        let img = img.to_rgba8();
-        let (width, height) = img.dimensions();
-        println!("size: {} x {}", width, height);
-
-        if width != height || (width != 8 && width != 16 && width != 32) {
-            return Ok(());
-        }
-
-        for (dx, dy, pixel) in img.enumerate_pixels() {
-            let [r, g, b, a] = pixel.0;
-            if y+dy as usize >= SCREEN_SIZE as usize || x + dx as usize >= SCREEN_SIZE as usize {
-                continue;
-            }
-
-            set_pix(self.pixels.clone(), y+dy as usize, x+dx as usize, COLORS(r, g, b, a));
-        }
-
-        Ok(())
-    }
-
     pub fn button(&mut self, x: usize, y: usize, msg: String){
         println!("Making button {} at {} {}", msg, x, y);
     }
 
-    /* Loop over every character and use the 8x8 bitmap
-     * Use bitmasking to check which pixels to be set 
-     */
-    pub fn print_scr(&mut self, x: usize, y: usize, col: COLORS, msg: String){
-        for i in 0..msg.len(){
-            let c = msg.as_bytes().iter().nth(i).unwrap();
-            let mut idx: usize = (*c).into();
-            idx -= 32;
-            if idx >= BITMAP.len() {
-                idx = 0;
-            }
-
-            for dx in 0..8{
-                for dy in 0..8{
-                    if y+dy >= SCREEN_SIZE as usize || x + dx >= SCREEN_SIZE as usize {
-                        continue;
-                    }
-                    if BITMAP[idx][dy] >> (7-dx) & 1 == 1{
-                        set_pix(self.pixels.clone(), y+dy, x+dx+i*8, col);
-                    }
-                }
-            }
-        }
-    }
-
     //Run all commands and free up vector
     fn run_commands(&mut self){
-        for command in self.commands.clone().borrow().iter(){
+        while let Some(command) = self.commands.clone().borrow_mut().pop_front(){
             match command{
                 Commands::Log(msg) => println!("{}", format!("[Lua] {}", msg)),
-                Commands::SetFrameRate(rate) => *self.frame_rate.borrow_mut() = *rate,
-                Commands::Draw(x, y, file) => { let _ = self.draw(*x, *y, file.clone()); },
-                Commands::PrintScr(x, y, col, msg) => self.print_scr(*x, *y, *col, msg.clone()),
-                Commands::Button(x, y, msg) => self.button(*x, *y, msg.clone()),
+                Commands::SetFrameRate(rate) => *self.frame_rate.borrow_mut() = rate,
+                Commands::Button(x, y, msg) => self.button(x, y, msg.clone()),
             }
         }
         self.commands.borrow_mut().clear();
