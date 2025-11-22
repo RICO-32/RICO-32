@@ -25,20 +25,24 @@ pub trait ScreenEngine {
     fn update(&mut self) -> LuaResult<()>;    
 }
 
+enum StateEngines {
+    GameEngine
+}
+
 /* Add bindings for diff engines in this struct
  * All engines are different screens on the console
  * Engines should implement the Engine trait
  */
 pub struct GoonEngine{
     game_engine: GameEngine,
-    state: i32
+    state: StateEngines
 }
 
 impl GoonEngine{
     pub fn new() -> LuaResult<Self>{
         let engine = GoonEngine{
             game_engine: GameEngine::new()?,
-            state: 0
+            state: StateEngines::GameEngine
         };
 
         Ok(engine)
@@ -99,11 +103,10 @@ impl GoonEngine{
     //Make sure to update engines here based on which screen it's on
     pub fn update(&mut self, buffer: &mut [u8]) -> LuaResult<()> {
         let pixels = match self.state {
-            0 => {
+            StateEngines::GameEngine => {
                 self.game_engine.update()?;
                 self.game_engine.pixels()
-            },
-            _ => Rc::from(RefCell::from(COLORS::pixels()))
+            }
         };
 
         //Hydrate the screen based on scaling factors and stuff
