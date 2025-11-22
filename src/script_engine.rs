@@ -1,7 +1,11 @@
+use image::ImageBuffer;
+use image::ImageReader;
+use image::Rgba;
 use mlua::prelude::*;
 
 use mlua::StdLib;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::rc::Rc;
 use std::{fs};
@@ -11,6 +15,7 @@ use crate::colors::str_from_color;
 use crate::game_engine::Commands;
 use crate::goon_engine::PixelsType;
 use crate::goon_engine::SCREEN_SIZE;
+use crate::utils::clear;
 use crate::utils::draw;
 use crate::utils::print_scr;
 use crate::utils::set_pix;
@@ -18,6 +23,7 @@ use crate::utils::set_pix;
 pub struct ScriptEngine {
     pub lua: Lua,
     scripts_dir: String,
+    sprites: Rc<RefCell<HashMap<String, ImageBuffer<Rgba<u8>, Vec<u8>>>>>
 }
 
 impl ScriptEngine {
@@ -32,6 +38,7 @@ impl ScriptEngine {
         let engine = ScriptEngine {
             lua,
             scripts_dir: String::from(scripts_dir),
+            sprites: Rc::from(RefCell::from(HashMap::new()))
         };
 
         engine.register_loader()?;
@@ -86,10 +93,39 @@ impl ScriptEngine {
         )?;
 
         let pix_rc = pixels.clone();
+        let sprites_rc = self.sprites.clone();
         globals.set(
             "draw",
             self.lua.create_function(move |_, (x, y, file): (usize, usize, String)| {
-                let _ = draw(pix_rc.clone(), x, y, file);
+                let mut sprites = sprites_rc.borrow_mut();
+
+                let img = match sprites.get(&file) {
+                    Some(img) => img,
+                    None => {
+                        let loaded = ImageReader::open(format!("assets/{}", file))
+                            .map_err(mlua::Error::external)?
+                            .decode()
+                            .map_err(mlua::Error::external)?
+                            .to_rgba8();
+
+                        sprites.insert(file.clone(), loaded);
+                        sprites.get(&file).unwrap()
+                    }
+                };
+
+                draw(pix_rc.clone(), x, y, img).map_err(mlua::Error::external)?;
+
+                Ok(())
+            })?,
+        )?;
+
+        let pix_rc = pixels.clone();
+        globals.set(
+            "clear",
+            self.lua.create_function(move |_, col: String| {
+                if let Some(val) = color_from_str(col.as_str()){
+                    clear(pix_rc.clone(), val);
+                }
                 Ok(())
             })?,
         )?;

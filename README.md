@@ -23,7 +23,12 @@ The ultimate pico clone because it's a cool ass idea
 - get_pix(x, y) gets the pixel at x, y and returns with one of the 16 colors
 - print_scr(x, y, COLOR, text) prints the text to the screen at x, y
 - draw(x, y, file) draws the image at assets/file at x, y
+- clear(COLOR) fills the entire screen with the provided color
 - Placeholder button
+
+## Colors 
+- Accessing from Lua API is simply the string "COLOR_NAME"
+- "BLACK", "WHITE", "RED", "LIME", "BLUE", "YELLOW", "CYAN", "MAGENTA", "SILVER", "GRAY", "MAROON", "OLIVE", "GREEN", "PURPLE", "TEAL", "NAVY"
 
 ## Things to note
 - Do not call nested API funcs (Ex: log(get_pix(0, 0))), not supported for now

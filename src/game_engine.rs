@@ -52,8 +52,7 @@ impl GameEngine{
         Ok(game_engine)
     }
 
-    pub fn button(&mut self, x: usize, y: usize, msg: String){
-        println!("Making button {} at {} {}", msg, x, y);
+    pub fn button(&mut self, _x: usize, _y: usize, _msg: String){
     }
 
     //Run all commands and free up vector

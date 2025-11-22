@@ -1,6 +1,6 @@
 use std::{cell::RefCell, error::Error, rc::Rc};
 
-use image::ImageReader;
+use image::{ImageBuffer, Rgba};
 
 use crate::{bitmap::BITMAP, colors::COLORS, goon_engine::{PixelsType, SCREEN_SIZE}};
 
@@ -16,11 +16,8 @@ pub fn set_pix(pixels: Rc<RefCell<PixelsType>>, y: usize, x: usize, col: COLORS)
 
 
 //Place holder functions
-pub fn draw(pixels: Rc<RefCell<PixelsType>>, x: usize, y: usize, file: String) -> Result<(), Box<dyn Error>> {
-    let img = ImageReader::open(format!("assets/{}", file))?.decode()?;
-    let img = img.to_rgba8();
+pub fn draw(pixels: Rc<RefCell<PixelsType>>, x: usize, y: usize, img: &ImageBuffer<Rgba<u8>, Vec<u8>>) -> Result<(), Box<dyn Error>> {
     let (width, height) = img.dimensions();
-    println!("size: {} x {}", width, height);
 
     if width != height || (width != 8 && width != 16 && width != 32) {
         return Ok(());
@@ -59,6 +56,14 @@ pub fn print_scr(pixels: Rc<RefCell<PixelsType>>, x: usize, y: usize, col: COLOR
                     set_pix(pixels.clone(), y+dy, x+dx+i*8, col);
                 }
             }
+        }
+    }
+}
+
+pub fn clear(pixels: Rc<RefCell<PixelsType>>, col: COLORS){
+    for y in 0..SCREEN_SIZE as usize{
+        for x in 0..SCREEN_SIZE as usize{
+            set_pix(pixels.clone(), y, x, col);
         }
     }
 }
