@@ -23,13 +23,12 @@ pub struct GameEngine{
 
 impl GameEngine{
     pub fn new() -> LuaResult<Self> {
-        let frame_rate = Rc::new(RefCell::new(BASE_FPS));
         let script_engine = ScriptEngine::new("scripts")?;
 
         let mut eng = GameEngine {
             script_engine,
             last_time: Instant::now(),
-            frame_rate: frame_rate.clone(),
+            frame_rate: Rc::new(RefCell::new(BASE_FPS)),
             pixels: Rc::new(RefCell::new(COLORS::pixels())),
             sprites: Rc::new(RefCell::new(HashMap::new())),
         };
@@ -43,8 +42,7 @@ impl GameEngine{
 
     //Define all lua API functions here
     pub fn register_api(&mut self) -> LuaResult<()> {
-        let eng_rc = Rc::from(RefCell::from(self));
-        let lua = &eng_rc.borrow().script_engine.lua;
+        let lua = &self.script_engine.lua;
         let globals = lua.globals();
 
         globals.set(
@@ -55,7 +53,7 @@ impl GameEngine{
             })?,
         )?;
 
-        let pix_rc = eng_rc.clone().borrow().pixels.clone();
+        let pix_rc = self.pixels.clone();
         globals.set(
             "set_pix",
             lua.create_function(move |_, (x, y, col): (usize, usize, String)| {
@@ -72,7 +70,7 @@ impl GameEngine{
             })?,
         )?;
 
-        let pix_rc = eng_rc.clone().borrow().pixels.clone();
+        let pix_rc = self.pixels.clone();
         globals.set(
             "get_pix",
             lua.create_function(move |_, (x, y): (usize, usize)| {
@@ -86,7 +84,7 @@ impl GameEngine{
             })?,
         )?;
 
-        let pix_rc = eng_rc.borrow().pixels.clone();
+        let pix_rc = self.pixels.clone();
         globals.set(
             "print_scr",
             lua.create_function(move |_, (x, y, col, msg): (usize, usize, String, String)| {
@@ -97,8 +95,8 @@ impl GameEngine{
             })?,
         )?;
 
-        let sprites_rc = eng_rc.borrow().sprites.clone();
-        let pix_rc = eng_rc.borrow().pixels.clone();
+        let sprites_rc = self.sprites.clone();
+        let pix_rc = self.pixels.clone();
         globals.set(
             "draw",
             lua.create_function(move |_, (x, y, file): (usize, usize, String)| {
@@ -121,7 +119,7 @@ impl GameEngine{
             })?,
         )?;
 
-        let frame_rate_rc = eng_rc.borrow().frame_rate.clone();
+        let frame_rate_rc = self.frame_rate.clone();
         globals.set(
             "set_frame_rate",
             lua.create_function(move |_, rate: i32| {
@@ -130,7 +128,7 @@ impl GameEngine{
             })?,
         )?;
 
-        let pix_rc = eng_rc.borrow().pixels.clone();
+        let pix_rc = self.pixels.clone();
         globals.set(
             "clear",
             lua.create_function(move |_, col: String| {
