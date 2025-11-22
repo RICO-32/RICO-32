@@ -4,6 +4,12 @@ function start()
     log("Start function")
 end
 
+function draw_button(x, y, w, h, label)
+    rectfill(x, y, w, h, "CYAN")
+    rect(x, y, w, h, "MAGENTA")
+    print_scr(x+4, y+4, "PURPLE", label)
+end
+
 math.randomseed(os.time())
 function update(dt)
 	player.upd()
@@ -11,6 +17,7 @@ function update(dt)
 	draw(1, 2, "main.png")
 	print_scr(1, 50, "GREEN", "WOWAZA")
 	draw(1, 45, "correct.png")
+	draw_button(50, 50, 55, 15, "BUTTON")
 	if player.x % 10 == 0 then
 		log("Player's X is: " .. tostring(player.x) .. " and " .. tostring(dt) .. " time has passed")
 

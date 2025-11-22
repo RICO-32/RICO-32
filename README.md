@@ -24,6 +24,8 @@ The ultimate pico clone because it's a cool ass idea
 - print_scr(x, y, COLOR, text) prints the text to the screen at x, y
 - draw(x, y, file) draws the image at assets/file at x, y
 - clear(COLOR) fills the entire screen with the provided color
+- rectfill(x, y, w, h, COLOR) fills a rectangle with that specific color
+- rect(x, y, w, h, COLOR) creates a border rectangle with that specific color
 
 ## Colors 
 - Accessing from Lua API is simply the string "COLOR_NAME"

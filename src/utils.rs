@@ -11,6 +11,11 @@ pub fn set_pix(pixels: Rc<RefCell<PixelsType>>, y: usize, x: usize, col: COLORS)
     if col.3 == 0 {
         return;
     }
+
+    if y >= SCREEN_SIZE as usize || x >= SCREEN_SIZE as usize {
+        return;
+    }
+
     pixels.borrow_mut()[y][x] = col;
 }
 
@@ -25,10 +30,6 @@ pub fn draw(pixels: Rc<RefCell<PixelsType>>, x: usize, y: usize, img: &ImageBuff
 
     for (dx, dy, pixel) in img.enumerate_pixels() {
         let [r, g, b, a] = pixel.0;
-        if y+dy as usize >= SCREEN_SIZE as usize || x + dx as usize >= SCREEN_SIZE as usize {
-            continue;
-        }
-
         set_pix(pixels.clone(), y+dy as usize, x+dx as usize, COLORS(r, g, b, a));
     }
 
@@ -49,14 +50,31 @@ pub fn print_scr(pixels: Rc<RefCell<PixelsType>>, x: usize, y: usize, col: COLOR
 
         for dx in 0..8{
             for dy in 0..8{
-                if y+dy >= SCREEN_SIZE as usize || x + dx >= SCREEN_SIZE as usize {
-                    continue;
-                }
                 if BITMAP[idx][dy] >> (7-dx) & 1 == 1{
                     set_pix(pixels.clone(), y+dy, x+dx+i*8, col);
                 }
             }
         }
+    }
+}
+
+pub fn rect_fill(pixels: Rc<RefCell<PixelsType>>, x: usize, y: usize, w: usize, h: usize, col: COLORS){
+    for j in x..=x+w as usize{
+        for i in y..=y+h as usize{
+            set_pix(pixels.clone(), i, j, col);
+        }
+    }
+}
+
+pub fn rect(pixels: Rc<RefCell<PixelsType>>, x: usize, y: usize, w: usize, h: usize, col: COLORS){
+    for i in x..=x+w as usize{
+        set_pix(pixels.clone(), y, i, col);
+        set_pix(pixels.clone(), y+h, i, col);
+    }
+
+    for i in y..=y+h as usize{
+        set_pix(pixels.clone(), i, x, col);
+        set_pix(pixels.clone(), i, x+w, col);
     }
 }
 

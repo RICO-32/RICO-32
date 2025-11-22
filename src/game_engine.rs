@@ -8,7 +8,7 @@ use mlua::prelude::LuaResult;
 use crate::colors::{color_from_str, str_from_color, COLORS};
 use crate::script_engine::ScriptEngine;
 use crate::goon_engine::{PixelsType, ScreenEngine, SCREEN_SIZE};
-use crate::utils::{clear, draw, print_scr, set_pix};
+use crate::utils::{clear, draw, print_scr, rect, rect_fill, set_pix};
 
 const BASE_FPS: i32 = 60;
 const MILLIS_IN_SEC: u128 = 1000;
@@ -116,6 +116,29 @@ impl GameEngine{
                 };
 
                 draw(pix_rc.clone(), x, y, img).map_err(mlua::Error::external)
+            })?,
+        )?;
+
+
+        let pix_rc = self.pixels.clone();
+        globals.set(
+            "rectfill",
+            lua.create_function(move |_, (x, y, w, h, col): (usize, usize, usize, usize, String)| {
+                if let Some(val) = color_from_str(&col.to_string()){
+                    rect_fill(pix_rc.clone(), x, y, w, h, val);
+                }
+                Ok(())
+            })?,
+        )?;
+
+        let pix_rc = self.pixels.clone();
+        globals.set(
+            "rect",
+            lua.create_function(move |_, (x, y, w, h, col): (usize, usize, usize, usize, String)| {
+                if let Some(val) = color_from_str(&col.to_string()){
+                    rect(pix_rc.clone(), x, y, w, h, val);
+                }
+                Ok(())
             })?,
         )?;
 
