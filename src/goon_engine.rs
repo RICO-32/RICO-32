@@ -4,12 +4,12 @@ use mlua::prelude::*;
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
     dpi::LogicalSize,
-    event::{Event, WindowEvent},
+    event::{Event, MouseButton, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
 
-use crate::game_engine::{GameEngine};
+use crate::{game_engine::GameEngine, utils::mouse::MousePress};
 use crate::utils::colors::COLORS;
 
 pub const SCREEN_SIZE: u32 = 128;
@@ -35,14 +35,16 @@ enum StateEngines {
  */
 pub struct GoonEngine{
     game_engine: GameEngine,
-    state: StateEngines
+    state_engine: StateEngines,
+    mouse: MousePress    
 }
 
 impl GoonEngine{
     pub fn new() -> LuaResult<Self>{
         let engine = GoonEngine{
             game_engine: GameEngine::new()?,
-            state: StateEngines::GameEngine
+            state_engine: StateEngines::GameEngine,
+            mouse: MousePress::default()
         };
 
         Ok(engine)
@@ -53,6 +55,7 @@ impl GoonEngine{
         let event_loop = EventLoop::new();
         let window = WindowBuilder::new()
             .with_title("The Goon Engine")
+            .with_resizable(false)
             .with_inner_size(LogicalSize::new(WINDOW_SIZE as f64, WINDOW_SIZE as f64))
             .build(&event_loop)?;
 
@@ -86,15 +89,51 @@ impl GoonEngine{
                     ..
                 } => *control_flow = ControlFlow::Exit,
 
-                //Will add keyboard and mouse events here
-                Event::WindowEvent {
-                    event: WindowEvent::KeyboardInput { input, .. }, ..
-                } => {
-                    if let Some(winit::event::VirtualKeyCode::Escape) = input.virtual_keycode {
-                        *control_flow = ControlFlow::Exit;
-                    }
-                }
+                Event::WindowEvent { event, .. } => match event {
+                    WindowEvent::KeyboardInput { input, .. } => {
+                        if let Some(keycode) = input.virtual_keycode {
+                            match input.state {
+                                winit::event::ElementState::Pressed => {
+                                    println!("Key pressed: {:?}", keycode);
+                                }
+                                winit::event::ElementState::Released => {
+                                    println!("Key released: {:?}", keycode);
+                                }
+                            }
 
+                            // Example: exit on ESC
+                            if keycode == winit::event::VirtualKeyCode::Escape {
+                                *control_flow = ControlFlow::Exit;
+                            }
+                        }
+                    },
+
+                    WindowEvent::MouseInput { button, state, .. } => {
+                        match state {
+                            winit::event::ElementState::Pressed => {
+                                if button == MouseButton::Left {
+                                    engine_rc.borrow_mut().mouse.pressed = true;
+                                }
+                            }
+                            winit::event::ElementState::Released => {
+                                if button == MouseButton::Left {
+                                    engine_rc.borrow_mut().mouse.pressed = false;
+                                }
+                            }
+                        }
+                    }
+
+                    WindowEvent::CursorMoved { position, .. } => {
+                        let scale = window.scale_factor();
+                        let logical = position.to_logical::<f32>(scale);
+
+                        let mut eng = engine_rc.borrow_mut();
+                        eng.mouse.x = logical.x as i32;
+                        eng.mouse.y = logical.y as i32;
+                    }
+
+                    _ => {}
+                },
                 _ => {}
             }
         });
@@ -102,8 +141,10 @@ impl GoonEngine{
 
     //Make sure to update engines here based on which screen it's on
     pub fn update(&mut self, buffer: &mut [u8]) -> LuaResult<()> {
-        let pixels = match self.state {
+        let scale = (WINDOW_SIZE / SCREEN_SIZE) as usize;
+        let pixels = match self.state_engine {
             StateEngines::GameEngine => {
+                *self.game_engine.mouse.borrow_mut() = MousePress { pressed: self.mouse.pressed, x: self.mouse.x / scale as i32, y: self.mouse.y / scale as i32  };
                 self.game_engine.update()?;
                 self.game_engine.pixels()
             }
@@ -111,7 +152,6 @@ impl GoonEngine{
 
         //Hydrate the screen based on scaling factors and stuff
         let pixels_rc = pixels.borrow();
-        let scale = (WINDOW_SIZE / SCREEN_SIZE) as usize;
         for y in 0..SCREEN_SIZE as usize{
             for x in 0..SCREEN_SIZE as usize{
                 for dy in 0..scale{

@@ -6,6 +6,7 @@ use image::{ImageBuffer, ImageReader, Rgba};
 use mlua::prelude::LuaResult;
 
 use crate::utils::colors::{color_from_str, str_from_color, COLORS};
+use crate::utils::mouse::MousePress;
 use crate::utils::pixels::{clear, draw, print_scr, rect, rect_fill, set_pix};
 use crate::script_engine::ScriptEngine;
 use crate::goon_engine::{PixelsType, ScreenEngine, SCREEN_SIZE};
@@ -18,7 +19,8 @@ pub struct GameEngine{
     last_time: Instant,
     frame_rate: Rc<RefCell<i32>>,
     pixels: Rc<RefCell<PixelsType>>,
-    sprites: Rc<RefCell<HashMap<String, ImageBuffer<Rgba<u8>, Vec<u8>>>>>
+    sprites: Rc<RefCell<HashMap<String, ImageBuffer<Rgba<u8>, Vec<u8>>>>>,
+    pub mouse: Rc<RefCell<MousePress>>
 }
 
 impl GameEngine{
@@ -31,6 +33,7 @@ impl GameEngine{
             frame_rate: Rc::new(RefCell::new(BASE_FPS)),
             pixels: Rc::new(RefCell::new(COLORS::pixels())),
             sprites: Rc::new(RefCell::new(HashMap::new())),
+            mouse: Rc::new(RefCell::new(MousePress::default())),
         };
 
         eng.script_engine.boot()?;
@@ -148,6 +151,14 @@ impl GameEngine{
             lua.create_function(move |_, rate: i32| {
                 *frame_rate_rc.borrow_mut() = rate;
                 Ok(())
+            })?,
+        )?;
+
+        let mouse_rc = self.mouse.clone();
+        globals.set(
+            "mouse",
+            lua.create_function(move |_, ()| {
+                Ok(mouse_rc.borrow().clone())
             })?,
         )?;
 

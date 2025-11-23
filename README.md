@@ -26,6 +26,9 @@ The ultimate pico clone because it's a cool ass idea
 - clear(COLOR) fills the entire screen with the provided color
 - rectfill(x, y, w, h, COLOR) fills a rectangle with that specific color
 - rect(x, y, w, h, COLOR) creates a border rectangle with that specific color
+- mouse() returns a mouse object with 
+    - .pressed -> Whether the left button is currently pressed
+    - .x, .y -> the pixel coordinates of the mouse currently
 
 ## Colors 
 - Accessing from Lua API is simply the string "COLOR_NAME"
