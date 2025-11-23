@@ -32,6 +32,7 @@ The ultimate pico clone in the objectively better language because it's a cool a
 - `rect(x, y, w, h, COLOR)` creates a border rectangle with that specific color
 - `circle(x, y, r, COLOR)` creates a circle at x, y of radius r and fills with COLOR
 - `mouse()` returns a mouse object with  
+    - `.just_pressed` -> Whether the left button was just began being pressed (lasts 1 frame)
     - `.pressed` -> Whether the left button is currently pressed  
     - `.x`, `.y` -> the pixel coordinates of the mouse currently  
     - x and y are -1, -1 if the mouse is currently outside the game's scope

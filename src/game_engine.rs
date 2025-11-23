@@ -248,8 +248,11 @@ impl ScreenEngine for GameEngine{
         self.pixels.clone()
     }
     //Syncs with frame rate, runs all queued up commands from this prev frame, calls main update
-    fn update(&mut self) -> LuaResult<()> {
+    fn update(&mut self) {
         let dt = self.sync();
-        self.script_engine.call_update(dt)
+        let _ = self.script_engine.call_update(dt);
+        if self.mouse.borrow().just_pressed {
+            self.mouse.borrow_mut().just_pressed = false;
+        };
     }
 }

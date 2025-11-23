@@ -9,6 +9,11 @@ function button(x, y, w, h, label)
     rect(x, y, w, h, "MAGENTA")
     print_scr_mini(x+4, y+4, "PURPLE", label)
 		local mouse = mouse()
+		if mouse.just_pressed then
+			if mouse.x >= x and mouse.x <= x + y and mouse.y >= y and mouse.y <= y+h then
+				log("Button just pressed")
+			end
+		end
 		if mouse.pressed then
 			if mouse.x >= x and mouse.x <= x + y and mouse.y >= y and mouse.y <= y+h then
 				log("Button pressed")

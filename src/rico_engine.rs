@@ -24,7 +24,7 @@ pub type PixelsType = Vec<Vec<COLORS>>;
  */
 pub trait ScreenEngine {
     fn pixels(&self) -> Rc<RefCell<PixelsType>>;
-    fn update(&mut self) -> LuaResult<()>;    
+    fn update(&mut self);    
 }
 
 enum StateEngines {
@@ -105,7 +105,7 @@ impl RicoEngine{
                                 }
                             }
 
-                            // Example: exit on ESC
+                            // exit on ESC
                             if keycode == winit::event::VirtualKeyCode::Escape {
                                 *control_flow = ControlFlow::Exit;
                             }
@@ -119,11 +119,16 @@ impl RicoEngine{
                                     winit::event::ElementState::Pressed => {
                                         if button == MouseButton::Left {
                                             engine_rc.borrow().game_engine.mouse.borrow_mut().pressed = true;
+                                            engine_rc.borrow().game_engine.mouse.borrow_mut().just_pressed = true;
+
+                                            engine_rc.borrow().game_engine.log_engine.mouse.borrow_mut().pressed = true;
+                                            engine_rc.borrow().game_engine.log_engine.mouse.borrow_mut().just_pressed = true;
                                         }
                                     }
                                     winit::event::ElementState::Released => {
                                         if button == MouseButton::Left {
                                             engine_rc.borrow().game_engine.mouse.borrow_mut().pressed = false;
+                                            engine_rc.borrow().game_engine.log_engine.mouse.borrow_mut().pressed = false;
                                         }
                                     }
                                 }
@@ -144,6 +149,17 @@ impl RicoEngine{
                                     mouse_rc.borrow_mut().x = -1;
                                     mouse_rc.borrow_mut().y = -1;
                                 }
+
+                                let mouse_rc = engine_rc.borrow().game_engine.log_engine.mouse.clone();
+                                mouse_rc.borrow_mut().x = logical.x as i32 / SCALE as i32;
+                                mouse_rc.borrow_mut().y = logical.y as i32 / SCALE as i32;
+
+                                if mouse_rc.borrow().x > SCREEN_SIZE as i32 || mouse_rc.borrow().y <= SCREEN_SIZE as i32 {
+                                    mouse_rc.borrow_mut().x = -1;
+                                    mouse_rc.borrow_mut().y = -1;
+                                } else {
+                                    mouse_rc.borrow_mut().y -= SCREEN_SIZE as i32;
+                                }
                             }
                         }
                     }
@@ -159,30 +175,30 @@ impl RicoEngine{
     pub fn update(&mut self, buffer: &mut [u8]) -> LuaResult<()> {
         return match self.state_engine {
             StateEngines::GameEngine => {
-                println!("{:?}", self.game_engine.mouse.borrow());
-                self.game_engine.update()?;
-                let pixels = self.game_engine.pixels();
-                
-                //Hydrate the screen based on scaling factors and stuff
-                let pixels_rc = pixels.borrow();
-                let height = pixels_rc.len();
-                let width = pixels_rc[0].len();
-                for y in 0..height{
-                    for x in 0..width{
-                        for dy in 0..SCALE{
-                            for dx in 0..SCALE{
-                                let idx = (y * SCALE + dy) * WINDOW_WIDTH as usize + (x * SCALE + dx);
-                                let COLORS(r, g, b, a) = pixels_rc[y][x];
-                                buffer[idx*4..idx*4+4].copy_from_slice(&[r, g, b, a]);
+                if !*self.game_engine.log_engine.halted.borrow() {
+                    self.game_engine.update();
+                    let pixels = self.game_engine.pixels();
+
+                    //Hydrate the screen based on scaling factors and stuff
+                    let pixels_rc = pixels.borrow();
+                    let height = pixels_rc.len();
+                    let width = pixels_rc[0].len();
+                    for y in 0..height{
+                        for x in 0..width{
+                            for dy in 0..SCALE{
+                                for dx in 0..SCALE{
+                                    let idx = (y * SCALE + dy) * WINDOW_WIDTH as usize + (x * SCALE + dx);
+                                    let COLORS(r, g, b, a) = pixels_rc[y][x];
+                                    buffer[idx*4..idx*4+4].copy_from_slice(&[r, g, b, a]);
+                                }
                             }
                         }
                     }
                 }
 
-                self.game_engine.log_engine.update()?;
+                self.game_engine.log_engine.update();
                 let pixels = self.game_engine.log_engine.pixels();
                 
-                //Hydrate the screen based on scaling factors and stuff
                 let pixels_rc = pixels.borrow();
                 let height = pixels_rc.len();
                 let width = pixels_rc[0].len();
@@ -197,6 +213,11 @@ impl RicoEngine{
                         }
                     }
                 }
+
+                if self.game_engine.log_engine.restart {
+                    self.game_engine = GameEngine::new()?;
+                }
+
                 Ok(())
             }
         }
