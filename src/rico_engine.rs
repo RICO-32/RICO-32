@@ -1,15 +1,15 @@
-use std::{cell::RefCell, collections::HashSet, rc::Rc, usize};
+use std::{cell::RefCell, rc::Rc, usize};
 
 use mlua::prelude::*;
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
     dpi::LogicalSize,
-    event::{Event, MouseButton, VirtualKeyCode, WindowEvent},
+    event::{Event, MouseButton, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
 
-use crate::{game_engine::GameEngine, utils::mouse::MousePress};
+use crate::{game_engine::GameEngine};
 use crate::utils::colors::COLORS;
 
 pub const SCREEN_SIZE: usize = 128;
@@ -38,8 +38,6 @@ enum StateEngines {
 pub struct RicoEngine{
     game_engine: GameEngine,
     state_engine: StateEngines,
-    mouse: MousePress,
-    keys_pressed: HashSet<VirtualKeyCode>
 }
 
 impl RicoEngine{
@@ -47,8 +45,6 @@ impl RicoEngine{
         let engine = RicoEngine{
             game_engine: GameEngine::new()?,
             state_engine: StateEngines::GameEngine,
-            mouse: MousePress::default(),
-            keys_pressed: HashSet::new()
         };
 
         Ok(engine)
@@ -96,12 +92,16 @@ impl RicoEngine{
                 Event::WindowEvent { event, .. } => match event {
                     WindowEvent::KeyboardInput { input, .. } => {
                         if let Some(keycode) = input.virtual_keycode {
-                            match input.state {
-                                winit::event::ElementState::Pressed => {
-                                    engine_rc.borrow_mut().keys_pressed.insert(keycode);
-                                }
-                                winit::event::ElementState::Released => {
-                                    engine_rc.borrow_mut().keys_pressed.remove(&keycode);
+                            match engine_rc.borrow().state_engine{
+                                StateEngines::GameEngine => {
+                                    match input.state {
+                                        winit::event::ElementState::Pressed => {
+                                            engine_rc.borrow().game_engine.keys_pressed.borrow_mut().insert(keycode);
+                                        }
+                                        winit::event::ElementState::Released => {
+                                            engine_rc.borrow().game_engine.keys_pressed.borrow_mut().remove(&keycode);
+                                        }
+                                    }
                                 }
                             }
 
@@ -113,27 +113,39 @@ impl RicoEngine{
                     },
 
                     WindowEvent::MouseInput { button, state, .. } => {
-                        match state {
-                            winit::event::ElementState::Pressed => {
-                                if button == MouseButton::Left {
-                                    engine_rc.borrow_mut().mouse.pressed = true;
+                        match engine_rc.borrow().state_engine{
+                            StateEngines::GameEngine => {
+                                match state {
+                                    winit::event::ElementState::Pressed => {
+                                        if button == MouseButton::Left {
+                                            engine_rc.borrow().game_engine.mouse.borrow_mut().pressed = true;
+                                        }
+                                    }
+                                    winit::event::ElementState::Released => {
+                                        if button == MouseButton::Left {
+                                            engine_rc.borrow().game_engine.mouse.borrow_mut().pressed = false;
+                                        }
+                                    }
                                 }
                             }
-                            winit::event::ElementState::Released => {
-                                if button == MouseButton::Left {
-                                    engine_rc.borrow_mut().mouse.pressed = false;
-                                }
-                            }
-                        }
+                        };
                     }
 
                     WindowEvent::CursorMoved { position, .. } => {
-                        let scale = window.scale_factor();
-                        let logical = position.to_logical::<f32>(scale);
+                        match engine_rc.borrow().state_engine {
+                            StateEngines::GameEngine => {
+                                let scale = window.scale_factor();
+                                let logical = position.to_logical::<f32>(scale);
+                                let mouse_rc = engine_rc.borrow().game_engine.mouse.clone();
+                                mouse_rc.borrow_mut().x = logical.x as i32 / SCALE as i32;
+                                mouse_rc.borrow_mut().y = logical.y as i32 / SCALE as i32;
 
-                        let mut eng = engine_rc.borrow_mut();
-                        eng.mouse.x = logical.x as i32;
-                        eng.mouse.y = logical.y as i32;
+                                if mouse_rc.borrow().x > SCREEN_SIZE as i32 || mouse_rc.borrow().y > SCREEN_SIZE as i32 {
+                                    mouse_rc.borrow_mut().x = -1;
+                                    mouse_rc.borrow_mut().y = -1;
+                                }
+                            }
+                        }
                     }
 
                     _ => {}
@@ -147,14 +159,7 @@ impl RicoEngine{
     pub fn update(&mut self, buffer: &mut [u8]) -> LuaResult<()> {
         return match self.state_engine {
             StateEngines::GameEngine => {
-                let mut new_press = MousePress { pressed: self.mouse.pressed, x: -1, y: -1  };
-
-                if self.mouse.x as usize / SCALE <= SCREEN_SIZE && self.mouse.y as usize / SCALE <= SCREEN_SIZE {
-                    new_press = MousePress { pressed: self.mouse.pressed, x: self.mouse.x / SCALE as i32, y: self.mouse.y / SCALE as i32  };
-                }
-
-                *self.game_engine.mouse.borrow_mut() = new_press;
-                *self.game_engine.keys_pressed.borrow_mut() = self.keys_pressed.clone();
+                println!("{:?}", self.game_engine.mouse.borrow());
                 self.game_engine.update()?;
                 let pixels = self.game_engine.pixels();
                 

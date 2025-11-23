@@ -4,7 +4,7 @@ use image::{ImageBuffer, Rgba};
 
 use crate::utils::bitmap::{BITMAP4X4, BITMAP4X6};
 use crate::utils::{bitmap::BITMAP, colors::COLORS};
-use crate::rico_engine::{PixelsType};
+use crate::rico_engine::{PixelsType, SCREEN_SIZE};
 
 pub fn set_pix(pixels: Rc<RefCell<PixelsType>>, y: usize, x: usize, col: COLORS){
     //If the new pixel has 0 alpha, just keep the old guy
@@ -27,7 +27,7 @@ pub fn set_pix(pixels: Rc<RefCell<PixelsType>>, y: usize, x: usize, col: COLORS)
 pub fn draw(pixels: Rc<RefCell<PixelsType>>, x: usize, y: usize, img: &ImageBuffer<Rgba<u8>, Vec<u8>>) -> Result<(), Box<dyn Error>> {
     let (width, height) = img.dimensions();
 
-    if width != height || (width != 8 && width != 16 && width != 32) {
+    if width as usize >= SCREEN_SIZE || height as usize >= SCREEN_SIZE{
         return Ok(());
     }
 
@@ -121,6 +121,19 @@ pub fn rect(pixels: Rc<RefCell<PixelsType>>, x: usize, y: usize, w: usize, h: us
     for i in y..=y+h as usize{
         set_pix(pixels.clone(), i, x, col);
         set_pix(pixels.clone(), i, x+w, col);
+    }
+}
+
+pub fn circle(pixels: Rc<RefCell<PixelsType>>, cx: i32, cy: i32, r: i32, col: COLORS){
+    let r2 = r * r;
+    for x in cx-r..=cx+r{
+        for y in cy-r..=cy+r{
+            let dx = x - cx;
+            let dy = y - cy;
+            if dx*dx + dy*dy <= r2 {
+                set_pix(pixels.clone(), y as usize, x as usize, col);
+            }
+        }
     }
 }
 

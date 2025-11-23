@@ -30,9 +30,11 @@ The ultimate pico clone in the objectively better language because it's a cool a
 - `clear(COLOR)` fills the entire screen with the provided color
 - `rectfill(x, y, w, h, COLOR)` fills a rectangle with that specific color
 - `rect(x, y, w, h, COLOR)` creates a border rectangle with that specific color
+- `circle(x, y, r, COLOR)` creates a circle at x, y of radius r and fills with COLOR
 - `mouse()` returns a mouse object with  
     - `.pressed` -> Whether the left button is currently pressed  
     - `.x`, `.y` -> the pixel coordinates of the mouse currently  
+    - x and y are -1, -1 if the mouse is currently outside the game's scope
 - `key_pressed(NAME)` returns a bool on whether that key is pressed that frame or not
 
 ## Colors 

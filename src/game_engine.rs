@@ -20,12 +20,12 @@ const MILLIS_IN_SEC: u128 = 1000;
 pub struct GameEngine{
     pub script_engine: ScriptEngine,
     pub log_engine: LogEngine,
+    pub mouse: Rc<RefCell<MousePress>>,
+    pub keys_pressed: Rc<RefCell<HashSet<VirtualKeyCode>>>,
     last_time: Instant,
     frame_rate: Rc<RefCell<i32>>,
     pixels: Rc<RefCell<PixelsType>>,
     sprites: Rc<RefCell<HashMap<String, ImageBuffer<Rgba<u8>, Vec<u8>>>>>,
-    pub mouse: Rc<RefCell<MousePress>>,
-    pub keys_pressed: Rc<RefCell<HashSet<VirtualKeyCode>>>
 }
 
 impl GameEngine{
@@ -40,7 +40,7 @@ impl GameEngine{
             pixels: Rc::new(RefCell::new(COLORS::pixels())),
             sprites: Rc::new(RefCell::new(HashMap::new())),
             mouse: Rc::new(RefCell::new(MousePress::default())),
-            keys_pressed: Rc::new(RefCell::new(HashSet::new()))
+            keys_pressed: Rc::new(RefCell::new(HashSet::new())),
         };
 
         eng.script_engine.boot()?;

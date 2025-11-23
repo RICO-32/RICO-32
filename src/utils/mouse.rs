@@ -1,6 +1,6 @@
 use mlua::UserData;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct MousePress {
     pub pressed: bool,
     pub x: i32,
