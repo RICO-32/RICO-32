@@ -22,7 +22,7 @@ impl COLORS {
     pub const NAVY: COLORS    = COLORS(0, 0, 128, 255);
 
     pub fn pixels() -> PixelsType{
-        [[COLORS::BLACK; SCREEN_SIZE as usize]; SCREEN_SIZE as usize]
+        vec![vec![COLORS::BLACK; SCREEN_SIZE]; SCREEN_SIZE]
     }
 }
 

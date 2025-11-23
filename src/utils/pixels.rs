@@ -14,11 +14,12 @@ pub fn set_pix(pixels: Rc<RefCell<PixelsType>>, y: usize, x: usize, col: COLORS)
         return;
     }
 
-    if y >= SCREEN_SIZE as usize || x >= SCREEN_SIZE as usize {
+    let mut pixels = pixels.borrow_mut();
+    if y >= pixels.len() as usize || x >= pixels.len() as usize {
         return;
     }
 
-    pixels.borrow_mut()[y][x] = col;
+    pixels[y][x] = col;
 }
 
 
@@ -53,7 +54,7 @@ pub fn print_scr(pixels: Rc<RefCell<PixelsType>>, x: usize, y: usize, col: COLOR
         for dx in 0..8{
             for dy in 0..8{
                 if BITMAP[idx][dy] >> (7-dx) & 1 == 1{
-                    set_pix(pixels.clone(), y+dy, x+dx+i*9, col);
+                    set_pix(pixels.clone(), y+dy, x+dx+i*8, col);
                 }
             }
         }
@@ -76,7 +77,7 @@ pub fn print_scr_mini(pixels: Rc<RefCell<PixelsType>>, x: usize, y: usize, col: 
         for dx in 0..4{
             for dy in 0..4{
                 if (BITMAP4X4[idx+dx] >> (3-dy)) >> ((orig_idx & 1) * 4) & 1 == 1{
-                    set_pix(pixels.clone(), y-dy+3, x+dx+i*5, col);
+                    set_pix(pixels.clone(), (((y as i32)-(dy as i32))+3) as usize, x+dx+i*4, col);
                 }
             }
         }
@@ -104,8 +105,8 @@ pub fn rect(pixels: Rc<RefCell<PixelsType>>, x: usize, y: usize, w: usize, h: us
 }
 
 pub fn clear(pixels: Rc<RefCell<PixelsType>>, col: COLORS){
-    for y in 0..SCREEN_SIZE as usize{
-        for x in 0..SCREEN_SIZE as usize{
+    for y in 0..SCREEN_SIZE {
+        for x in 0..SCREEN_SIZE {
             set_pix(pixels.clone(), y, x, col);
         }
     }

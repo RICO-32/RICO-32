@@ -6,6 +6,7 @@ use image::{ImageBuffer, ImageReader, Rgba};
 use mlua::prelude::LuaResult;
 use winit::event::VirtualKeyCode;
 
+use crate::log_engine::{LogEngine};
 use crate::utils::colors::{color_from_str, str_from_color, COLORS};
 use crate::utils::keyboard::key_from_str;
 use crate::utils::mouse::MousePress;
@@ -18,6 +19,7 @@ const MILLIS_IN_SEC: u128 = 1000;
 
 pub struct GameEngine{
     pub script_engine: ScriptEngine,
+    pub log_engine: LogEngine,
     last_time: Instant,
     frame_rate: Rc<RefCell<i32>>,
     pixels: Rc<RefCell<PixelsType>>,
@@ -32,6 +34,7 @@ impl GameEngine{
 
         let mut eng = GameEngine {
             script_engine,
+            log_engine: LogEngine::new(),
             last_time: Instant::now(),
             frame_rate: Rc::new(RefCell::new(BASE_FPS)),
             pixels: Rc::new(RefCell::new(COLORS::pixels())),
@@ -52,10 +55,14 @@ impl GameEngine{
         let lua = &self.script_engine.lua;
         let globals = lua.globals();
 
+        let logs_rc = self.log_engine.logs.clone();
         globals.set(
             "log",
             lua.create_function(move |_, msg: String| {
-                println!("{}", format!("[Lua] {}", msg));
+                let msg = format!("[Log] {}", msg);
+                for chunk in msg.as_bytes().chunks(30){
+                    logs_rc.borrow_mut().push(String::from_utf8(chunk.to_vec()).unwrap());
+                }
                 Ok(())
             })?,
         )?;
@@ -65,7 +72,7 @@ impl GameEngine{
             "set_pix",
             lua.create_function(move |_, (x, y, col): (usize, usize, String)| {
                 if let Some(val) = color_from_str(&col.to_string()){
-                    if y >= SCREEN_SIZE as usize || x >= SCREEN_SIZE as usize{
+                    if y >= SCREEN_SIZE || x >= SCREEN_SIZE {
                         return Err(mlua::prelude::LuaError::RuntimeError(format!(
                                     "Pixel coordinates out of bounds: {}, {}",
                                     x, y
@@ -81,7 +88,7 @@ impl GameEngine{
         globals.set(
             "get_pix",
             lua.create_function(move |_, (x, y): (usize, usize)| {
-                if y >= SCREEN_SIZE as usize || x >= SCREEN_SIZE as usize{
+                if y >= SCREEN_SIZE || x >= SCREEN_SIZE {
                     return Err(mlua::prelude::LuaError::RuntimeError(format!(
                                 "Pixel coordinates out of bounds: {}, {}",
                                 x, y

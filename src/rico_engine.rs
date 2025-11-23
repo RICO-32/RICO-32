@@ -12,10 +12,12 @@ use winit::{
 use crate::{game_engine::GameEngine, utils::mouse::MousePress};
 use crate::utils::colors::COLORS;
 
-pub const SCREEN_SIZE: u32 = 128;
-pub const WINDOW_SIZE: u32 = SCREEN_SIZE * 4;
+pub const SCREEN_SIZE: usize = 128;
+pub const SCALE: usize = 4;
+pub const WINDOW_WIDTH: usize = SCREEN_SIZE * SCALE;
+pub const WINDOW_HEIGHT: usize = SCREEN_SIZE * 2 * SCALE;
 
-pub type PixelsType = [[COLORS; SCREEN_SIZE as usize]; SCREEN_SIZE as usize];
+pub type PixelsType = Vec<Vec<COLORS>>;
 
 /* All screen engines must implement
  * Game for now, sprite in the future, maybe IDE
@@ -58,11 +60,11 @@ impl RicoEngine{
         let window = WindowBuilder::new()
             .with_title("RICO-32")
             .with_resizable(false)
-            .with_inner_size(LogicalSize::new(WINDOW_SIZE as f64, WINDOW_SIZE as f64))
+            .with_inner_size(LogicalSize::new(WINDOW_WIDTH as f64, WINDOW_HEIGHT as f64))
             .build(&event_loop)?;
 
-        let surface_texture = SurfaceTexture::new(WINDOW_SIZE, WINDOW_SIZE, &window);
-        let mut pixels = Pixels::new(WINDOW_SIZE, WINDOW_SIZE, surface_texture)?;
+        let surface_texture = SurfaceTexture::new(WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32, &window);
+        let mut pixels = Pixels::new(WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32, surface_texture)?;
 
         let engine_rc = Rc::new(RefCell::new(self)).clone();
         // Event loop: Poll so we run as fast as possible and continuously request redraws
@@ -143,30 +145,51 @@ impl RicoEngine{
 
     //Make sure to update engines here based on which screen it's on
     pub fn update(&mut self, buffer: &mut [u8]) -> LuaResult<()> {
-        let scale = (WINDOW_SIZE / SCREEN_SIZE) as usize;
-        let pixels = match self.state_engine {
+        return match self.state_engine {
             StateEngines::GameEngine => {
-                *self.game_engine.mouse.borrow_mut() = MousePress { pressed: self.mouse.pressed, x: self.mouse.x / scale as i32, y: self.mouse.y / scale as i32  };
+                let mut new_press = MousePress { pressed: self.mouse.pressed, x: -1, y: -1  };
+
+                if self.mouse.x as usize / SCALE <= SCREEN_SIZE && self.mouse.y as usize / SCALE <= SCREEN_SIZE {
+                    new_press = MousePress { pressed: self.mouse.pressed, x: self.mouse.x / SCALE as i32, y: self.mouse.y / SCALE as i32  };
+                }
+
+                *self.game_engine.mouse.borrow_mut() = new_press;
                 *self.game_engine.keys_pressed.borrow_mut() = self.keys_pressed.clone();
                 self.game_engine.update()?;
-                self.game_engine.pixels()
-            }
-        };
-
-        //Hydrate the screen based on scaling factors and stuff
-        let pixels_rc = pixels.borrow();
-        for y in 0..SCREEN_SIZE as usize{
-            for x in 0..SCREEN_SIZE as usize{
-                for dy in 0..scale{
-                    for dx in 0..scale{
-                        let idx = (y * scale + dy) * WINDOW_SIZE as usize + (x * scale + dx);
-                        let COLORS(r, g, b, a) = pixels_rc[y][x];
-                        buffer[idx*4..idx*4+4].copy_from_slice(&[r, g, b, a]);
+                let pixels = self.game_engine.pixels();
+                
+                //Hydrate the screen based on scaling factors and stuff
+                let pixels_rc = pixels.borrow();
+                for y in 0..SCREEN_SIZE{
+                    for x in 0..SCREEN_SIZE{
+                        for dy in 0..SCALE{
+                            for dx in 0..SCALE{
+                                let idx = (y * SCALE + dy) * WINDOW_WIDTH as usize + (x * SCALE + dx);
+                                let COLORS(r, g, b, a) = pixels_rc[y][x];
+                                buffer[idx*4..idx*4+4].copy_from_slice(&[r, g, b, a]);
+                            }
+                        }
                     }
                 }
+
+                self.game_engine.log_engine.update()?;
+                let pixels = self.game_engine.log_engine.pixels();
+                
+                //Hydrate the screen based on scaling factors and stuff
+                let pixels_rc = pixels.borrow();
+                for y in 0..SCREEN_SIZE{
+                    for x in 0..SCREEN_SIZE{
+                        for dy in 0..SCALE{
+                            for dx in 0..SCALE{
+                                let idx = (y * SCALE + dy) * WINDOW_WIDTH + (x * SCALE + dx) + WINDOW_WIDTH * SCREEN_SIZE * SCALE;
+                                let COLORS(r, g, b, a) = pixels_rc[y][x];
+                                buffer[idx*4..idx*4+4].copy_from_slice(&[r, g, b, a]);
+                            }
+                        }
+                    }
+                }
+                Ok(())
             }
         }
-
-        Ok(())
     }
 }

@@ -1,5 +1,6 @@
 use mlua::prelude::LuaResult;
 mod script_engine;
+mod log_engine;
 mod game_engine;
 mod rico_engine;
 mod utils;
