@@ -160,8 +160,10 @@ impl RicoEngine{
                 
                 //Hydrate the screen based on scaling factors and stuff
                 let pixels_rc = pixels.borrow();
-                for y in 0..SCREEN_SIZE{
-                    for x in 0..SCREEN_SIZE{
+                let height = pixels_rc.len();
+                let width = pixels_rc[0].len();
+                for y in 0..height{
+                    for x in 0..width{
                         for dy in 0..SCALE{
                             for dx in 0..SCALE{
                                 let idx = (y * SCALE + dy) * WINDOW_WIDTH as usize + (x * SCALE + dx);
@@ -177,8 +179,10 @@ impl RicoEngine{
                 
                 //Hydrate the screen based on scaling factors and stuff
                 let pixels_rc = pixels.borrow();
-                for y in 0..SCREEN_SIZE{
-                    for x in 0..SCREEN_SIZE{
+                let height = pixels_rc.len();
+                let width = pixels_rc[0].len();
+                for y in 0..height{
+                    for x in 0..width{
                         for dy in 0..SCALE{
                             for dx in 0..SCALE{
                                 let idx = (y * SCALE + dy) * WINDOW_WIDTH + (x * SCALE + dx) + WINDOW_WIDTH * SCREEN_SIZE * SCALE;

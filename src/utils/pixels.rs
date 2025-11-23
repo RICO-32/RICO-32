@@ -4,7 +4,7 @@ use image::{ImageBuffer, Rgba};
 
 use crate::utils::bitmap::{BITMAP4X4, BITMAP4X6};
 use crate::utils::{bitmap::BITMAP, colors::COLORS};
-use crate::rico_engine::{PixelsType, SCREEN_SIZE};
+use crate::rico_engine::{PixelsType};
 
 pub fn set_pix(pixels: Rc<RefCell<PixelsType>>, y: usize, x: usize, col: COLORS){
     //If the new pixel has 0 alpha, just keep the old guy
@@ -125,8 +125,10 @@ pub fn rect(pixels: Rc<RefCell<PixelsType>>, x: usize, y: usize, w: usize, h: us
 }
 
 pub fn clear(pixels: Rc<RefCell<PixelsType>>, col: COLORS){
-    for y in 0..SCREEN_SIZE {
-        for x in 0..SCREEN_SIZE {
+    let height = pixels.borrow().len();
+    let width = pixels.borrow()[0].len();
+    for y in 0..height{
+        for x in 0..width{
             set_pix(pixels.clone(), y, x, col);
         }
     }
