@@ -2,7 +2,7 @@ use std::{cell::RefCell, error::Error, rc::Rc};
 
 use image::{ImageBuffer, Rgba};
 
-use crate::utils::bitmap::BITMAP4X4;
+use crate::utils::bitmap::{BITMAP4X4, BITMAP4X6};
 use crate::utils::{bitmap::BITMAP, colors::COLORS};
 use crate::rico_engine::{PixelsType, SCREEN_SIZE};
 
@@ -77,7 +77,27 @@ pub fn print_scr_mini(pixels: Rc<RefCell<PixelsType>>, x: usize, y: usize, col: 
         for dx in 0..4{
             for dy in 0..4{
                 if (BITMAP4X4[idx+dx] >> (3-dy)) >> ((orig_idx & 1) * 4) & 1 == 1{
-                    set_pix(pixels.clone(), (((y as i32)-(dy as i32))+3) as usize, x+dx+i*4, col);
+                    set_pix(pixels.clone(), (((y as i32)-(dy as i32))+3) as usize, x+dx+i*5, col);
+                }
+            }
+        }
+    }
+}
+
+pub fn print_scr_mid(pixels: Rc<RefCell<PixelsType>>, x: usize, y: usize, col: COLORS, msg: String){
+    for i in 0..msg.len(){
+        let c = msg.as_bytes().iter().nth(i).unwrap();
+        let mut idx: usize = (*c).into();
+
+        if idx >= BITMAP4X6.len() {
+            idx = 32;
+        }
+
+        for dx in 0..4{
+            for dy in 0..6{
+                //println!("{} {}", idx, BI
+                if BITMAP4X6[idx][dy] >> (3-dx) & 1 == 1{
+                    set_pix(pixels.clone(), y+dy, x+dx+i*4, col);
                 }
             }
         }

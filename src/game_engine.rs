@@ -10,7 +10,7 @@ use crate::log_engine::{LogEngine};
 use crate::utils::colors::{color_from_str, str_from_color, COLORS};
 use crate::utils::keyboard::key_from_str;
 use crate::utils::mouse::MousePress;
-use crate::utils::pixels::{clear, draw, print_scr, print_scr_mini, rect, rect_fill, set_pix};
+use crate::utils::pixels::{clear, draw, print_scr, print_scr_mid, print_scr_mini, rect, rect_fill, set_pix};
 use crate::script_engine::ScriptEngine;
 use crate::rico_engine::{PixelsType, ScreenEngine, SCREEN_SIZE};
 
@@ -115,6 +115,17 @@ impl GameEngine{
             lua.create_function(move |_, (x, y, col, msg): (usize, usize, String, String)| {
                 if let Some(val) = color_from_str(col.as_str()){
                     print_scr_mini(pix_rc.clone(), x, y, val, msg);
+                }
+                Ok(())
+            })?,
+        )?;
+
+        let pix_rc = self.pixels.clone();
+        globals.set(
+            "print_scr_mid",
+            lua.create_function(move |_, (x, y, col, msg): (usize, usize, String, String)| {
+                if let Some(val) = color_from_str(col.as_str()){
+                    print_scr_mid(pix_rc.clone(), x, y, val, msg);
                 }
                 Ok(())
             })?,

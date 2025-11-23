@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{rico_engine::{PixelsType, ScreenEngine}, utils::{colors::COLORS, pixels::{clear, print_scr, print_scr_mini}}};
+use crate::{rico_engine::{PixelsType, ScreenEngine}, utils::{colors::COLORS, pixels::{clear, print_scr_mid}}};
 
 pub struct LogEngine{
     pixels: Rc<RefCell<PixelsType>>,
@@ -24,7 +24,7 @@ impl ScreenEngine for LogEngine{
     fn update(&mut self) -> mlua::Result<()> {
         clear(self.pixels.clone(), COLORS::GRAY);
         for (i, log) in self.logs.borrow()[self.logs.borrow().len().saturating_sub(23)..].iter().enumerate(){
-            print_scr_mini(self.pixels.clone(), 1, 6*i + 8, COLORS::BLACK, log.to_string());
+            print_scr_mid(self.pixels.clone(), 1, 6*i + 2, COLORS::BLACK, log.to_string());
         }
         Ok(())
     }
