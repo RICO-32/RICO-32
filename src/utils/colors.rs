@@ -1,4 +1,4 @@
-use crate::goon_engine::{PixelsType, SCREEN_SIZE};
+use crate::rico_engine::{PixelsType, SCREEN_SIZE};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct COLORS(pub u8, pub u8, pub u8, pub u8);

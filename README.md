@@ -1,8 +1,10 @@
-# GoonMachine
+# RICO-32
 
-The ultimate pico clone because it's a cool ass idea
+The Rust Imaginary Console Offline
 
-# Lua bindings for the GoonMachine
+The ultimate pico clone in the objectively better language because it's a cool ass idea
+
+# Lua bindings for RICO-32
 
 ## Features
 - Implemented modularization for vanilla Lua API
@@ -56,5 +58,4 @@ The ultimate pico clone because it's a cool ass idea
 `"Back", "Enter", "Space"`
 
 ## License
-
-The Goon Machine is made available under the MIT [License](./LICENSE).
+RICO-32 is made available under the MIT [License](./LICENSE).

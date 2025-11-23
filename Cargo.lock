@@ -3,6 +3,16 @@
 version = 4
 
 [[package]]
+name = "RICO-32"
+version = "0.1.0"
+dependencies = [
+ "image",
+ "mlua",
+ "pixels",
+ "winit",
+]
+
+[[package]]
 name = "ab_glyph"
 version = "0.2.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -641,16 +651,6 @@ dependencies = [
  "slotmap",
  "wasm-bindgen",
  "web-sys",
-]
-
-[[package]]
-name = "goonmachine"
-version = "0.1.0"
-dependencies = [
- "image",
- "mlua",
- "pixels",
- "winit",
 ]
 
 [[package]]

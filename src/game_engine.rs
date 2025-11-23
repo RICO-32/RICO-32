@@ -11,7 +11,7 @@ use crate::utils::keyboard::key_from_str;
 use crate::utils::mouse::MousePress;
 use crate::utils::pixels::{clear, draw, print_scr, print_scr_mini, rect, rect_fill, set_pix};
 use crate::script_engine::ScriptEngine;
-use crate::goon_engine::{PixelsType, ScreenEngine, SCREEN_SIZE};
+use crate::rico_engine::{PixelsType, ScreenEngine, SCREEN_SIZE};
 
 const BASE_FPS: i32 = 60;
 const MILLIS_IN_SEC: u128 = 1000;

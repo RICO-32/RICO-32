@@ -33,16 +33,16 @@ enum StateEngines {
  * All engines are different screens on the console
  * Engines should implement the Engine trait
  */
-pub struct GoonEngine{
+pub struct RicoEngine{
     game_engine: GameEngine,
     state_engine: StateEngines,
     mouse: MousePress,
     keys_pressed: HashSet<VirtualKeyCode>
 }
 
-impl GoonEngine{
+impl RicoEngine{
     pub fn new() -> LuaResult<Self>{
-        let engine = GoonEngine{
+        let engine = RicoEngine{
             game_engine: GameEngine::new()?,
             state_engine: StateEngines::GameEngine,
             mouse: MousePress::default(),
@@ -56,7 +56,7 @@ impl GoonEngine{
     pub fn start(self) -> Result<(), Box<dyn std::error::Error>>{
         let event_loop = EventLoop::new();
         let window = WindowBuilder::new()
-            .with_title("The Goon Engine")
+            .with_title("RICO-32")
             .with_resizable(false)
             .with_inner_size(LogicalSize::new(WINDOW_SIZE as f64, WINDOW_SIZE as f64))
             .build(&event_loop)?;

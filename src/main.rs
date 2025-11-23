@@ -1,12 +1,12 @@
 use mlua::prelude::LuaResult;
 mod script_engine;
 mod game_engine;
-mod goon_engine;
+mod rico_engine;
 mod utils;
-use goon_engine::GoonEngine;
+use rico_engine::RicoEngine;
 
 fn main() -> LuaResult<()> {
-    let engine = GoonEngine::new()?;
+    let engine = RicoEngine::new()?;
     let _ = engine.start();
     Ok(())
 }

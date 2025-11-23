@@ -4,7 +4,7 @@ use image::{ImageBuffer, Rgba};
 
 use crate::utils::bitmap::BITMAP4X4;
 use crate::utils::{bitmap::BITMAP, colors::COLORS};
-use crate::goon_engine::{PixelsType, SCREEN_SIZE};
+use crate::rico_engine::{PixelsType, SCREEN_SIZE};
 
 pub fn set_pix(pixels: Rc<RefCell<PixelsType>>, y: usize, x: usize, col: COLORS){
     //If the new pixel has 0 alpha, just keep the old guy
