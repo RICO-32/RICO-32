@@ -25,7 +25,6 @@ function update(dt)
 	draw(1, 45, "correct.png")
 	button(50, 50, 55, 15, "BUTTON")
 	
-
 	if player.x % 10 == 0 then
 		log("Player's X is: " .. tostring(player.x) .. " and " .. tostring(dt) .. " time has passed")
 
@@ -39,6 +38,7 @@ function update(dt)
 	end
 	if player.x % 20 == 0 then
 		clear("GREEN")
+		log(tostring(key_pressed("Enter")))
 	end
 	if player.x % 100 == 0 then
 		local new_frame_rate = math.floor(player.x / 10)

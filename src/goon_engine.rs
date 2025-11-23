@@ -1,10 +1,10 @@
-use std::{cell::RefCell, rc::Rc, usize};
+use std::{cell::RefCell, collections::HashSet, rc::Rc, usize};
 
 use mlua::prelude::*;
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
     dpi::LogicalSize,
-    event::{Event, MouseButton, WindowEvent},
+    event::{Event, MouseButton, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
@@ -36,7 +36,8 @@ enum StateEngines {
 pub struct GoonEngine{
     game_engine: GameEngine,
     state_engine: StateEngines,
-    mouse: MousePress    
+    mouse: MousePress,
+    keys_pressed: HashSet<VirtualKeyCode>
 }
 
 impl GoonEngine{
@@ -44,7 +45,8 @@ impl GoonEngine{
         let engine = GoonEngine{
             game_engine: GameEngine::new()?,
             state_engine: StateEngines::GameEngine,
-            mouse: MousePress::default()
+            mouse: MousePress::default(),
+            keys_pressed: HashSet::new()
         };
 
         Ok(engine)
@@ -94,10 +96,10 @@ impl GoonEngine{
                         if let Some(keycode) = input.virtual_keycode {
                             match input.state {
                                 winit::event::ElementState::Pressed => {
-                                    println!("Key pressed: {:?}", keycode);
+                                    engine_rc.borrow_mut().keys_pressed.insert(keycode);
                                 }
                                 winit::event::ElementState::Released => {
-                                    println!("Key released: {:?}", keycode);
+                                    engine_rc.borrow_mut().keys_pressed.remove(&keycode);
                                 }
                             }
 
@@ -145,6 +147,7 @@ impl GoonEngine{
         let pixels = match self.state_engine {
             StateEngines::GameEngine => {
                 *self.game_engine.mouse.borrow_mut() = MousePress { pressed: self.mouse.pressed, x: self.mouse.x / scale as i32, y: self.mouse.y / scale as i32  };
+                *self.game_engine.keys_pressed.borrow_mut() = self.keys_pressed.clone();
                 self.game_engine.update()?;
                 self.game_engine.pixels()
             }

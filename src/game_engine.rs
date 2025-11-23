@@ -1,11 +1,13 @@
-use std::collections::{HashMap};
+use std::collections::{HashMap, HashSet};
 use std::{cell::RefCell, rc::Rc, time::Instant};
 use std::{thread, time};
 
 use image::{ImageBuffer, ImageReader, Rgba};
 use mlua::prelude::LuaResult;
+use winit::event::VirtualKeyCode;
 
 use crate::utils::colors::{color_from_str, str_from_color, COLORS};
+use crate::utils::keyboard::key_from_str;
 use crate::utils::mouse::MousePress;
 use crate::utils::pixels::{clear, draw, print_scr, rect, rect_fill, set_pix};
 use crate::script_engine::ScriptEngine;
@@ -20,7 +22,8 @@ pub struct GameEngine{
     frame_rate: Rc<RefCell<i32>>,
     pixels: Rc<RefCell<PixelsType>>,
     sprites: Rc<RefCell<HashMap<String, ImageBuffer<Rgba<u8>, Vec<u8>>>>>,
-    pub mouse: Rc<RefCell<MousePress>>
+    pub mouse: Rc<RefCell<MousePress>>,
+    pub keys_pressed: Rc<RefCell<HashSet<VirtualKeyCode>>>
 }
 
 impl GameEngine{
@@ -34,6 +37,7 @@ impl GameEngine{
             pixels: Rc::new(RefCell::new(COLORS::pixels())),
             sprites: Rc::new(RefCell::new(HashMap::new())),
             mouse: Rc::new(RefCell::new(MousePress::default())),
+            keys_pressed: Rc::new(RefCell::new(HashSet::new()))
         };
 
         eng.script_engine.boot()?;
@@ -159,6 +163,17 @@ impl GameEngine{
             "mouse",
             lua.create_function(move |_, ()| {
                 Ok(mouse_rc.borrow().clone())
+            })?,
+        )?;
+
+        let keys_rc = self.keys_pressed.clone();
+        globals.set(
+            "key_pressed",
+            lua.create_function(move |_, key: String| {
+                if let Some(keycode) = key_from_str(key.as_str()){
+                    return Ok(keys_rc.borrow().contains(&keycode));
+                }
+                Ok(false)
             })?,
         )?;
 
