@@ -21,7 +21,10 @@ The ultimate pico clone because it's a cool ass idea
 - `set_frame_rate`: Sets the frame rate of the game and how often update is called
 - `set_pix(x, y, COLOR)` sets the pixel at `x, y` to `COLOR` where color is one of the 16 strings defined
 - `get_pix(x, y)` gets the pixel at `x, y` and returns with one of the 16 colors
-- `print_scr(x, y, COLOR, text)` prints the text to the screen at `x, y`
+- `print_scr(x, y, COLOR, text)` prints the text to the screen at `x, y` 
+    - 8x8 font with a gap of 1 pixel between each character automatically
+- `print_scr_mini(x, y, COLOR, text)` prints the text to the screen at `x, y`
+    - 4x4 font with a gap of 1 pixel between each character automatically
 - `draw(x, y, file)` draws the image at `assets/file` at `x, y`
 - `clear(COLOR)` fills the entire screen with the provided color
 - `rectfill(x, y, w, h, COLOR)` fills a rectangle with that specific color

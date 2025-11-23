@@ -7,7 +7,7 @@ end
 function button(x, y, w, h, label)
     rectfill(x, y, w, h, "CYAN")
     rect(x, y, w, h, "MAGENTA")
-    print_scr(x+4, y+4, "PURPLE", label)
+    print_scr_mini(x+4, y+4, "PURPLE", label)
 		local mouse = mouse()
 		if mouse.pressed then
 			if mouse.x >= x and mouse.x <= x + y and mouse.y >= y and mouse.y <= y+h then
@@ -23,7 +23,7 @@ function update(dt)
 	draw(1, 2, "main.png")
 	print_scr(1, 50, "GREEN", "WOWAZA")
 	draw(1, 45, "correct.png")
-	button(50, 50, 55, 15, "BUTTON")
+	button(60, 50, 40, 10, "BUTTON!")
 	
 	if player.x % 10 == 0 then
 		log("Player's X is: " .. tostring(player.x) .. " and " .. tostring(dt) .. " time has passed")

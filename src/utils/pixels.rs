@@ -2,6 +2,7 @@ use std::{cell::RefCell, error::Error, rc::Rc};
 
 use image::{ImageBuffer, Rgba};
 
+use crate::utils::bitmap::BITMAP4X4;
 use crate::utils::{bitmap::BITMAP, colors::COLORS};
 use crate::goon_engine::{PixelsType, SCREEN_SIZE};
 
@@ -52,7 +53,30 @@ pub fn print_scr(pixels: Rc<RefCell<PixelsType>>, x: usize, y: usize, col: COLOR
         for dx in 0..8{
             for dy in 0..8{
                 if BITMAP[idx][dy] >> (7-dx) & 1 == 1{
-                    set_pix(pixels.clone(), y+dy, x+dx+i*8, col);
+                    set_pix(pixels.clone(), y+dy, x+dx+i*9, col);
+                }
+            }
+        }
+    }
+}
+
+pub fn print_scr_mini(pixels: Rc<RefCell<PixelsType>>, x: usize, y: usize, col: COLORS, msg: String){
+    for i in 0..msg.len(){
+        let c = msg.as_bytes().iter().nth(i).unwrap();
+        let mut idx: usize = (*c).into();
+        let orig_idx: usize = (*c).into();
+        idx -= 32;
+        idx /= 2;
+        idx *= 4;
+
+        if idx >= BITMAP4X4.len() {
+            idx = 0;
+        }
+
+        for dx in 0..4{
+            for dy in 0..4{
+                if (BITMAP4X4[idx+dx] >> (3-dy)) >> ((orig_idx & 1) * 4) & 1 == 1{
+                    set_pix(pixels.clone(), y-dy+3, x+dx+i*5, col);
                 }
             }
         }
