@@ -2,7 +2,7 @@
 
 The Rust Imaginary Console Offline
 
-The ultimate pico clone in the objectively better language because it's a cool ass idea
+The ultimate pico clone in the objectively better language because it's a cool ass idea with a 128x128 game screen
 
 # Lua bindings for RICO-32
 
