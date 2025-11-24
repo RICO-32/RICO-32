@@ -84,17 +84,14 @@ impl RicoEngine{
                     window.request_redraw();
                 }
 
-                Event::WindowEvent {
-                    event: WindowEvent::CloseRequested,
-                    ..
-                } => *control_flow = ControlFlow::Exit,
-
                 Event::WindowEvent { event, .. } => match event {
+                    WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+
                     WindowEvent::KeyboardInput { input, .. } => {
                         if let Some(keycode) = input.virtual_keycode {
                             match engine_rc.borrow().state_engine{
                                 StateEngines::GameEngine => {
-                                    bind_keyboard(engine_rc.borrow().game_engine.keys_pressed.clone(), input.state, keycode);
+                                    bind_keyboard(engine_rc.borrow().game_engine.keys_pressed.clone(), engine_rc.borrow().game_engine.keys_just_pressed.clone(), input.state, keycode);
                                 }
                             }
 
@@ -178,9 +175,12 @@ fn copy_pixels_into_buffer(pixels: Rc<RefCell<PixelsType>>, buffer: &mut [u8], s
     }
 }
 
-fn bind_keyboard(keys_pressed: Rc<RefCell<HashSet<VirtualKeyCode>>>, state: ElementState, keycode: VirtualKeyCode){
+fn bind_keyboard(keys_pressed: Rc<RefCell<HashSet<VirtualKeyCode>>>, keys_just_pressed: Rc<RefCell<HashSet<VirtualKeyCode>>>, state: ElementState, keycode: VirtualKeyCode){
     match state {
         ElementState::Pressed => {
+            if !keys_pressed.borrow().contains(&keycode) {
+                keys_just_pressed.borrow_mut().insert(keycode);
+            }
             keys_pressed.borrow_mut().insert(keycode);
         }
         ElementState::Released => {

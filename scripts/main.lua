@@ -1,131 +1,57 @@
--- RICO-32 Shooter Example
+local player = require("player")
 
--- Player properties
-player = {
-    x = 64,
-    y = 110,
-    w = 8,
-    h = 8,
-    speed = 100,
-    color = "CYAN",
-    bullets = {}
-}
-
--- Enemy properties
-enemies = {}
-enemy_timer = 0
-enemy_spawn_rate = 1000  -- milliseconds
-enemy_speed = 40
-
--- Game properties
-score = 0
-frame_rate = 60
-
--- Utility function to check collision
-function collides(a, b)
-    return a.x < b.x + b.w and a.x + a.w > b.x and
-           a.y < b.y + b.h and a.y + a.h > b.y
-end
-
--- Shoot bullet
-function shoot()
-    table.insert(player.bullets, {x = player.x + player.w/2 - 1, y = player.y, w = 2, h = 4, speed = 150, color = "YELLOW"})
-end
-
--- Start function
 function start()
-    set_frame_rate(frame_rate)
+    log("Start function")
 end
 
--- Update function
+function button(x, y, w, h, label)
+    rectfill(x, y, w, h, "CYAN")
+    rect(x, y, w, h, "MAGENTA")
+    print_scr_mini(x+4, y+4, "PURPLE", label)
+		local mouse = mouse()
+		if mouse.just_pressed then
+			if mouse.x >= x and mouse.x <= x + y and mouse.y >= y and mouse.y <= y+h then
+				log("Button just pressed")
+			end
+		end
+		if mouse.pressed then
+			if mouse.x >= x and mouse.x <= x + y and mouse.y >= y and mouse.y <= y+h then
+				log("Button pressed")
+			end
+		end
+end
+
+math.randomseed(os.time())
 function update(dt)
-    -- Clear screen
-    clear("BLACK")
+	player.upd()
+	clear("BLACK")
+	print_scr(1, 50, "GREEN", "WOWAZA")
+	draw(1, 45, "correct.png")
+	button(60, 50, 40, 10, "BUTTON!")
+	circle(90, 90, 10, "PURPLE")
+	if key_just_pressed("Enter") then
+		log("Just pressed enter")
+	end
+	
+	if player.x % 10 == 0 then
+		log("Frame rate: " .. tostring(math.floor(1000/dt)))
 
-    -- Player movement
-    if key_pressed("Left") then
-        player.x = math.max(0, player.x - player.speed * dt / 1000)
-    end
-    if key_pressed("Right") then
-        player.x = math.min(128 - player.w, player.x + player.speed * dt / 1000)
-    end
-    if key_pressed("Up") then
-        player.y = math.max(0, player.y - player.speed * dt / 1000)
-    end
-    if key_pressed("Down") then
-        player.y = math.min(128 - player.h, player.y + player.speed * dt / 1000)
-    end
-
-    -- Shooting bullets
-    if key_pressed("Space") then
-        if not player.shoot_cooldown or player.shoot_cooldown <= 0 then
-            shoot()
-            player.shoot_cooldown = 300 -- ms cooldown
-        end
-    end
-    if player.shoot_cooldown then
-        player.shoot_cooldown = player.shoot_cooldown - dt
-    end
-
-    -- Update bullets
-    for i=#player.bullets,1,-1 do
-        local b = player.bullets[i]
-        b.y = b.y - b.speed * dt / 1000
-        if b.y < -b.h then
-            table.remove(player.bullets, i)
-        else
-            rectfill(b.x, b.y, b.w, b.h, b.color)
-        end
-    end
-
-    -- Spawn enemies
-    enemy_timer = enemy_timer + dt
-    if enemy_timer >= enemy_spawn_rate then
-        enemy_timer = 0
-        table.insert(enemies, {x = math.random(0, 120), y = -8, w = 8, h = 8, color = "RED"})
-    end
-
-    -- Update enemies
-    for i=#enemies,1,-1 do
-        local e = enemies[i]
-        e.y = e.y + enemy_speed * dt / 1000
-        if e.y > 128 then
-            table.remove(enemies, i)
-        else
-            rectfill(e.x, e.y, e.w, e.h, e.color)
-        end
-    end
-
-    -- Bullet-Enemy collisions
-    for i=#player.bullets,1,-1 do
-        local b = player.bullets[i]
-        for j=#enemies,1,-1 do
-            local e = enemies[j]
-            if collides(b, e) then
-                table.remove(player.bullets, i)
-                table.remove(enemies, j)
-                score = score + 1
-                break
-            end
-        end
-    end
-
-    -- Enemy-Player collisions
-    for i=#enemies,1,-1 do
-        local e = enemies[i]
-        if collides(e, player) then
-            -- Game over
-            clear("BLACK")
-            print_scr_mid(64, 64, "RED", "GAME OVER")
-            print_scr_mid(64, 74, "WHITE", "Score: "..score)
-            return
-        end
-    end
-
-    -- Draw player
-    rectfill(player.x, player.y, player.w, player.h, player.color)
-
-    -- Draw score
-    print_scr(2, 2, "WHITE", "Score: "..score)
+		local x = math.random(0, 127)
+		local y = math.random(0, 127)
+		local cols = {"GREEN", "CYAN", "BLUE", "RED", "TEAL"}
+		local col = cols[math.random(1, #cols)]
+		if key_pressed("Enter") then
+			log("Pressed enter")
+		end
+		set_pix(x, y, col)
+		log("Pixel " .. tostring(x) .. " " .. tostring(y) .. " is " .. get_pix(x,y))
+	end
+	if player.x % 20 == 0 then
+		clear("GREEN")
+	end
+	if player.x % 100 == 0 then
+		local new_frame_rate = math.floor(player.x / 10)
+		log("Changing framerate to " .. tostring(new_frame_rate))
+		set_frame_rate(new_frame_rate)
+	end
 end
-

@@ -22,6 +22,7 @@ pub struct GameEngine{
     pub log_engine: LogEngine,
     pub mouse: Rc<RefCell<MousePress>>,
     pub keys_pressed: Rc<RefCell<HashSet<VirtualKeyCode>>>,
+    pub keys_just_pressed: Rc<RefCell<HashSet<VirtualKeyCode>>>,
     last_time: Rc<RefCell<Instant>>,
     frame_rate: Rc<RefCell<i32>>,
     pixels: Rc<RefCell<PixelsType>>,
@@ -42,6 +43,7 @@ impl GameEngine{
             sprites: Rc::new(RefCell::new(HashMap::new())),
             mouse: Rc::new(RefCell::new(MousePress::default())),
             keys_pressed: Rc::new(RefCell::new(HashSet::new())),
+            keys_just_pressed: Rc::new(RefCell::new(HashSet::new())),
         };
 
         eng.script_engine.boot()?;
@@ -217,6 +219,17 @@ impl GameEngine{
             })?,
         )?;
 
+        let keys_rc = self.keys_just_pressed.clone();
+        globals.set(
+            "key_just_pressed",
+            lua.create_function(move |_, key: String| {
+                if let Some(keycode) = key_from_str(key.as_str()){
+                    return Ok(keys_rc.borrow().contains(&keycode));
+                }
+                Ok(false)
+            })?,
+        )?;
+
         let pix_rc = self.pixels.clone();
         globals.set(
             "clear",
@@ -265,5 +278,6 @@ impl ScreenEngine for GameEngine{
         if self.mouse.borrow().just_pressed {
             self.mouse.borrow_mut().just_pressed = false;
         };
+        self.keys_just_pressed.borrow_mut().clear();
     }
 }

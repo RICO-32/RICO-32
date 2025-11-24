@@ -37,6 +37,7 @@ The ultimate pico clone in the objectively better language because it's a cool a
     - `.x`, `.y` -> the pixel coordinates of the mouse currently  
     - x and y are -1, -1 if the mouse is currently outside the game's scope
 - `key_pressed(NAME)` returns a bool on whether that key is pressed that frame or not
+- `key_just_pressed(NAME)` returns a bool on whether that key began being pressed that frame or not
 
 ## Colors 
 - Accessing from Lua API is simply the string `"COLOR_NAME"`
