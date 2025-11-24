@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{rico_engine::{PixelsType, ScreenEngine}, utils::{colors::COLORS, mouse::MousePress, pixels::{circle, clear, print_scr_mid, rect_fill}}};
+use crate::{rico_engine::{PixelsType, ScreenEngine}, utils::{colors::COLORS, mouse::MousePress, pixels::{circle, clear, print_scr_mid, rect_fill, set_pix}}};
 
 pub struct LogEngine{
     pixels: Rc<RefCell<PixelsType>>,
@@ -12,6 +12,17 @@ pub struct LogEngine{
 
 const HALT_BUTTON: (usize, usize, usize, usize) = (50, 2, 12, 8);
 const RESTART_BUTTON: (usize, usize, usize, usize) = (66, 2, 12, 8);
+const G: COLORS = COLORS::GRAY;
+const B: COLORS = COLORS::BLANK;
+const RESTART_IMAGE: [[COLORS; 7]; 7] = [
+    [B, B, G, G, G, G, B],
+    [B, G, G, B, G, G, G],
+    [G, G, B, B, B, G, B],
+    [G, B, B, B, B, B, B],
+    [G, G, B, B, B, B, G],
+    [B, G, G, B, B, G, G],
+    [B, B, G, G, G, G, B],
+];
 
 impl LogEngine{
     pub fn new() -> Self{
@@ -26,12 +37,18 @@ impl LogEngine{
 
     fn draw_game_control(&mut self) {
         rect_fill(self.pixels.clone(), HALT_BUTTON.0, HALT_BUTTON.1, HALT_BUTTON.2, HALT_BUTTON.3, COLORS::SILVER);
-        rect_fill(self.pixels.clone(), RESTART_BUTTON.0, RESTART_BUTTON.1, RESTART_BUTTON.2, RESTART_BUTTON.3, COLORS::SILVER);
 
         if *self.halted.borrow() {
             circle(self.pixels.clone(), 56, 6, 2, COLORS::GREEN);
         } else {
             rect_fill(self.pixels.clone(), 54, 4, 4, 4, COLORS::RED);
+        }
+
+        rect_fill(self.pixels.clone(), RESTART_BUTTON.0, RESTART_BUTTON.1, RESTART_BUTTON.2, RESTART_BUTTON.3, COLORS::SILVER);
+        for y in 0..7{
+            for x in 0..7{
+                set_pix(self.pixels.clone(), RESTART_BUTTON.1+1+y, RESTART_BUTTON.0+3+x, RESTART_IMAGE[y][x]);
+            }
         }
     }
 

@@ -28,6 +28,7 @@ function update(dt)
 	print_scr(1, 50, "GREEN", "WOWAZA")
 	draw(1, 45, "correct.png")
 	button(60, 50, 40, 10, "BUTTON!")
+	circle(90, 90, 10, "PURPLE")
 	
 	if player.x % 10 == 0 then
 		log("Frame rate: " .. tostring(math.floor(1000/dt)))

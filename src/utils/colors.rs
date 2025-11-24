@@ -20,6 +20,7 @@ impl COLORS {
     pub const PURPLE: COLORS  = COLORS(128, 0, 128, 255);
     pub const TEAL: COLORS    = COLORS(0, 128, 128, 255);
     pub const NAVY: COLORS    = COLORS(0, 0, 128, 255);
+    pub const BLANK: COLORS    = COLORS(0, 0, 0, 0);
 
     pub fn pixels() -> PixelsType{
         vec![vec![COLORS::BLACK; SCREEN_SIZE]; SCREEN_SIZE]
