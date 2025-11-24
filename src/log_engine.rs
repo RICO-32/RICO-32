@@ -11,8 +11,8 @@ pub struct LogEngine{
     pub restart: bool,
 }
 
-const HALT_BUTTON: (usize, usize, usize, usize) = (50, 2, 12, 8);
-const RESTART_BUTTON: (usize, usize, usize, usize) = (66, 2, 12, 8);
+const HALT_BUTTON: (i32, i32, i32, i32) = (50, 2, 12, 8);
+const RESTART_BUTTON: (i32, i32, i32, i32) = (66, 2, 12, 8);
 const G: COLORS = COLORS::GRAY;
 const B: COLORS = COLORS::BLANK;
 const RESTART_IMAGE: [[COLORS; 7]; 7] = [
@@ -49,7 +49,7 @@ impl LogEngine{
         rect_fill(self.pixels.clone(), RESTART_BUTTON.0, RESTART_BUTTON.1, RESTART_BUTTON.2, RESTART_BUTTON.3, COLORS::SILVER);
         for y in 0..7{
             for x in 0..7{
-                set_pix(self.pixels.clone(), RESTART_BUTTON.1+1+y, RESTART_BUTTON.0+3+x, RESTART_IMAGE[y][x]);
+                set_pix(self.pixels.clone(), RESTART_BUTTON.1+1+y, RESTART_BUTTON.0+3+x, RESTART_IMAGE[y as usize][x as usize]);
             }
         }
     }
@@ -57,7 +57,7 @@ impl LogEngine{
     fn assess_game_control(&mut self) {
         let mouse = self.mouse.borrow();
         if mouse.just_pressed {
-            if mouse.x as usize >= HALT_BUTTON.0 && mouse.x as usize <= HALT_BUTTON.0 + HALT_BUTTON.2 && mouse.y as usize >= HALT_BUTTON.1 && mouse.y as usize <= HALT_BUTTON.1 + HALT_BUTTON.3 {
+            if mouse.x >= HALT_BUTTON.0 && mouse.x <= HALT_BUTTON.0 + HALT_BUTTON.2 && mouse.y >= HALT_BUTTON.1 && mouse.y <= HALT_BUTTON.1 + HALT_BUTTON.3 {
                 let curr = *self.halted.borrow_mut();
                 if curr {
                     *self.game_last_time.borrow_mut() = Instant::now();
@@ -67,7 +67,7 @@ impl LogEngine{
         }
         if self.restart { self.restart = false };
         if mouse.just_pressed {
-            if mouse.x as usize >= RESTART_BUTTON.0 && mouse.x as usize <= RESTART_BUTTON.0 + RESTART_BUTTON.2 && mouse.y as usize >= RESTART_BUTTON.1 && mouse.y as usize <= RESTART_BUTTON.1 + RESTART_BUTTON.3 {
+            if mouse.x >= RESTART_BUTTON.0 && mouse.x <= RESTART_BUTTON.0 + RESTART_BUTTON.2 && mouse.y >= RESTART_BUTTON.1 && mouse.y <= RESTART_BUTTON.1 + RESTART_BUTTON.3 {
                 self.restart = true;
             }
         }
@@ -84,7 +84,7 @@ impl ScreenEngine for LogEngine{
         self.draw_game_control();
         self.assess_game_control();
         for (i, log) in self.logs.borrow()[self.logs.borrow().len().saturating_sub(20)..].iter().enumerate(){
-            print_scr_mid(self.pixels.clone(), 1, 6*i + 2 + 3 * 6, COLORS::BLACK, log.to_string());
+            print_scr_mid(self.pixels.clone(), 1, 6*i as i32 + 2 + 3 * 6, COLORS::BLACK, log.to_string());
         }
         if self.mouse.borrow().just_pressed {
             self.mouse.borrow_mut().just_pressed = false;

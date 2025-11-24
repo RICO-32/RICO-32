@@ -1,135 +1,131 @@
--- Constants
-local SCREEN_W, SCREEN_H = 128, 128
-local BALL_RADIUS = 4
-local FRICTION = 0.98
-local POCKET_RADIUS = 6
+-- RICO-32 Shooter Example
 
--- Colors
-local TABLE_COLOR = "GREEN"
-local BALL_COLOR = "WHITE"
-local TARGET_COLOR = "RED"
-local HOLE_COLOR = "BLACK"
-
--- Score
-local score = 0
-
--- Ball objects
-local balls = {
-    {x = 64, y = 100, vx = 0, vy = 0, color = BALL_COLOR}, -- cue ball
-    {x = 40, y = 50, vx = 0, vy = 0, color = TARGET_COLOR},
-    {x = 80, y = 50, vx = 0, vy = 0, color = "BLUE"},
-    {x = 64, y = 30, vx = 0, vy = 0, color = "YELLOW"}
+-- Player properties
+player = {
+    x = 64,
+    y = 110,
+    w = 8,
+    h = 8,
+    speed = 100,
+    color = "CYAN",
+    bullets = {}
 }
 
--- Pockets (corners + middle of long sides)
-local pockets = {
-    {x = 0, y = 0}, {x = SCREEN_W/2, y = 0}, {x = SCREEN_W, y = 0},
-    {x = 0, y = SCREEN_H}, {x = SCREEN_W/2, y = SCREEN_H}, {x = SCREEN_W, y = SCREEN_H}
-}
+-- Enemy properties
+enemies = {}
+enemy_timer = 0
+enemy_spawn_rate = 1000  -- milliseconds
+enemy_speed = 40
 
--- Draw functions
-local function draw_ball(ball)
-    circle(ball.x, ball.y, BALL_RADIUS, ball.color)
+-- Game properties
+score = 0
+frame_rate = 60
+
+-- Utility function to check collision
+function collides(a, b)
+    return a.x < b.x + b.w and a.x + a.w > b.x and
+           a.y < b.y + b.h and a.y + a.h > b.y
 end
 
-local function draw_table()
-    clear(TABLE_COLOR)
-    for _, p in ipairs(pockets) do
-        circle(p.x, p.y, POCKET_RADIUS, HOLE_COLOR)
+-- Shoot bullet
+function shoot()
+    table.insert(player.bullets, {x = player.x + player.w/2 - 1, y = player.y, w = 2, h = 4, speed = 150, color = "YELLOW"})
+end
+
+-- Start function
+function start()
+    set_frame_rate(frame_rate)
+end
+
+-- Update function
+function update(dt)
+    -- Clear screen
+    clear("BLACK")
+
+    -- Player movement
+    if key_pressed("Left") then
+        player.x = math.max(0, player.x - player.speed * dt / 1000)
     end
-end
+    if key_pressed("Right") then
+        player.x = math.min(128 - player.w, player.x + player.speed * dt / 1000)
+    end
+    if key_pressed("Up") then
+        player.y = math.max(0, player.y - player.speed * dt / 1000)
+    end
+    if key_pressed("Down") then
+        player.y = math.min(128 - player.h, player.y + player.speed * dt / 1000)
+    end
 
--- Ball physics
-local function check_collision(b1, b2)
-    local dx = b2.x - b1.x
-    local dy = b2.y - b1.y
-    local dist = math.sqrt(dx*dx + dy*dy)
-    return dist < BALL_RADIUS*2
-end
+    -- Shooting bullets
+    if key_pressed("Space") then
+        if not player.shoot_cooldown or player.shoot_cooldown <= 0 then
+            shoot()
+            player.shoot_cooldown = 300 -- ms cooldown
+        end
+    end
+    if player.shoot_cooldown then
+        player.shoot_cooldown = player.shoot_cooldown - dt
+    end
 
-local function update_balls(dt)
-    for i = #balls, 1, -1 do
-        local b = balls[i]
+    -- Update bullets
+    for i=#player.bullets,1,-1 do
+        local b = player.bullets[i]
+        b.y = b.y - b.speed * dt / 1000
+        if b.y < -b.h then
+            table.remove(player.bullets, i)
+        else
+            rectfill(b.x, b.y, b.w, b.h, b.color)
+        end
+    end
 
-        -- Move ball
-        b.x = b.x + b.vx * dt/16
-        b.y = b.y + b.vy * dt/16
+    -- Spawn enemies
+    enemy_timer = enemy_timer + dt
+    if enemy_timer >= enemy_spawn_rate then
+        enemy_timer = 0
+        table.insert(enemies, {x = math.random(0, 120), y = -8, w = 8, h = 8, color = "RED"})
+    end
 
-        -- Friction
-        b.vx = b.vx * FRICTION
-        b.vy = b.vy * FRICTION
+    -- Update enemies
+    for i=#enemies,1,-1 do
+        local e = enemies[i]
+        e.y = e.y + enemy_speed * dt / 1000
+        if e.y > 128 then
+            table.remove(enemies, i)
+        else
+            rectfill(e.x, e.y, e.w, e.h, e.color)
+        end
+    end
 
-        -- Bounce off walls
-        if b.x < BALL_RADIUS then b.x = BALL_RADIUS b.vx = -b.vx end
-        if b.x > SCREEN_W - BALL_RADIUS then b.x = SCREEN_W - BALL_RADIUS b.vx = -b.vx end
-        if b.y < BALL_RADIUS then b.y = BALL_RADIUS b.vy = -b.vy end
-        if b.y > SCREEN_H - BALL_RADIUS then b.y = SCREEN_H - BALL_RADIUS b.vy = -b.vy end
-
-        -- Check pockets
-        for _, p in ipairs(pockets) do
-            local dx = b.x - p.x
-            local dy = b.y - p.y
-            local dist = math.sqrt(dx*dx + dy*dy)
-            if dist < POCKET_RADIUS then
-                if b.color ~= BALL_COLOR then
-                    score = score + 1 -- score only for target balls
-                end
-                table.remove(balls, i)
+    -- Bullet-Enemy collisions
+    for i=#player.bullets,1,-1 do
+        local b = player.bullets[i]
+        for j=#enemies,1,-1 do
+            local e = enemies[j]
+            if collides(b, e) then
+                table.remove(player.bullets, i)
+                table.remove(enemies, j)
+                score = score + 1
                 break
             end
         end
     end
 
-    -- Ball collisions
-    for i = 1, #balls do
-        for j = i+1, #balls do
-            local b1, b2 = balls[i], balls[j]
-            if check_collision(b1, b2) then
-                local dx = b2.x - b1.x
-                local dy = b2.y - b1.y
-                local dist = math.sqrt(dx*dx + dy*dy)
-                local nx, ny = dx/dist, dy/dist
-                local p = 2 * (b1.vx*nx + b1.vy*ny - b2.vx*nx - b2.vy*ny) / 2
-                b1.vx = b1.vx - p*nx
-                b1.vy = b1.vy - p*ny
-                b2.vx = b2.vx + p*nx
-                b2.vy = b2.vy + p*ny
-            end
+    -- Enemy-Player collisions
+    for i=#enemies,1,-1 do
+        local e = enemies[i]
+        if collides(e, player) then
+            -- Game over
+            clear("BLACK")
+            print_scr_mid(64, 64, "RED", "GAME OVER")
+            print_scr_mid(64, 74, "WHITE", "Score: "..score)
+            return
         end
     end
-end
 
--- Launch cue ball with mouse
-local function handle_input()
-    local mouse_obj = mouse()
-    if mouse_obj.just_pressed then
-        local cue = balls[1] -- always first
-        local dx = mouse_obj.x - cue.x
-        local dy = mouse_obj.y - cue.y
-        cue.vx = dx / 5
-        cue.vy = dy / 5
-    end
-end
+    -- Draw player
+    rectfill(player.x, player.y, player.w, player.h, player.color)
 
--- Draw score
-local function draw_score()
-    print_scr(2, 2, "WHITE", "Score: " .. score)
-end
-
--- RICO-32 start
-function start()
-    log("Pool game started!")
-    set_frame_rate(60)
-end
-
--- RICO-32 update
-function update(dt)
-    draw_table()
-    handle_input()
-    update_balls(dt)
-    for _, ball in ipairs(balls) do
-        draw_ball(ball)
-    end
-    draw_score()
+    -- Draw score
+    print_scr(2, 2, "WHITE", "Score: "..score)
 end
 

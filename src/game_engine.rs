@@ -71,14 +71,8 @@ impl GameEngine{
         let pix_rc = self.pixels.clone();
         globals.set(
             "set_pix",
-            lua.create_function(move |_, (x, y, col): (usize, usize, String)| {
+            lua.create_function(move |_, (x, y, col): (i32, i32, String)| {
                 if let Some(val) = color_from_str(&col.to_string()){
-                    if y >= SCREEN_SIZE || x >= SCREEN_SIZE {
-                        return Err(mlua::prelude::LuaError::RuntimeError(format!(
-                                    "Pixel coordinates out of bounds: {}, {}",
-                                    x, y
-                        )));
-                    }
                     set_pix(pix_rc.clone(), y, x, val);
                 }
                 Ok(())
@@ -102,7 +96,7 @@ impl GameEngine{
         let pix_rc = self.pixels.clone();
         globals.set(
             "print_scr",
-            lua.create_function(move |_, (x, y, col, msg): (usize, usize, String, String)| {
+            lua.create_function(move |_, (x, y, col, msg): (i32, i32, String, String)| {
                 if let Some(val) = color_from_str(col.as_str()){
                     print_scr(pix_rc.clone(), x, y, val, msg);
                 }
@@ -113,7 +107,7 @@ impl GameEngine{
         let pix_rc = self.pixels.clone();
         globals.set(
             "print_scr_mini",
-            lua.create_function(move |_, (x, y, col, msg): (usize, usize, String, String)| {
+            lua.create_function(move |_, (x, y, col, msg): (i32, i32, String, String)| {
                 if let Some(val) = color_from_str(col.as_str()){
                     print_scr_mini(pix_rc.clone(), x, y, val, msg);
                 }
@@ -124,7 +118,7 @@ impl GameEngine{
         let pix_rc = self.pixels.clone();
         globals.set(
             "print_scr_mid",
-            lua.create_function(move |_, (x, y, col, msg): (usize, usize, String, String)| {
+            lua.create_function(move |_, (x, y, col, msg): (i32, i32, String, String)| {
                 if let Some(val) = color_from_str(col.as_str()){
                     print_scr_mid(pix_rc.clone(), x, y, val, msg);
                 }
@@ -136,7 +130,7 @@ impl GameEngine{
         let pix_rc = self.pixels.clone();
         globals.set(
             "draw",
-            lua.create_function(move |_, (x, y, file): (usize, usize, String)| {
+            lua.create_function(move |_, (x, y, file): (i32, i32, String)| {
                 let mut sprites = sprites_rc.borrow_mut();
                 let img = match sprites.get(&file) {
                     Some(img) => img,
@@ -160,7 +154,7 @@ impl GameEngine{
         let pix_rc = self.pixels.clone();
         globals.set(
             "rectfill",
-            lua.create_function(move |_, (x, y, w, h, col): (usize, usize, usize, usize, String)| {
+            lua.create_function(move |_, (x, y, w, h, col): (i32, i32, i32, i32, String)| {
                 if let Some(val) = color_from_str(&col.to_string()){
                     rect_fill(pix_rc.clone(), x, y, w, h, val);
                 }
@@ -171,7 +165,7 @@ impl GameEngine{
         let pix_rc = self.pixels.clone();
         globals.set(
             "rect",
-            lua.create_function(move |_, (x, y, w, h, col): (usize, usize, usize, usize, String)| {
+            lua.create_function(move |_, (x, y, w, h, col): (i32, i32, i32, i32, String)| {
                 if let Some(val) = color_from_str(&col.to_string()){
                     rect(pix_rc.clone(), x, y, w, h, val);
                 }
