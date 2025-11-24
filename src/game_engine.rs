@@ -22,7 +22,7 @@ pub struct GameEngine{
     pub log_engine: LogEngine,
     pub mouse: Rc<RefCell<MousePress>>,
     pub keys_pressed: Rc<RefCell<HashSet<VirtualKeyCode>>>,
-    last_time: Instant,
+    last_time: Rc<RefCell<Instant>>,
     frame_rate: Rc<RefCell<i32>>,
     pixels: Rc<RefCell<PixelsType>>,
     sprites: Rc<RefCell<HashMap<String, ImageBuffer<Rgba<u8>, Vec<u8>>>>>,
@@ -30,12 +30,13 @@ pub struct GameEngine{
 
 impl GameEngine{
     pub fn new() -> LuaResult<Self> {
+        let last_time = Rc::new(RefCell::new(Instant::now()));
         let script_engine = ScriptEngine::new("scripts")?;
 
         let mut eng = GameEngine {
             script_engine,
-            log_engine: LogEngine::new(),
-            last_time: Instant::now(),
+            log_engine: LogEngine::new(last_time.clone()),
+            last_time: last_time,
             frame_rate: Rc::new(RefCell::new(BASE_FPS)),
             pixels: Rc::new(RefCell::new(COLORS::pixels())),
             sprites: Rc::new(RefCell::new(HashMap::new())),
@@ -202,7 +203,12 @@ impl GameEngine{
         globals.set(
             "mouse",
             lua.create_function(move |_, ()| {
-                Ok(mouse_rc.borrow().clone())
+                let mut new_mouse = mouse_rc.borrow().clone();
+                if mouse_rc.borrow().x == -1 {
+                    new_mouse.pressed = false;
+                    new_mouse.just_pressed = false;
+                }
+                Ok(new_mouse)
             })?,
         )?;
 
@@ -236,20 +242,20 @@ impl GameEngine{
         let frame_rate = *self.frame_rate.borrow();
         if frame_rate <= 0 {
             let now = Instant::now();
-            let dt = self.last_time.elapsed().as_millis();
-            self.last_time = now;
+            let dt = self.last_time.borrow().elapsed().as_millis();
+            *self.last_time.borrow_mut() = now;
             return dt;
         }
 
         let target_frame_time = time::Duration::from_millis((MILLIS_IN_SEC as f64 / frame_rate as f64) as u64);
-        let elapsed_time = self.last_time.elapsed();
+        let elapsed_time = self.last_time.borrow().elapsed();
 
         if elapsed_time < target_frame_time {
             thread::sleep(target_frame_time - elapsed_time);
         }
 
-        let dt = self.last_time.elapsed().as_millis();
-        self.last_time = Instant::now();
+        let dt = self.last_time.borrow().elapsed().as_millis();
+        *self.last_time.borrow_mut() = Instant::now();
         dt
     }
 }

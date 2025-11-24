@@ -1,13 +1,14 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, time::Instant};
 
 use crate::{rico_engine::{PixelsType, ScreenEngine}, utils::{colors::COLORS, mouse::MousePress, pixels::{circle, clear, print_scr_mid, rect_fill, set_pix}}};
 
 pub struct LogEngine{
     pixels: Rc<RefCell<PixelsType>>,
+    game_last_time: Rc<RefCell<Instant>>,
     pub logs: Rc<RefCell<Vec<String>>>,
     pub halted: Rc<RefCell<bool>>,
     pub mouse: Rc<RefCell<MousePress>>,
-    pub restart: bool
+    pub restart: bool,
 }
 
 const HALT_BUTTON: (usize, usize, usize, usize) = (50, 2, 12, 8);
@@ -25,10 +26,11 @@ const RESTART_IMAGE: [[COLORS; 7]; 7] = [
 ];
 
 impl LogEngine{
-    pub fn new() -> Self{
+    pub fn new(last_time: Rc<RefCell<Instant>>) -> Self{
         LogEngine{
             pixels: Rc::new(RefCell::new(COLORS::pixels())),
             logs: Rc::new(RefCell::new(Vec::new())),
+            game_last_time: last_time,
             halted: Rc::new(RefCell::new(false)),
             mouse: Rc::new(RefCell::new(MousePress::default())),
             restart: false
@@ -57,6 +59,9 @@ impl LogEngine{
         if mouse.just_pressed {
             if mouse.x as usize >= HALT_BUTTON.0 && mouse.x as usize <= HALT_BUTTON.0 + HALT_BUTTON.2 && mouse.y as usize >= HALT_BUTTON.1 && mouse.y as usize <= HALT_BUTTON.1 + HALT_BUTTON.3 {
                 let curr = *self.halted.borrow_mut();
+                if curr {
+                    *self.game_last_time.borrow_mut() = Instant::now();
+                }
                 *self.halted.borrow_mut() = !curr;
             }
         }

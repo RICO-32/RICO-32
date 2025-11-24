@@ -204,20 +204,29 @@ fn bind_mouse_input(mouse: Rc<RefCell<MousePress>>, button: MouseButton, state: 
     }
 }
 
+fn check_mouse_bounds(mouse: Rc<RefCell<MousePress>>, start_x: usize, start_y: usize, width: usize, height: usize) -> bool {
+    let cur_x = mouse.borrow().x as usize;
+    let cur_y = mouse.borrow().y as usize;
+    if cur_x < start_x || cur_x > start_x + width || cur_y < start_y || cur_y > start_y + height {
+        mouse.borrow_mut().pressed = false;
+        mouse.borrow_mut().just_pressed = false;
+        mouse.borrow_mut().x = -1;
+        mouse.borrow_mut().y = -1;
+        return true;
+    }
+
+    false
+}
+
 fn bind_mouse_move(mouse: Rc<RefCell<MousePress>>, logical_position: LogicalPosition<f32>, start_x: usize, start_y: usize, width: usize, height: usize){
     mouse.borrow_mut().x = logical_position.x as i32;
     mouse.borrow_mut().y = logical_position.y as i32;
 
-    let cur_x = mouse.borrow().x as usize;
-    let cur_y = mouse.borrow().y as usize;
-    if cur_x < start_x || cur_x > start_x + width || cur_y < start_y || cur_y > start_y + height {
-        mouse.borrow_mut().x = -1;
-        mouse.borrow_mut().y = -1;
-    } else {
+    if !check_mouse_bounds(mouse.clone(), start_x, start_y, width, height){
         mouse.borrow_mut().x -= start_x as i32;
         mouse.borrow_mut().y -= start_y as i32;
 
         mouse.borrow_mut().x /= SCALE as i32;
         mouse.borrow_mut().y /= SCALE as i32;
-    }
+    };
 }
