@@ -71,7 +71,7 @@ impl RicoEngine{
             match event {
                 Event::RedrawRequested(_) => {
                     //Pass in buffer and redraw all based pixels every frame
-                    let buffer = pixels.get_frame_mut();
+                    let buffer = pixels.frame_mut();
                     let _ = engine_rc.borrow_mut().update(buffer);
 
                     if let Err(_) = pixels.render() {
