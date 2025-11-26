@@ -27,7 +27,7 @@ pub trait ScreenEngine {
 }
 
 enum StateEngines {
-    GameEngine
+    GameEngine(GameEngine)
 }
 
 /* Add bindings for diff engines in this struct
@@ -35,15 +35,17 @@ enum StateEngines {
  * Engines should implement the Engine trait
  */
 pub struct RicoEngine{
-    game_engine: GameEngine,
-    state_engine: StateEngines,
+    state_engines: Vec<StateEngines>,
+    curr_eng: usize
 }
 
 impl RicoEngine{
     pub fn new() -> LuaResult<Self>{
+        let game_eng = GameEngine::new()?;
+        let state_engines = vec![StateEngines::GameEngine(game_eng)];
         let engine = RicoEngine{
-            game_engine: GameEngine::new()?,
-            state_engine: StateEngines::GameEngine,
+            state_engines: state_engines,
+            curr_eng: 0
         };
 
         Ok(engine)
@@ -87,9 +89,9 @@ impl RicoEngine{
 
                     WindowEvent::KeyboardInput { input, .. } => {
                         if let Some(keycode) = input.virtual_keycode {
-                            match self.state_engine{
-                                StateEngines::GameEngine => {
-                                    let mut lua_api = self.game_engine.lua_api.borrow_mut();
+                            match self.state_engines[self.curr_eng]{
+                                StateEngines::GameEngine(ref mut eng) => {
+                                    let mut lua_api = eng.lua_api.borrow_mut();
                                     bind_keyboard(&mut lua_api.keyboard, input.state, keycode);
                                 }
                             }
@@ -102,22 +104,22 @@ impl RicoEngine{
                     },
 
                     WindowEvent::MouseInput { button, state, .. } => {
-                        match self.state_engine{
-                            StateEngines::GameEngine => {
-                                bind_mouse_input(&mut self.game_engine.lua_api.borrow_mut().mouse, button, state);
-                                bind_mouse_input(&mut self.game_engine.console_engine.mouse, button, state);
+                        match self.state_engines[self.curr_eng]{
+                            StateEngines::GameEngine(ref mut eng) => {
+                                bind_mouse_input(&mut eng.lua_api.borrow_mut().mouse, button, state);
+                                bind_mouse_input(&mut eng.console_engine.mouse, button, state);
                             }
                         };
                     }
 
                     WindowEvent::CursorMoved { position, .. } => {
-                        match self.state_engine {
-                            StateEngines::GameEngine => {
+                        match self.state_engines[self.curr_eng] {
+                            StateEngines::GameEngine(ref mut eng) => {
                                 let scale = window.scale_factor();
                                 let logical = position.to_logical::<f32>(scale);
 
-                                bind_mouse_move(&mut self.game_engine.lua_api.borrow_mut().mouse, logical, 0, 0, WINDOW_WIDTH, WINDOW_WIDTH);
-                                bind_mouse_move(&mut self.game_engine.console_engine.mouse, logical, 0, WINDOW_WIDTH, WINDOW_WIDTH, WINDOW_WIDTH);
+                                bind_mouse_move(&mut eng.lua_api.borrow_mut().mouse, logical, 0, 0, WINDOW_WIDTH, WINDOW_WIDTH);
+                                bind_mouse_move(&mut eng.console_engine.mouse, logical, 0, WINDOW_WIDTH, WINDOW_WIDTH, WINDOW_WIDTH);
                             }
                         }
                     }
@@ -131,22 +133,22 @@ impl RicoEngine{
 
     //Make sure to update engines here based on which screen it's on
     pub fn update(&mut self, buffer: &mut [u8]) -> LuaResult<()> {
-        return match self.state_engine {
-            StateEngines::GameEngine => {
-                if !self.game_engine.console_engine.halted {
-                    self.game_engine.update();
-                    let pixels = self.game_engine.pixels();
+        return match self.state_engines[self.curr_eng] {
+            StateEngines::GameEngine(ref mut eng) => {
+                if !eng.console_engine.halted {
+                    eng.update();
+                    let pixels = eng.pixels();
 
                     copy_pixels_into_buffer(pixels, buffer, 0, 0);
                 }
                 
-                self.game_engine.console_engine.update(&self.game_engine.lua_api.borrow().logs);
+                eng.console_engine.update(&eng.lua_api.borrow().logs);
 
-                let pixels = self.game_engine.console_engine.pixels();
+                let pixels = eng.console_engine.pixels();
                 copy_pixels_into_buffer(pixels, buffer, 0, WINDOW_WIDTH);
                 
-                if self.game_engine.console_engine.restart {
-                    self.game_engine = GameEngine::new()?;
+                if eng.console_engine.restart {
+                    self.state_engines[0] = StateEngines::GameEngine(GameEngine::new()?);
                 }
 
                 Ok(())
