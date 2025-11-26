@@ -4,7 +4,7 @@ use crate::{rico_engine::{PixelsType, ScreenEngine}, utils::{colors::COLORS, mou
 
 pub struct LogEngine{
     pixels: Rc<RefCell<PixelsType>>,
-    game_last_time: Rc<RefCell<Instant>>,
+    pub last_time: Instant,
     pub halted: bool,
     pub mouse: MousePress,
     pub restart: bool,
@@ -25,10 +25,10 @@ const RESTART_IMAGE: [[COLORS; 7]; 7] = [
 ];
 
 impl LogEngine{
-    pub fn new(last_time: Rc<RefCell<Instant>>) -> Self{
+    pub fn new() -> Self{
         LogEngine{
             pixels: Rc::new(RefCell::new(COLORS::pixels())),
-            game_last_time: last_time,
+            last_time: Instant::now(),
             halted: false,
             mouse: MousePress::default(),
             restart: false
@@ -57,7 +57,7 @@ impl LogEngine{
             if self.mouse.x >= HALT_BUTTON.0 && self.mouse.x <= HALT_BUTTON.0 + HALT_BUTTON.2 && self.mouse.y >= HALT_BUTTON.1 && self.mouse.y <= HALT_BUTTON.1 + HALT_BUTTON.3 {
                 let curr = self.halted;
                 if curr {
-                    *self.game_last_time.borrow_mut() = Instant::now();
+                    self.last_time = Instant::now();
                 }
                 self.halted = !curr;
             }

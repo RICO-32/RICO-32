@@ -19,19 +19,16 @@ const MILLIS_IN_SEC: u128 = 1000;
 pub struct GameEngine{
     pub script_engine: ScriptEngine,
     pub log_engine: LogEngine,
-    last_time: Rc<RefCell<Instant>>,
     pub lua_api: Rc<RefCell<LuaAPI>>
 }
 
 impl GameEngine{
     pub fn new() -> LuaResult<Self> {
-        let last_time = Rc::new(RefCell::new(Instant::now()));
         let script_engine = ScriptEngine::new("scripts")?;
 
         let mut eng = GameEngine {
             script_engine,
-            log_engine: LogEngine::new(last_time.clone()),
-            last_time: last_time,
+            log_engine: LogEngine::new(),
             lua_api: Rc::from(RefCell::from(LuaAPI {
                 frame_rate: BASE_FPS,
                 pixels: COLORS::pixels(),
@@ -58,20 +55,20 @@ impl GameEngine{
         let frame_rate = self.lua_api.borrow().frame_rate;
         if frame_rate <= 0 {
             let now = Instant::now();
-            let dt = self.last_time.borrow().elapsed().as_millis();
-            *self.last_time.borrow_mut() = now;
+            let dt = self.log_engine.last_time.elapsed().as_millis();
+            self.log_engine.last_time = now;
             return dt;
         }
 
         let target_frame_time = time::Duration::from_millis((MILLIS_IN_SEC as f64 / frame_rate as f64) as u64);
-        let elapsed_time = self.last_time.borrow().elapsed();
+        let elapsed_time = self.log_engine.last_time.elapsed();
 
         if elapsed_time < target_frame_time {
             thread::sleep(target_frame_time - elapsed_time);
         }
 
-        let dt = self.last_time.borrow().elapsed().as_millis();
-        *self.last_time.borrow_mut() = Instant::now();
+        let dt = self.log_engine.last_time.elapsed().as_millis();
+        self.log_engine.last_time = Instant::now();
         dt
     }
     

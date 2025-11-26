@@ -1,4 +1,4 @@
-use std::{cell::{Ref, RefCell}, rc::Rc, usize};
+use std::{cell::{Ref}, usize};
 
 use mlua::prelude::*;
 use pixels::{Pixels, SurfaceTexture};
@@ -50,7 +50,7 @@ impl RicoEngine{
     }
 
     //Base boot function, needs to take in whole self cause borrowing bs
-    pub fn start(self) -> Result<(), Box<dyn std::error::Error>>{
+    pub fn start(mut self) -> Result<(), Box<dyn std::error::Error>>{
         let event_loop = EventLoop::new();
         let window = WindowBuilder::new()
             .with_title("RICO-32")
@@ -61,18 +61,16 @@ impl RicoEngine{
         let surface_texture = SurfaceTexture::new(WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32, &window);
         let mut pixels = Pixels::new(WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32, surface_texture)?;
 
-        let engine_rc = Rc::new(RefCell::new(self)).clone();
         // Event loop: Poll so we run as fast as possible and continuously request redraws
         event_loop.run(move |event, _, control_flow| {
             // Poll loop -> render as fast as possible
             *control_flow = ControlFlow::Poll;
 
-            let mut engine = engine_rc.borrow_mut();
             match event {
                 Event::RedrawRequested(_) => {
                     //Pass in buffer and redraw all based pixels every frame
                     let buffer = pixels.frame_mut();
-                    let _ = engine.update(buffer);
+                    let _ = self.update(buffer);
 
                     if let Err(_) = pixels.render() {
                         *control_flow = ControlFlow::Exit;
@@ -89,9 +87,9 @@ impl RicoEngine{
 
                     WindowEvent::KeyboardInput { input, .. } => {
                         if let Some(keycode) = input.virtual_keycode {
-                            match engine.state_engine{
+                            match self.state_engine{
                                 StateEngines::GameEngine => {
-                                    let mut lua_api = engine.game_engine.lua_api.borrow_mut();
+                                    let mut lua_api = self.game_engine.lua_api.borrow_mut();
                                     bind_keyboard(&mut lua_api.keyboard, input.state, keycode);
                                 }
                             }
@@ -104,22 +102,22 @@ impl RicoEngine{
                     },
 
                     WindowEvent::MouseInput { button, state, .. } => {
-                        match engine.state_engine{
+                        match self.state_engine{
                             StateEngines::GameEngine => {
-                                bind_mouse_input(&mut engine.game_engine.lua_api.borrow_mut().mouse, button, state);
-                                bind_mouse_input(&mut engine.game_engine.log_engine.mouse, button, state);
+                                bind_mouse_input(&mut self.game_engine.lua_api.borrow_mut().mouse, button, state);
+                                bind_mouse_input(&mut self.game_engine.log_engine.mouse, button, state);
                             }
                         };
                     }
 
                     WindowEvent::CursorMoved { position, .. } => {
-                        match engine.state_engine {
+                        match self.state_engine {
                             StateEngines::GameEngine => {
                                 let scale = window.scale_factor();
                                 let logical = position.to_logical::<f32>(scale);
 
-                                bind_mouse_move(&mut engine.game_engine.lua_api.borrow_mut().mouse, logical, 0, 0, WINDOW_WIDTH, WINDOW_WIDTH);
-                                bind_mouse_move(&mut engine.game_engine.log_engine.mouse, logical, 0, WINDOW_WIDTH, WINDOW_WIDTH, WINDOW_WIDTH);
+                                bind_mouse_move(&mut self.game_engine.lua_api.borrow_mut().mouse, logical, 0, 0, WINDOW_WIDTH, WINDOW_WIDTH);
+                                bind_mouse_move(&mut self.game_engine.log_engine.mouse, logical, 0, WINDOW_WIDTH, WINDOW_WIDTH, WINDOW_WIDTH);
                             }
                         }
                     }
