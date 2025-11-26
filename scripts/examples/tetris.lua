@@ -39,7 +39,7 @@ move_speed = 120
 
 -- Start
 function start()
-    set_frame_rate(60)
+    rico:set_frame_rate(60)
 end
 
 -- Spawn a new piece
@@ -141,15 +141,15 @@ end
 -- Update
 function update(dt)
     -- Background
-    clear("DARKGRAY")
-    rectfill(0,0,margin_x,grid_height*block_size,"GRAY")
-    rectfill(margin_x + grid_width*block_size,0,margin_x + grid_width*block_size+2,grid_height*block_size,"GRAY")
-    rectfill(margin_x,0,grid_width*block_size,grid_height*block_size,"BLACK")
+    rico:clear("DARKGRAY")
+    rico:rectfill(0,0,margin_x,grid_height*block_size,"GRAY")
+    rico:rectfill(margin_x + grid_width*block_size,0,margin_x + grid_width*block_size+2,grid_height*block_size,"GRAY")
+    rico:rectfill(margin_x,0,grid_width*block_size,grid_height*block_size,"BLACK")
 
     -- Start menu
     if game_state == "start" then
-        print_scr_mid(32,60,"WHITE","PRESS ENTER TO START")
-        if key_just_pressed("Enter") then
+        rico:print_scr_mid(32,60,"WHITE","PRESS ENTER TO START")
+        if rico:key_just_pressed("Enter") then
             game_state = "playing"
             restart_game()
         end
@@ -158,10 +158,10 @@ function update(dt)
 
     -- Game over
     if game_state == "gameover" then
-        print_scr_mid(32,50,"RED","GAME OVER")
-        print_scr_mid(32,70,"WHITE","SCORE: "..score)
-        print_scr_mid(32,90,"WHITE","PRESS ENTER TO RESTART")
-        if key_just_pressed("Enter") then
+        rico:print_scr_mid(32,50,"RED","GAME OVER")
+        rico:print_scr_mid(32,70,"WHITE","SCORE: "..score)
+        rico:print_scr_mid(32,90,"WHITE","PRESS ENTER TO RESTART")
+        if rico:key_just_pressed("Enter") then
             game_state = "playing"
             restart_game()
         end
@@ -175,17 +175,17 @@ function update(dt)
     -- Horizontal movement (held)
     move_timer = move_timer + dt
     if move_timer >= move_speed then
-        if key_pressed("Left") and not check_collision(piece_x-1, piece_y, current_piece) then
+        if rico:key_pressed("Left") and not check_collision(piece_x-1, piece_y, current_piece) then
             piece_x = piece_x - 1
             move_timer = 0
-        elseif key_pressed("Right") and not check_collision(piece_x+1, piece_y, current_piece) then
+        elseif rico:key_pressed("Right") and not check_collision(piece_x+1, piece_y, current_piece) then
             piece_x = piece_x + 1
             move_timer = 0
         end
     end
 
     -- Rotation (JUST PRESSED)
-    if key_just_pressed("Up") then
+    if rico:key_just_pressed("Up") then
         local rotated = rotate(current_piece)
         if not check_collision(piece_x, piece_y, rotated) then
             current_piece = rotated
@@ -197,7 +197,7 @@ function update(dt)
     end
 
     -- Soft drop (held)
-    if key_pressed("Down") then
+    if rico:key_pressed("Down") then
         soft_drop_timer = soft_drop_timer + dt
         if soft_drop_timer >= soft_drop_speed then
             soft_drop_timer = 0
@@ -229,7 +229,7 @@ function update(dt)
         for x=1,grid_width do
             local val = grid[y][x]
             if val ~= 0 then
-                rectfill(
+                rico:rectfill(
                     margin_x + (x-1)*block_size,
                     (y-1)*block_size,
                     block_size,
@@ -245,7 +245,7 @@ function update(dt)
         for x=1,#current_piece[y] do
             local val = current_piece[y][x]
             if val ~= 0 then
-                rectfill(
+                rico:rectfill(
                     margin_x + (piece_x + x - 2)*block_size,
                     (piece_y + y - 2)*block_size,
                     block_size,
@@ -257,6 +257,6 @@ function update(dt)
     end
 
     -- UI
-    print_scr(2,2,"WHITE","Score: "..score)
+    rico:print_scr(2,2,"WHITE","Score: "..score)
 end
 

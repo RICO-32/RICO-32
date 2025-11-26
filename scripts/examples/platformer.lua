@@ -52,7 +52,7 @@ enemies = {}
 
 -- Start
 function start()
-    set_frame_rate(60)
+    rico:set_frame_rate(60)
 end
 
 -- Collision
@@ -70,26 +70,26 @@ end
 
 -- Update
 function update(dt)
-    clear("BLACK")
+    rico:clear("BLACK")
     
     local level = levels[current_level]
     
     -- Handle start/game over/level complete screens
     if game_state == "start" then
-        print_scr_mid(32,60,"WHITE","PRESS ENTER TO START")
-        if key_pressed("Enter") then game_state="playing"; reset_player() end
+        rico:print_scr_mid(32,60,"WHITE","PRESS ENTER TO START")
+        if rico:key_pressed("Enter") then game_state="playing"; reset_player() end
         return
     elseif game_state == "gameover" then
-        print_scr_mid(32,50,"RED","GAME OVER")
-        print_scr_mid(32,70,"WHITE","SCORE: "..score)
-        print_scr_mid(32,90,"WHITE","PRESS ENTER TO RESTART")
-        if key_pressed("Enter") then game_state="playing"; score=0; current_level=1; reset_player() end
+        rico:print_scr_mid(32,50,"RED","GAME OVER")
+        rico:print_scr_mid(32,70,"WHITE","SCORE: "..score)
+        rico:print_scr_mid(32,90,"WHITE","PRESS ENTER TO RESTART")
+        if rico:key_pressed("Enter") then game_state="playing"; score=0; current_level=1; reset_player() end
         return
     elseif game_state == "levelcomplete" then
-        print_scr_mid(32,50,"LIME","LEVEL COMPLETE!")
-        print_scr_mid(32,70,"WHITE","SCORE: "..score)
-        print_scr_mid(32,90,"WHITE","PRESS ENTER TO CONTINUE")
-        if key_pressed("Enter") then
+        rico:print_scr_mid(32,50,"LIME","LEVEL COMPLETE!")
+        rico:print_scr_mid(32,70,"WHITE","SCORE: "..score)
+        rico:print_scr_mid(32,90,"WHITE","PRESS ENTER TO CONTINUE")
+        if rico:key_pressed("Enter") then
             current_level = current_level + 1
             if current_level > #levels then current_level = 1 end
             game_state="playing"; reset_player()
@@ -99,9 +99,9 @@ function update(dt)
     
     -- Player movement
     player.dx = 0
-    if key_pressed("Left") then player.dx = -player.speed end
-    if key_pressed("Right") then player.dx = player.speed end
-    if key_pressed("Up") and player.on_ground then
+    if rico:key_pressed("Left") then player.dx = -player.speed end
+    if rico:key_pressed("Right") then player.dx = player.speed end
+    if rico:key_pressed("Up") and player.on_ground then
         player.dy = player.jump_force
         player.on_ground=false
     end
@@ -174,20 +174,20 @@ function update(dt)
     for y=1,level_height do
         for x=1,level_width do
             local tile = level[y][x]
-            if tile==1 then rectfill((x-1)*tile_size - camera_x,(y-1)*tile_size,tile_size,tile_size,"GRAY")
-            elseif tile==2 then rectfill((x-1)*tile_size - camera_x,(y-1)*tile_size,tile_size,tile_size,"YELLOW") end
+            if tile==1 then rico:rectfill((x-1)*tile_size - camera_x,(y-1)*tile_size,tile_size,tile_size,"GRAY")
+            elseif tile==2 then rico:rectfill((x-1)*tile_size - camera_x,(y-1)*tile_size,tile_size,tile_size,"YELLOW") end
         end
     end
     
     -- Draw player
-    rectfill(player.x - camera_x, player.y, player.w, player.h, player.color)
+    rico:rectfill(player.x - camera_x, player.y, player.w, player.h, player.color)
     
     -- Draw enemies
-    for _,e in ipairs(enemies) do rectfill(e.x - camera_x, e.y, e.w, e.h, e.color) end
+    for _,e in ipairs(enemies) do rico:rectfill(e.x - camera_x, e.y, e.w, e.h, e.color) end
     
     -- UI
-    print_scr(2,2,"WHITE","Score: "..score)
-    print_scr(2,10,"WHITE","Health: "..player.health)
+    rico:print_scr(2,2,"WHITE","Score: "..score)
+    rico:print_scr(2,10,"WHITE","Health: "..player.health)
     
     -- Level complete if reach right edge
     if player.x >= level_width*tile_size - player.w then game_state="levelcomplete" end

@@ -34,30 +34,30 @@ end
 
 -- Start function
 function start()
-    set_frame_rate(frame_rate)
+    rico:set_frame_rate(frame_rate)
 end
 
 -- Update function
 function update(dt)
     -- Clear screen
-    clear("BLACK")
+    rico:clear("BLACK")
 
     -- Player movement
-    if key_pressed("Left") then
+    if rico:key_pressed("Left") then
         player.x = math.max(0, player.x - player.speed * dt / 1000)
     end
-    if key_pressed("Right") then
+    if rico:key_pressed("Right") then
         player.x = math.min(128 - player.w, player.x + player.speed * dt / 1000)
     end
-    if key_pressed("Up") then
+    if rico:key_pressed("Up") then
         player.y = math.max(0, player.y - player.speed * dt / 1000)
     end
-    if key_pressed("Down") then
+    if rico:key_pressed("Down") then
         player.y = math.min(128 - player.h, player.y + player.speed * dt / 1000)
     end
 
     -- Shooting bullets
-    if key_pressed("Space") then
+    if rico:key_pressed("Space") then
         if not player.shoot_cooldown or player.shoot_cooldown <= 0 then
             shoot()
             player.shoot_cooldown = 300 -- ms cooldown
@@ -74,7 +74,7 @@ function update(dt)
         if b.y < -b.h then
             table.remove(player.bullets, i)
         else
-            rectfill(b.x, b.y, b.w, b.h, b.color)
+            rico:rectfill(b.x, b.y, b.w, b.h, b.color)
         end
     end
 
@@ -92,7 +92,7 @@ function update(dt)
         if e.y > 128 then
             table.remove(enemies, i)
         else
-            rectfill(e.x, e.y, e.w, e.h, e.color)
+            rico:rectfill(e.x, e.y, e.w, e.h, e.color)
         end
     end
 
@@ -115,17 +115,17 @@ function update(dt)
         local e = enemies[i]
         if collides(e, player) then
             -- Game over
-            clear("BLACK")
-            print_scr_mid(64, 64, "RED", "GAME OVER")
-            print_scr_mid(64, 74, "WHITE", "Score: "..score)
+            rico:clear("BLACK")
+            rico:print_scr_mid(64, 64, "RED", "GAME OVER")
+            rico:print_scr_mid(64, 74, "WHITE", "Score: "..score)
             return
         end
     end
 
     -- Draw player
-    rectfill(player.x, player.y, player.w, player.h, player.color)
+    rico:rectfill(player.x, player.y, player.w, player.h, player.color)
 
     -- Draw score
-    print_scr(2, 2, "WHITE", "Score: "..score)
+    rico:print_scr(2, 2, "WHITE", "Score: "..score)
 end
 
