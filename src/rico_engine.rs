@@ -105,7 +105,7 @@ impl RicoEngine{
                         match self.state_engine{
                             StateEngines::GameEngine => {
                                 bind_mouse_input(&mut self.game_engine.lua_api.borrow_mut().mouse, button, state);
-                                bind_mouse_input(&mut self.game_engine.log_engine.mouse, button, state);
+                                bind_mouse_input(&mut self.game_engine.console_engine.mouse, button, state);
                             }
                         };
                     }
@@ -117,7 +117,7 @@ impl RicoEngine{
                                 let logical = position.to_logical::<f32>(scale);
 
                                 bind_mouse_move(&mut self.game_engine.lua_api.borrow_mut().mouse, logical, 0, 0, WINDOW_WIDTH, WINDOW_WIDTH);
-                                bind_mouse_move(&mut self.game_engine.log_engine.mouse, logical, 0, WINDOW_WIDTH, WINDOW_WIDTH, WINDOW_WIDTH);
+                                bind_mouse_move(&mut self.game_engine.console_engine.mouse, logical, 0, WINDOW_WIDTH, WINDOW_WIDTH, WINDOW_WIDTH);
                             }
                         }
                     }
@@ -133,19 +133,19 @@ impl RicoEngine{
     pub fn update(&mut self, buffer: &mut [u8]) -> LuaResult<()> {
         return match self.state_engine {
             StateEngines::GameEngine => {
-                if !self.game_engine.log_engine.halted {
+                if !self.game_engine.console_engine.halted {
                     self.game_engine.update();
                     let pixels = self.game_engine.pixels();
 
                     copy_pixels_into_buffer(pixels, buffer, 0, 0);
                 }
                 
-                self.game_engine.log_engine.update(&self.game_engine.lua_api.borrow().logs);
+                self.game_engine.console_engine.update(&self.game_engine.lua_api.borrow().logs);
 
-                let pixels = self.game_engine.log_engine.pixels();
+                let pixels = self.game_engine.console_engine.pixels();
                 copy_pixels_into_buffer(pixels, buffer, 0, WINDOW_WIDTH);
                 
-                if self.game_engine.log_engine.restart {
+                if self.game_engine.console_engine.restart {
                     self.game_engine = GameEngine::new()?;
                 }
 

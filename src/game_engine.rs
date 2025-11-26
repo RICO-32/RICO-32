@@ -4,7 +4,7 @@ use std::{thread, time};
 
 use mlua::prelude::LuaResult;
 
-use crate::log_engine::LogEngine;
+use crate::console_engine::ConsoleEngine;
 use crate::lua_api::LuaAPI;
 use crate::script_engine::ScriptEngine;
 use crate::rico_engine::{PixelsType, ScreenEngine};
@@ -14,7 +14,7 @@ const MILLIS_IN_SEC: u128 = 1000;
 
 pub struct GameEngine{
     pub script_engine: ScriptEngine,
-    pub log_engine: LogEngine,
+    pub console_engine: ConsoleEngine,
     pub lua_api: Rc<RefCell<LuaAPI>>
 }
 
@@ -24,7 +24,7 @@ impl GameEngine{
 
         let mut eng = GameEngine {
             script_engine,
-            log_engine: LogEngine::new(),
+            console_engine: ConsoleEngine::new(),
             lua_api: Rc::from(RefCell::from(LuaAPI::default()))
         };
 
@@ -41,20 +41,20 @@ impl GameEngine{
         let frame_rate = self.lua_api.borrow().frame_rate;
         if frame_rate <= 0 {
             let now = Instant::now();
-            let dt = self.log_engine.last_time.elapsed().as_millis();
-            self.log_engine.last_time = now;
+            let dt = self.console_engine.last_time.elapsed().as_millis();
+            self.console_engine.last_time = now;
             return dt;
         }
 
         let target_frame_time = time::Duration::from_millis((MILLIS_IN_SEC as f64 / frame_rate as f64) as u64);
-        let elapsed_time = self.log_engine.last_time.elapsed();
+        let elapsed_time = self.console_engine.last_time.elapsed();
 
         if elapsed_time < target_frame_time {
             thread::sleep(target_frame_time - elapsed_time);
         }
 
-        let dt = self.log_engine.last_time.elapsed().as_millis();
-        self.log_engine.last_time = Instant::now();
+        let dt = self.console_engine.last_time.elapsed().as_millis();
+        self.console_engine.last_time = Instant::now();
         dt
     }
     
