@@ -17,6 +17,10 @@ The ultimate pico clone in the objectively better language because it's a cool a
 - [ ] Add IDE engine
 
 ## API
+
+### All RICO API functions must be prefixed with rico: to be called in lua
+Eg. `rico:get_pix(64, 64)`
+
 - `start()` is called at the start of the program
 - `update(dt)` is called every frame based on the frame rate and passed in the delta time for that frame in milliseconds
 - `log`: Prints out a string in the console
