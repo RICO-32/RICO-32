@@ -1,13 +1,12 @@
-use std::{cell::RefCell, rc::Rc, time::Instant};
+use std::{cell::{Ref, RefCell}, rc::Rc, time::Instant};
 
 use crate::{rico_engine::{PixelsType, ScreenEngine}, utils::{colors::COLORS, mouse::MousePress, pixels::{circle, clear, print_scr_mid, rect_fill, set_pix}}};
 
 pub struct LogEngine{
     pixels: Rc<RefCell<PixelsType>>,
     game_last_time: Rc<RefCell<Instant>>,
-    pub logs: Rc<RefCell<Vec<String>>>,
-    pub halted: Rc<RefCell<bool>>,
-    pub mouse: Rc<RefCell<MousePress>>,
+    pub halted: bool,
+    pub mouse: MousePress,
     pub restart: bool,
 }
 
@@ -29,65 +28,63 @@ impl LogEngine{
     pub fn new(last_time: Rc<RefCell<Instant>>) -> Self{
         LogEngine{
             pixels: Rc::new(RefCell::new(COLORS::pixels())),
-            logs: Rc::new(RefCell::new(Vec::new())),
             game_last_time: last_time,
-            halted: Rc::new(RefCell::new(false)),
-            mouse: Rc::new(RefCell::new(MousePress::default())),
+            halted: false,
+            mouse: MousePress::default(),
             restart: false
         }
     }
 
     fn draw_game_control(&mut self) {
-        rect_fill(self.pixels.clone(), HALT_BUTTON.0, HALT_BUTTON.1, HALT_BUTTON.2, HALT_BUTTON.3, COLORS::SILVER);
+        rect_fill(&mut self.pixels.borrow_mut(), HALT_BUTTON.0, HALT_BUTTON.1, HALT_BUTTON.2, HALT_BUTTON.3, COLORS::SILVER);
 
-        if *self.halted.borrow() {
-            circle(self.pixels.clone(), 56, 6, 2, COLORS::GREEN);
+        if self.halted {
+            circle(&mut self.pixels.borrow_mut(), 56, 6, 2, COLORS::GREEN);
         } else {
-            rect_fill(self.pixels.clone(), 54, 4, 4, 4, COLORS::RED);
+            rect_fill(&mut self.pixels.borrow_mut(), 54, 4, 4, 4, COLORS::RED);
         }
 
-        rect_fill(self.pixels.clone(), RESTART_BUTTON.0, RESTART_BUTTON.1, RESTART_BUTTON.2, RESTART_BUTTON.3, COLORS::SILVER);
+        rect_fill(&mut self.pixels.borrow_mut(), RESTART_BUTTON.0, RESTART_BUTTON.1, RESTART_BUTTON.2, RESTART_BUTTON.3, COLORS::SILVER);
         for y in 0..7{
             for x in 0..7{
-                set_pix(self.pixels.clone(), RESTART_BUTTON.1+1+y, RESTART_BUTTON.0+3+x, RESTART_IMAGE[y as usize][x as usize]);
+                set_pix(&mut self.pixels.borrow_mut(), RESTART_BUTTON.1+1+y, RESTART_BUTTON.0+3+x, RESTART_IMAGE[y as usize][x as usize]);
             }
         }
     }
 
     fn assess_game_control(&mut self) {
-        let mouse = self.mouse.borrow();
-        if mouse.just_pressed {
-            if mouse.x >= HALT_BUTTON.0 && mouse.x <= HALT_BUTTON.0 + HALT_BUTTON.2 && mouse.y >= HALT_BUTTON.1 && mouse.y <= HALT_BUTTON.1 + HALT_BUTTON.3 {
-                let curr = *self.halted.borrow_mut();
+        if self.mouse.just_pressed {
+            if self.mouse.x >= HALT_BUTTON.0 && self.mouse.x <= HALT_BUTTON.0 + HALT_BUTTON.2 && self.mouse.y >= HALT_BUTTON.1 && self.mouse.y <= HALT_BUTTON.1 + HALT_BUTTON.3 {
+                let curr = self.halted;
                 if curr {
                     *self.game_last_time.borrow_mut() = Instant::now();
                 }
-                *self.halted.borrow_mut() = !curr;
+                self.halted = !curr;
             }
         }
         if self.restart { self.restart = false };
-        if mouse.just_pressed {
-            if mouse.x >= RESTART_BUTTON.0 && mouse.x <= RESTART_BUTTON.0 + RESTART_BUTTON.2 && mouse.y >= RESTART_BUTTON.1 && mouse.y <= RESTART_BUTTON.1 + RESTART_BUTTON.3 {
+        if self.mouse.just_pressed {
+            if self.mouse.x >= RESTART_BUTTON.0 && self.mouse.x <= RESTART_BUTTON.0 + RESTART_BUTTON.2 && self.mouse.y >= RESTART_BUTTON.1 && self.mouse.y <= RESTART_BUTTON.1 + RESTART_BUTTON.3 {
                 self.restart = true;
             }
         }
     }
+
+    pub fn update(&mut self, logs: &Vec<String>) {
+        clear(&mut self.pixels.borrow_mut(), COLORS::GRAY);
+        self.draw_game_control();
+        self.assess_game_control();
+        for (i, log) in logs[logs.len().saturating_sub(20)..].iter().enumerate(){
+            print_scr_mid(&mut self.pixels.borrow_mut(), 1, 6*i as i32 + 2 + 3 * 6, COLORS::BLACK, log.to_string());
+        }
+        if self.mouse.just_pressed {
+            self.mouse.just_pressed = false;
+        };
+    }
 }
 
 impl ScreenEngine for LogEngine{
-    fn pixels(&self) -> Rc<RefCell<PixelsType>> {
-        self.pixels.clone()
-    }
-
-    fn update(&mut self) {
-        clear(self.pixels.clone(), COLORS::GRAY);
-        self.draw_game_control();
-        self.assess_game_control();
-        for (i, log) in self.logs.borrow()[self.logs.borrow().len().saturating_sub(20)..].iter().enumerate(){
-            print_scr_mid(self.pixels.clone(), 1, 6*i as i32 + 2 + 3 * 6, COLORS::BLACK, log.to_string());
-        }
-        if self.mouse.borrow().just_pressed {
-            self.mouse.borrow_mut().just_pressed = false;
-        };
+    fn pixels(&self) -> Ref<PixelsType> {
+        Ref::from(self.pixels.borrow())
     }
 }

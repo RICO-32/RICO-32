@@ -1,4 +1,11 @@
+use std::collections::HashSet;
+
 use winit::event::VirtualKeyCode;
+
+pub struct Keyboard {
+    pub keys_pressed: HashSet<VirtualKeyCode>,
+    pub keys_just_pressed: HashSet<VirtualKeyCode>,
+}
 
 pub fn key_from_str(str: &str) -> Option<VirtualKeyCode> {
     match str {

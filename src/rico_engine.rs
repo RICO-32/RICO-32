@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashSet, rc::Rc, usize};
+use std::{cell::{Ref, RefCell}, rc::Rc, usize};
 
 use mlua::prelude::*;
 use pixels::{Pixels, SurfaceTexture};
@@ -9,7 +9,7 @@ use winit::{
     window::WindowBuilder,
 };
 
-use crate::{game_engine::GameEngine, utils::mouse::MousePress};
+use crate::{game_engine::GameEngine, utils::{keyboard::Keyboard, mouse::MousePress}};
 use crate::utils::colors::COLORS;
 
 pub const SCREEN_SIZE: usize = 128;
@@ -23,8 +23,7 @@ pub type PixelsType = Vec<Vec<COLORS>>;
  * Game for now, sprite in the future, maybe IDE
  */
 pub trait ScreenEngine {
-    fn pixels(&self) -> Rc<RefCell<PixelsType>>;
-    fn update(&mut self);    
+    fn pixels(&self) -> Ref<PixelsType>;
 }
 
 enum StateEngines {
@@ -68,11 +67,12 @@ impl RicoEngine{
             // Poll loop -> render as fast as possible
             *control_flow = ControlFlow::Poll;
 
+            let mut engine = engine_rc.borrow_mut();
             match event {
                 Event::RedrawRequested(_) => {
                     //Pass in buffer and redraw all based pixels every frame
                     let buffer = pixels.frame_mut();
-                    let _ = engine_rc.borrow_mut().update(buffer);
+                    let _ = engine.update(buffer);
 
                     if let Err(_) = pixels.render() {
                         *control_flow = ControlFlow::Exit;
@@ -89,9 +89,10 @@ impl RicoEngine{
 
                     WindowEvent::KeyboardInput { input, .. } => {
                         if let Some(keycode) = input.virtual_keycode {
-                            match engine_rc.borrow().state_engine{
+                            match engine.state_engine{
                                 StateEngines::GameEngine => {
-                                    bind_keyboard(engine_rc.borrow().game_engine.keys_pressed.clone(), engine_rc.borrow().game_engine.keys_just_pressed.clone(), input.state, keycode);
+                                    let mut lua_api = engine.game_engine.lua_api.borrow_mut();
+                                    bind_keyboard(&mut lua_api.keyboard, input.state, keycode);
                                 }
                             }
 
@@ -103,24 +104,22 @@ impl RicoEngine{
                     },
 
                     WindowEvent::MouseInput { button, state, .. } => {
-                        match engine_rc.borrow().state_engine{
+                        match engine.state_engine{
                             StateEngines::GameEngine => {
-                                bind_mouse_input(engine_rc.borrow().game_engine.mouse.clone(), button, state);
-                                bind_mouse_input(engine_rc.borrow().game_engine.log_engine.mouse.clone(), button, state);
+                                bind_mouse_input(&mut engine.game_engine.lua_api.borrow_mut().mouse, button, state);
+                                bind_mouse_input(&mut engine.game_engine.log_engine.mouse, button, state);
                             }
                         };
                     }
 
                     WindowEvent::CursorMoved { position, .. } => {
-                        match engine_rc.borrow().state_engine {
+                        match engine.state_engine {
                             StateEngines::GameEngine => {
                                 let scale = window.scale_factor();
                                 let logical = position.to_logical::<f32>(scale);
 
-                                let mouse_rc = engine_rc.borrow().game_engine.mouse.clone();
-                                bind_mouse_move(mouse_rc.clone(), logical, 0, 0, WINDOW_WIDTH, WINDOW_WIDTH);
-                                let mouse_rc = engine_rc.borrow().game_engine.log_engine.mouse.clone();
-                                bind_mouse_move(mouse_rc, logical, 0, WINDOW_WIDTH, WINDOW_WIDTH, WINDOW_WIDTH);
+                                bind_mouse_move(&mut engine.game_engine.lua_api.borrow_mut().mouse, logical, 0, 0, WINDOW_WIDTH, WINDOW_WIDTH);
+                                bind_mouse_move(&mut engine.game_engine.log_engine.mouse, logical, 0, WINDOW_WIDTH, WINDOW_WIDTH, WINDOW_WIDTH);
                             }
                         }
                     }
@@ -136,14 +135,15 @@ impl RicoEngine{
     pub fn update(&mut self, buffer: &mut [u8]) -> LuaResult<()> {
         return match self.state_engine {
             StateEngines::GameEngine => {
-                if !*self.game_engine.log_engine.halted.borrow() {
+                if !self.game_engine.log_engine.halted {
                     self.game_engine.update();
                     let pixels = self.game_engine.pixels();
 
                     copy_pixels_into_buffer(pixels, buffer, 0, 0);
                 }
+                
+                self.game_engine.log_engine.update(&self.game_engine.lua_api.borrow().logs);
 
-                self.game_engine.log_engine.update();
                 let pixels = self.game_engine.log_engine.pixels();
                 copy_pixels_into_buffer(pixels, buffer, 0, WINDOW_WIDTH);
                 
@@ -158,16 +158,15 @@ impl RicoEngine{
 }
 
 //Hydrate the screen based on scaling factors and stuff
-fn copy_pixels_into_buffer(pixels: Rc<RefCell<PixelsType>>, buffer: &mut [u8], start_x: usize, start_y: usize){
-    let pixels_rc = pixels.borrow();
-    let height = pixels_rc.len();
-    let width = pixels_rc[0].len();
+fn copy_pixels_into_buffer(pixels: Ref<PixelsType>, buffer: &mut [u8], start_x: usize, start_y: usize){
+    let height = pixels.len();
+    let width = pixels[0].len();
     for y in 0..height{
         for x in 0..width{
             for dy in 0..SCALE{
                 for dx in 0..SCALE{
                     let idx = ((y * SCALE + dy) * WINDOW_WIDTH as usize + (x * SCALE + dx)) + start_y * WINDOW_WIDTH + start_x;
-                    let COLORS(r, g, b, a) = pixels_rc[y][x];
+                    let COLORS(r, g, b, a) = pixels[y][x];
                     buffer[idx*4..idx*4+4].copy_from_slice(&[r, g, b, a]);
                 }
             }
@@ -175,58 +174,58 @@ fn copy_pixels_into_buffer(pixels: Rc<RefCell<PixelsType>>, buffer: &mut [u8], s
     }
 }
 
-fn bind_keyboard(keys_pressed: Rc<RefCell<HashSet<VirtualKeyCode>>>, keys_just_pressed: Rc<RefCell<HashSet<VirtualKeyCode>>>, state: ElementState, keycode: VirtualKeyCode){
+fn bind_keyboard(keyboard: &mut Keyboard, state: ElementState, keycode: VirtualKeyCode){
     match state {
         ElementState::Pressed => {
-            if !keys_pressed.borrow().contains(&keycode) {
-                keys_just_pressed.borrow_mut().insert(keycode);
+            if !keyboard.keys_pressed.contains(&keycode) {
+                keyboard.keys_just_pressed.insert(keycode);
             }
-            keys_pressed.borrow_mut().insert(keycode);
+            keyboard.keys_pressed.insert(keycode);
         }
         ElementState::Released => {
-            keys_pressed.borrow_mut().remove(&keycode);
+            keyboard.keys_pressed.remove(&keycode);
         }
     }
 }
 
-fn bind_mouse_input(mouse: Rc<RefCell<MousePress>>, button: MouseButton, state: ElementState){
+fn bind_mouse_input(mouse: &mut MousePress, button: MouseButton, state: ElementState){
     if button == MouseButton::Left {
         match state {
             ElementState::Pressed => {
-                mouse.borrow_mut().pressed = true;
-                mouse.borrow_mut().just_pressed = true;
+                mouse.pressed = true;
+                mouse.just_pressed = true;
             },
             ElementState::Released => {
-                mouse.borrow_mut().pressed = false;
-                mouse.borrow_mut().just_pressed = false;
+                mouse.pressed = false;
+                mouse.just_pressed = false;
             },
         }
     }
 }
 
-fn check_mouse_bounds(mouse: Rc<RefCell<MousePress>>, start_x: usize, start_y: usize, width: usize, height: usize) -> bool {
-    let cur_x = mouse.borrow().x as usize;
-    let cur_y = mouse.borrow().y as usize;
+fn check_mouse_bounds(mouse: &mut MousePress, start_x: usize, start_y: usize, width: usize, height: usize) -> bool {
+    let cur_x = mouse.x as usize;
+    let cur_y = mouse.y as usize;
     if cur_x < start_x || cur_x > start_x + width || cur_y < start_y || cur_y > start_y + height {
-        mouse.borrow_mut().pressed = false;
-        mouse.borrow_mut().just_pressed = false;
-        mouse.borrow_mut().x = -1;
-        mouse.borrow_mut().y = -1;
+        mouse.pressed = false;
+        mouse.just_pressed = false;
+        mouse.x = -1;
+        mouse.y = -1;
         return true;
     }
 
     false
 }
 
-fn bind_mouse_move(mouse: Rc<RefCell<MousePress>>, logical_position: LogicalPosition<f32>, start_x: usize, start_y: usize, width: usize, height: usize){
-    mouse.borrow_mut().x = logical_position.x as i32;
-    mouse.borrow_mut().y = logical_position.y as i32;
+fn bind_mouse_move(mouse: &mut MousePress, logical_position: LogicalPosition<f32>, start_x: usize, start_y: usize, width: usize, height: usize){
+    mouse.x = logical_position.x as i32;
+    mouse.y = logical_position.y as i32;
 
-    if !check_mouse_bounds(mouse.clone(), start_x, start_y, width, height){
-        mouse.borrow_mut().x -= start_x as i32;
-        mouse.borrow_mut().y -= start_y as i32;
+    if !check_mouse_bounds(mouse, start_x, start_y, width, height){
+        mouse.x -= start_x as i32;
+        mouse.y -= start_y as i32;
 
-        mouse.borrow_mut().x /= SCALE as i32;
-        mouse.borrow_mut().y /= SCALE as i32;
+        mouse.x /= SCALE as i32;
+        mouse.y /= SCALE as i32;
     };
 }
