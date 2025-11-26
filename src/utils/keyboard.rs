@@ -7,6 +7,12 @@ pub struct Keyboard {
     pub keys_just_pressed: HashSet<VirtualKeyCode>,
 }
 
+impl Keyboard {
+    pub fn default() -> Self {
+        Keyboard { keys_pressed: HashSet::new(), keys_just_pressed: HashSet::new() }
+    }
+}
+
 pub fn key_from_str(str: &str) -> Option<VirtualKeyCode> {
     match str {
         "1" => Some(VirtualKeyCode::Key1),

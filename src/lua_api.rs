@@ -5,7 +5,8 @@ use std::rc::Rc;
 use image::{ImageBuffer, ImageReader, Rgba};
 use mlua::UserData;
 
-use crate::utils::colors::{color_from_str, str_from_color};
+use crate::game_engine::BASE_FPS;
+use crate::utils::colors::{color_from_str, str_from_color, COLORS};
 use crate::utils::keyboard::{key_from_str, Keyboard};
 use crate::utils::mouse::MousePress;
 use crate::utils::pixels::{circle, clear, draw, print_scr, print_scr_mid, print_scr_mini, rect, rect_fill, set_pix};
@@ -18,6 +19,19 @@ pub struct LuaAPI{
     pub pixels: PixelsType,
     pub sprites: HashMap<String, ImageBuffer<Rgba<u8>, Vec<u8>>>,
     pub logs: Vec<String>
+}
+
+impl LuaAPI {
+    pub fn default() -> Self {
+        LuaAPI {
+            frame_rate: BASE_FPS,
+            pixels: COLORS::pixels(),
+            logs: Vec::new(),
+            sprites: HashMap::new(),
+            mouse: MousePress::default(),
+            keyboard: Keyboard::default()
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -169,3 +183,4 @@ impl UserData for LuaAPIHandle {
         );
     }
 }
+

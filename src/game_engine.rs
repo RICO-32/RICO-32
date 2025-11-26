@@ -1,5 +1,4 @@
 use std::cell::Ref;
-use std::collections::{HashMap, HashSet};
 use std::{cell::RefCell, rc::Rc, time::Instant};
 use std::{thread, time};
 
@@ -7,13 +6,10 @@ use mlua::prelude::LuaResult;
 
 use crate::log_engine::LogEngine;
 use crate::lua_api::LuaAPI;
-use crate::utils::colors::COLORS;
-use crate::utils::keyboard::Keyboard;
-use crate::utils::mouse::MousePress;
 use crate::script_engine::ScriptEngine;
 use crate::rico_engine::{PixelsType, ScreenEngine};
 
-const BASE_FPS: i32 = 60;
+pub const BASE_FPS: i32 = 60;
 const MILLIS_IN_SEC: u128 = 1000;
 
 pub struct GameEngine{
@@ -29,17 +25,7 @@ impl GameEngine{
         let mut eng = GameEngine {
             script_engine,
             log_engine: LogEngine::new(),
-            lua_api: Rc::from(RefCell::from(LuaAPI {
-                frame_rate: BASE_FPS,
-                pixels: COLORS::pixels(),
-                logs: Vec::new(),
-                sprites: HashMap::new(),
-                mouse: MousePress::default(),
-                keyboard: Keyboard {
-                    keys_pressed: HashSet::new(),
-                    keys_just_pressed: HashSet::new(),
-                }
-            }))
+            lua_api: Rc::from(RefCell::from(LuaAPI::default()))
         };
 
         eng.script_engine.boot()?;
