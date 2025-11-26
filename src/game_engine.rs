@@ -5,9 +5,9 @@ use std::{thread, time};
 
 use mlua::prelude::LuaResult;
 
-use crate::log_engine::{LogEngine};
-use crate::lua_api::{LuaAPI, LuaAPIHandle};
-use crate::utils::colors::{COLORS};
+use crate::log_engine::LogEngine;
+use crate::lua_api::LuaAPI;
+use crate::utils::colors::COLORS;
 use crate::utils::keyboard::Keyboard;
 use crate::utils::mouse::MousePress;
 use crate::script_engine::ScriptEngine;
@@ -46,21 +46,12 @@ impl GameEngine{
         };
 
         eng.script_engine.boot()?;
-        let _ = eng.register_api();
+        eng.script_engine.register_api(eng.lua_api.clone())?;
         eng.script_engine.call_start()?;
 
        Ok(eng)
     }
 
-    //Define all lua API functions here
-    pub fn register_api(&mut self) -> LuaResult<()> {
-        let lua = &self.script_engine.lua;
-
-        let lua_state = lua.create_userdata(LuaAPIHandle(self.lua_api.clone()))?;
-        lua.globals().set("rico", lua_state)?;
-
-        Ok(())
-    }
 
     //Artificially syncs frame rate, idk a better way to do this
     fn sync(&mut self) -> u128 {

@@ -1,7 +1,12 @@
 use mlua::prelude::*;
 
 use mlua::StdLib;
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::{fs};
+
+use crate::lua_api::LuaAPI;
+use crate::lua_api::LuaAPIHandle;
 
 pub struct ScriptEngine {
     pub lua: Lua,
@@ -25,6 +30,13 @@ impl ScriptEngine {
         engine.register_loader()?;
 
         Ok(engine)
+    }
+
+    //Define all lua API functions here
+    pub fn register_api(&mut self, lua_api: Rc<RefCell<LuaAPI>>) -> LuaResult<()> {
+        let lua_state = self.lua.create_userdata(LuaAPIHandle(lua_api.clone()))?;
+        self.lua.globals().set("rico", lua_state)?;
+        Ok(())
     }
 
     /* Only way I could think to allow modularization
