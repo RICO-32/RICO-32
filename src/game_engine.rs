@@ -70,7 +70,8 @@ impl GameEngine{
 }
 
 impl ScreenEngine for GameEngine{
-    fn pixels(&self) -> Ref<PixelsType>{
+    type Pixels<'a> = Ref<'a, PixelsType>;
+    fn pixels(&self) -> Self::Pixels<'_>{
         Ref::map(self.lua_api.borrow(), |api| &api.pixels)
     }
 }

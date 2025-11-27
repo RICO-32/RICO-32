@@ -1,9 +1,9 @@
-use std::{cell::{Ref, RefCell}, rc::Rc, time::Instant};
+use std::time::Instant;
 
 use crate::{rico_engine::{PixelsType, ScreenEngine}, utils::{colors::COLORS, mouse::MousePress, pixels::{circle, clear, print_scr_mid, rect_fill, set_pix}}};
 
 pub struct ConsoleEngine{
-    pixels: Rc<RefCell<PixelsType>>,
+    pixels: PixelsType,
     pub last_time: Instant,
     pub halted: bool,
     pub mouse: MousePress,
@@ -27,7 +27,7 @@ const RESTART_IMAGE: [[COLORS; 7]; 7] = [
 impl ConsoleEngine{
     pub fn new() -> Self{
         ConsoleEngine{
-            pixels: Rc::new(RefCell::new(COLORS::pixels())),
+            pixels: COLORS::pixels(),
             last_time: Instant::now(),
             halted: false,
             mouse: MousePress::default(),
@@ -36,18 +36,18 @@ impl ConsoleEngine{
     }
 
     fn draw_game_control(&mut self) {
-        rect_fill(&mut self.pixels.borrow_mut(), HALT_BUTTON.0, HALT_BUTTON.1, HALT_BUTTON.2, HALT_BUTTON.3, COLORS::SILVER);
+        rect_fill(&mut self.pixels, HALT_BUTTON.0, HALT_BUTTON.1, HALT_BUTTON.2, HALT_BUTTON.3, COLORS::SILVER);
 
         if self.halted {
-            circle(&mut self.pixels.borrow_mut(), 56, 6, 2, COLORS::GREEN);
+            circle(&mut self.pixels, 56, 6, 2, COLORS::GREEN);
         } else {
-            rect_fill(&mut self.pixels.borrow_mut(), 54, 4, 4, 4, COLORS::RED);
+            rect_fill(&mut self.pixels, 54, 4, 4, 4, COLORS::RED);
         }
 
-        rect_fill(&mut self.pixels.borrow_mut(), RESTART_BUTTON.0, RESTART_BUTTON.1, RESTART_BUTTON.2, RESTART_BUTTON.3, COLORS::SILVER);
+        rect_fill(&mut self.pixels, RESTART_BUTTON.0, RESTART_BUTTON.1, RESTART_BUTTON.2, RESTART_BUTTON.3, COLORS::SILVER);
         for y in 0..7{
             for x in 0..7{
-                set_pix(&mut self.pixels.borrow_mut(), RESTART_BUTTON.1+1+y, RESTART_BUTTON.0+3+x, RESTART_IMAGE[y as usize][x as usize]);
+                set_pix(&mut self.pixels, RESTART_BUTTON.1+1+y, RESTART_BUTTON.0+3+x, RESTART_IMAGE[y as usize][x as usize]);
             }
         }
     }
@@ -71,11 +71,11 @@ impl ConsoleEngine{
     }
 
     pub fn update(&mut self, logs: &Vec<String>) {
-        clear(&mut self.pixels.borrow_mut(), COLORS::GRAY);
+        clear(&mut self.pixels, COLORS::GRAY);
         self.draw_game_control();
         self.assess_game_control();
         for (i, log) in logs[logs.len().saturating_sub(20)..].iter().enumerate(){
-            print_scr_mid(&mut self.pixels.borrow_mut(), 1, 6*i as i32 + 2 + 3 * 6, COLORS::BLACK, log.to_string());
+            print_scr_mid(&mut self.pixels, 1, 6*i as i32 + 2 + 3 * 6, COLORS::BLACK, log.to_string());
         }
         if self.mouse.just_pressed {
             self.mouse.just_pressed = false;
@@ -84,7 +84,8 @@ impl ConsoleEngine{
 }
 
 impl ScreenEngine for ConsoleEngine{
-    fn pixels(&self) -> Ref<PixelsType> {
-        Ref::from(self.pixels.borrow())
+    type Pixels<'a> = &'a PixelsType;
+    fn pixels(&self) -> Self::Pixels<'_> {
+        &self.pixels
     }
 }

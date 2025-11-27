@@ -1,4 +1,4 @@
-use std::{cell::{Ref}, usize};
+use std::{ops::Deref, usize};
 
 use mlua::prelude::*;
 use pixels::{Pixels, SurfaceTexture};
@@ -23,7 +23,8 @@ pub type PixelsType = Vec<Vec<COLORS>>;
  * Game for now, sprite in the future, maybe IDE
  */
 pub trait ScreenEngine {
-    fn pixels(&self) -> Ref<PixelsType>;
+    type Pixels<'a>: Deref<Target=PixelsType> where Self: 'a;
+    fn pixels(&self) -> Self::Pixels<'_>;
 }
 
 enum StateEngines {
@@ -139,7 +140,7 @@ impl RicoEngine{
                     eng.update();
                     let pixels = eng.pixels();
 
-                    copy_pixels_into_buffer(pixels, buffer, 0, 0);
+                    copy_pixels_into_buffer(pixels.deref(), buffer, 0, 0);
                 }
                 
                 eng.console_engine.update(&eng.lua_api.borrow().logs);
@@ -158,7 +159,7 @@ impl RicoEngine{
 }
 
 //Hydrate the screen based on scaling factors and stuff
-fn copy_pixels_into_buffer(pixels: Ref<PixelsType>, buffer: &mut [u8], start_x: usize, start_y: usize){
+fn copy_pixels_into_buffer(pixels: &PixelsType, buffer: &mut [u8], start_x: usize, start_y: usize){
     let height = pixels.len();
     let width = pixels[0].len();
     for y in 0..height{
