@@ -98,7 +98,9 @@ impl RicoEngine{
                                     let mut lua_api = eng.lua_api.borrow_mut();
                                     bind_keyboard(&mut lua_api.keyboard, input.state, keycode);
                                 },
-                                StateEngines::SpriteEngine(_) => {}
+                                StateEngines::SpriteEngine(ref mut eng) => {
+                                    bind_keyboard(&mut eng.keyboard, input.state, keycode);
+                                }
                             }
 
                             // exit on ESC

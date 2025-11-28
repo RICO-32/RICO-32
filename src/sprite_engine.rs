@@ -1,4 +1,6 @@
-use crate::{rico_engine::{PixelsType, ScreenEngine, SCREEN_SIZE}, utils::{colors::{ALL_COLORS, COLORS}, keyboard::Keyboard, mouse::MousePress, pixels::{clear, rect, rect_fill, set_pix}}};
+use winit::event::VirtualKeyCode;
+
+use crate::{rico_engine::{PixelsType, ScreenEngine, SCREEN_SIZE}, utils::{colors::{ALL_COLORS, COLORS}, keyboard::Keyboard, mouse::MousePress, pixels::{clear, image_from_tool, image_from_util, rect, rect_fill, set_pix}}};
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum Tools{
@@ -8,78 +10,17 @@ pub enum Tools{
     Select
 }
 
-const BUTTON_WIDTH: i32 = 12;
+#[derive(Copy, Clone, PartialEq)]
+pub enum Utils{
+    FlipHor,
+    FlipVert,
+    Clear,
+    Save
+}
+
+pub const BUTTON_WIDTH: i32 = 12;
 const SPRITE_SIZE: usize = 32;
 const DRAW_Y: i32 = 44;
-
-fn image_from_tool(tool: Tools) -> [[COLORS; BUTTON_WIDTH as usize - 2]; BUTTON_WIDTH as usize - 2] {
-    let ye = COLORS::YELLOW;
-    let br = COLORS::BROWN;
-    let bl = COLORS::BLANK;
-    let re = COLORS::RED;
-    let db = COLORS::BLUE;
-    let si = COLORS::SILVER;
-    let gr = COLORS::GRAY;
-    let pi = COLORS::PINK;
-    match tool {
-        Tools::Pencil => {
-            [
-                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
-                [bl, bl, bl, bl, bl, bl, ye, br, br, bl],
-                [bl, bl, bl, bl, bl, ye, ye, ye, br, bl],
-                [bl, bl, bl, bl, ye, ye, ye, ye, ye, bl],
-                [bl, bl, bl, ye, ye, ye, ye, ye, bl, bl],
-                [bl, bl, ye, ye, ye, ye, ye, bl, bl, bl],
-                [bl, bl, re, ye, ye, ye, bl, bl, bl, bl],
-                [bl, re, re, re, ye, bl, bl, bl, bl, bl],
-                [bl, re, re, bl, bl, bl, bl, bl, bl, bl],
-                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
-            ]
-        },
-        Tools::Fill => {
-            [
-                [bl, bl, bl, bl, si, gr, gr, bl, bl, bl],
-                [bl, bl, bl, si, si, gr, gr, bl, bl, bl],
-                [bl, db, db, si, gr, gr, gr, si, bl, bl],
-                [db, db, si, si, gr, gr, si, si, si, bl],
-                [db, si, si, si, gr, gr, si, si, si, si],
-                [db, si, si, gr, gr, gr, si, si, si, si],
-                [db, si, si, si, si, si, si, si, si, si],
-                [db, bl, si, si, si, si, si, si, si, si],
-                [db, bl, bl, si, si, si, si, si, si, si],
-                [bl, bl, bl, bl, bl, si, si, si, si, bl],
-            ]
-        },
-        Tools::Eraser => {
-            [
-                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
-                [bl, bl, bl, bl, bl, re, re, bl, bl, bl],
-                [bl, bl, bl, bl, re, pi, re, re, bl, bl],
-                [bl, bl, bl, re, re, re, pi, re, re, bl],
-                [bl, bl, re, re, re, re, re, pi, re, bl],
-                [bl, re, pi, re, re, re, re, re, bl, bl],
-                [bl, re, re, pi, re, re, re, bl, bl, bl],
-                [bl, bl, re, re, pi, re, bl, bl, bl, bl],
-                [bl, bl, bl, re, re, bl, bl, bl, bl, bl],
-                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
-            ]
-        },
-        Tools::Select => {
-            [
-                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
-                [bl, si, si, bl, si, si, bl, si, si, bl],
-                [bl, si, bl, bl, bl, bl, bl, bl, si, bl],
-                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
-                [bl, si, bl, bl, bl, bl, bl, bl, si, bl],
-                [bl, si, bl, bl, bl, bl, bl, bl, si, bl],
-                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
-                [bl, si, bl, bl, bl, bl, bl, bl, si, bl],
-                [bl, si, si, bl, si, si, bl, si, si, bl],
-                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
-            ]
-        },
-    }
-}
 
 const DIRS: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
 
@@ -89,12 +30,14 @@ pub struct SpriteEngine{
     pub mouse: MousePress,
     pub sprite_pixs: PixelsType,
     pub tool: Tools,
-    pub keyboard: Keyboard
+    pub keyboard: Keyboard,
 
     selection: Option<(i32, i32, i32, i32)>, 
     selection_start_pos: Option<(i32, i32)>,
     moving_selection_content: Option<PixelsType>,
     move_start_info: Option<((i32, i32), (i32, i32, i32, i32))>, 
+
+    copied_content: Option<PixelsType>
 }
 
 impl SpriteEngine{
@@ -110,24 +53,21 @@ impl SpriteEngine{
             moving_selection_content: None,
             move_start_info: None,
             keyboard: Keyboard::default(),
+            copied_content: None
         }
     }
 
     fn stamp_selection(&mut self) {
         if let (Some(content), Some((x1, y1, _, _))) = (self.moving_selection_content.take(), self.selection) {
             let h = content.len();
-            if h == 0 { return; }
             let w = content[0].len();
-            if w == 0 { return; }
     
             for r in 0..h {
                 for c in 0..w {
                     let target_y = y1 as isize + r as isize;
                     let target_x = x1 as isize + c as isize;
                     if target_y >= 0 && target_y < SPRITE_SIZE as isize && target_x >= 0 && target_x < SPRITE_SIZE as isize {
-                        if content[r][c] != COLORS::BLANK { 
-                            self.sprite_pixs[target_y as usize][target_x as usize] = content[r][c];
-                        }
+                        self.sprite_pixs[target_y as usize][target_x as usize] = content[r][c];
                     }
                 }
             }
@@ -177,7 +117,6 @@ impl SpriteEngine{
                     col = if (y + x) % 2 == 0 { COLORS::SILVER } else { COLORS::WHITE };
                 }
                 rect_fill(&mut self.pixels, 16+x*3, DRAW_Y+y*3, 3, 3, col);
-
             }
         }
         
@@ -214,7 +153,7 @@ impl SpriteEngine{
                     self.selection_start_pos = Some((grid_x, grid_y));
                 }
             }
-        
+
             if self.mouse.pressed {
                 if let Some((start_grid, start_rect)) = self.move_start_info {
                     let dx = grid_x - start_grid.0;
@@ -232,20 +171,24 @@ impl SpriteEngine{
                 self.move_start_info = None;
                 self.selection_start_pos = None;
             }
+
             if let (Some(content), Some((x1, y1, _, _))) = (self.moving_selection_content.as_ref(), self.selection) {
                 let h = content.len();
                 let w = content[0].len();
                 for r in 0..h {
                     for c in 0..w {
-                        let col = content[r][c];
-                        if col != COLORS::BLANK {
-                            let draw_x = 16 + (x1 + c as i32) * 3;
-                            let draw_y = DRAW_Y + (y1 + r as i32) * 3;
-                            rect_fill(&mut self.pixels, draw_x, draw_y, 3, 3, col);
+                        let mut col = content[r][c];
+                        let draw_x = 16 + (x1 + c as i32) * 3;
+                        let draw_y = DRAW_Y + (y1 + r as i32) * 3;
+
+                        if col == COLORS::BLANK {
+                            col = if (draw_y + draw_x) % 2 == 0 { COLORS::SILVER } else { COLORS::WHITE };
                         }
+                        rect_fill(&mut self.pixels, draw_x, draw_y, 3, 3, col);
                     }
                 }
             }
+
             if let Some((x1, y1, x2, y2)) = self.selection {
                 let x = 16 + x1 * 3;
                 let y = DRAW_Y + y1 * 3;
@@ -306,6 +249,91 @@ impl SpriteEngine{
         }
     }
 
+    fn handle_copy_paste(&mut self){
+        if self.keyboard.keys_pressed.contains(&VirtualKeyCode::LControl) && self.keyboard.keys_just_pressed.contains(&VirtualKeyCode::C) {
+            if self.moving_selection_content.is_some() {
+                self.copied_content = self.moving_selection_content.clone();
+            } else if let Some((x1, y1, x2, y2)) = self.selection {
+                let w = (x2 - x1 + 1) as usize;
+                let h = (y2 - y1 + 1) as usize;
+                let mut content = vec![vec![COLORS::BLANK; w]; h];
+                for r in 0..h {
+                    for c in 0..w {
+                        content[r][c] = self.sprite_pixs[y1 as usize + r][x1 as usize + c];
+                    }
+                }
+                self.copied_content = Some(content);
+            }
+        }
+        if self.keyboard.keys_pressed.contains(&VirtualKeyCode::LControl) && self.keyboard.keys_just_pressed.contains(&VirtualKeyCode::V) {
+            if let Some(content) = self.copied_content.clone() {
+                self.stamp_selection();
+                let w = content[0].len() as i32;
+                let h = content.len() as i32;
+                self.selection = Some((0, 0, w - 1, h - 1));
+                self.selection_start_pos = None;
+                self.moving_selection_content = Some(content.clone());
+                self.move_start_info = None;
+            }
+        }
+    }
+
+    fn util_button(&mut self, x: i32, y: i32, util: Utils){
+        for dy in 1..BUTTON_WIDTH-1{
+            for dx in 1..BUTTON_WIDTH-1{
+                set_pix(&mut self.pixels, y + dy, x + dx, image_from_util(util)[dy as usize - 1][dx as usize - 1]);
+            }
+        }
+
+        if self.mouse.just_pressed {
+            if self.mouse.x != -1 {
+                if self.mouse.x >= x && self.mouse.x < x + BUTTON_WIDTH && self.mouse.y >= y && self.mouse.y < y + BUTTON_WIDTH {
+                    match util {
+                        Utils::FlipVert => {
+                            if self.moving_selection_content.is_some() {
+                                self.moving_selection_content.as_mut().unwrap().reverse();
+                            } else if let Some((x1, y1, x2, y2)) = self.selection {
+                                let w = (x2 - x1 + 1) as usize;
+                                let h = (y2 - y1 + 1) as usize;
+                                let cloned = self.sprite_pixs.clone();
+                                for r in 0..h {
+                                    for c in 0..w {
+                                        self.sprite_pixs[y1 as usize + r][x1 as usize + c] = cloned[y2 as usize - r][x1 as usize + c];
+                                    }
+                                }
+                            }
+                        },
+                        Utils::FlipHor => {
+                            if self.moving_selection_content.is_some() {
+                                let h = self.moving_selection_content.as_ref().unwrap().len();
+                                for i in 0..h {
+                                    self.moving_selection_content.as_mut().unwrap()[i].reverse();
+                                }
+                            } else if let Some((x1, y1, x2, y2)) = self.selection {
+                                let w = (x2 - x1 + 1) as usize;
+                                let h = (y2 - y1 + 1) as usize;
+                                let cloned = self.sprite_pixs.clone();
+                                for r in 0..h {
+                                    for c in 0..w {
+                                        self.sprite_pixs[y1 as usize + r][x1 as usize + c] = cloned[y1 as usize + r][x2 as usize - c];
+                                    }
+                                }
+                            }
+                        },
+                        Utils::Clear => {
+                            for i in 0..SPRITE_SIZE{
+                                for j in 0..SPRITE_SIZE{
+                                    self.sprite_pixs[i][j] = COLORS::BLANK;
+                                }
+                            }
+                        }
+                        Utils::Save => {}
+                    }
+                }
+            }
+        }
+    }
+
     pub fn update(&mut self) {
         clear(&mut self.pixels, COLORS(30, 30, 30, 255));
         //clear(&mut self.pixels, COLORS::GRAY);
@@ -319,14 +347,21 @@ impl SpriteEngine{
 
         for (i, tool) in [Tools::Pencil, Tools::Eraser, Tools::Fill, Tools::Select].iter().enumerate(){
             let idx = i as i32;
-            self.tool_button(40 + (idx as i32 % 8) * BUTTON_WIDTH, 148+ BUTTON_WIDTH * (idx >= 8) as i32, *tool);
+            self.tool_button(10 + (idx as i32 % 8) * BUTTON_WIDTH, 148 + BUTTON_WIDTH * (idx >= 8) as i32, *tool);
+        }
+
+        for (i, util) in [Utils::FlipHor, Utils::FlipVert, Utils::Clear].iter().enumerate(){
+            let idx = i as i32;
+            self.util_button(65 + (idx as i32 % 8) * BUTTON_WIDTH, 148 + BUTTON_WIDTH * (idx >= 8) as i32, *util);
         }
 
         self.draw_canvas();
+        self.handle_copy_paste();
 
         if self.mouse.just_pressed {
             self.mouse.just_pressed = false;
         };
+        self.keyboard.keys_just_pressed.clear();
     }
 }
 impl ScreenEngine for SpriteEngine{
