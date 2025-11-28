@@ -5,8 +5,8 @@ function start()
 end
 
 function button(x, y, w, h, label)
-    rico:rectfill(x, y, w, h, "CYAN")
-    rico:rect(x, y, w, h, "MAGENTA")
+    rico:rectfill(x, y, w, h, "SILVER")
+    rico:rect(x, y, w, h, "BLUE")
     rico:print_scr_mini(x+4, y+4, "PURPLE", label)
     local mouse = rico:mouse()
     if mouse.just_pressed then
