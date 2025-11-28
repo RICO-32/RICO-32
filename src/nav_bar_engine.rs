@@ -1,0 +1,50 @@
+use crate::{rico_engine::{PixelsType, ScreenEngine, NAV_BAR_HEIGHT, SCREEN_SIZE}, utils::{colors::COLORS, mouse::MousePress, pixels::{clear, print_scr_mid, rect_fill}}};
+
+pub struct NavEngine{
+    pixels: PixelsType,
+    options: Vec<String>,
+    pub mouse: MousePress,
+    pub selected: usize
+}
+
+impl NavEngine{
+    pub fn new(options: Vec<String>) -> Self{
+        NavEngine { 
+            pixels: vec![vec![COLORS::BLACK; SCREEN_SIZE]; NAV_BAR_HEIGHT],
+            mouse: MousePress::default(),
+            options: options,
+            selected: 0
+        }
+    }
+
+    pub fn update(&mut self) {
+        clear(&mut self.pixels, COLORS::GRAY);
+        let mut cur_x = 1;
+        for (i, option) in self.options.iter().enumerate(){
+            if self.mouse.just_pressed && self.mouse.x != -1 {
+                if self.mouse.x >= cur_x && self.mouse.x <= cur_x + option.len() as i32 * 4 + 5{
+                    self.selected = i;
+                }
+            }
+
+            if i == self.selected { 
+                rect_fill(&mut self.pixels, cur_x, 0, option.len() as i32 * 4 + 5, 8, COLORS::BLACK);
+                print_scr_mid(&mut self.pixels, cur_x + 2, 2, COLORS::WHITE, option.to_string());
+            } else {
+                print_scr_mid(&mut self.pixels, cur_x + 2, 2, COLORS::BLACK, option.to_string());
+            }
+            cur_x += option.len() as i32 * 4 + 5;
+        }
+
+        if self.mouse.just_pressed {
+            self.mouse.just_pressed = false;
+        };
+    }
+}
+
+impl ScreenEngine for NavEngine{
+    type Pixels<'a> = &'a PixelsType;
+    fn pixels(&self) -> Self::Pixels<'_> {
+        &self.pixels
+    }
+}

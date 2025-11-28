@@ -14,7 +14,7 @@ pub fn set_pix(pixels: &mut PixelsType, y: i32, x: i32, col: COLORS){
         return;
     }
 
-    if y < 0 || x < 0 || y >= pixels.len() as i32 || x >= pixels.len() as i32 {
+    if y < 0 || x < 0 || y >= pixels.len() as i32 || x >= pixels[0].len() as i32 {
         return;
     }
 
