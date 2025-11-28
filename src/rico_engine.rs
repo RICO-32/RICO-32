@@ -9,13 +9,14 @@ use winit::{
     window::WindowBuilder,
 };
 
-use crate::{game_engine::GameEngine, utils::{keyboard::Keyboard, mouse::MousePress}};
+use crate::{game_engine::GameEngine, nav_bar_engine::NavEngine, sprite_engine::SpriteEngine, utils::{keyboard::Keyboard, mouse::MousePress}};
 use crate::utils::colors::COLORS;
 
 pub const SCREEN_SIZE: usize = 128;
 pub const SCALE: usize = 4;
+pub const NAV_BAR_HEIGHT: usize = 8;
 pub const WINDOW_WIDTH: usize = SCREEN_SIZE * SCALE;
-pub const WINDOW_HEIGHT: usize = SCREEN_SIZE * 2 * SCALE;
+pub const WINDOW_HEIGHT: usize = (NAV_BAR_HEIGHT + SCREEN_SIZE * 2) * SCALE;
 
 pub type PixelsType = Vec<Vec<COLORS>>;
 
@@ -28,7 +29,8 @@ pub trait ScreenEngine {
 }
 
 enum StateEngines {
-    GameEngine(GameEngine)
+    GameEngine(GameEngine),
+    SpriteEngine(SpriteEngine)
 }
 
 /* Add bindings for diff engines in this struct
@@ -36,17 +38,18 @@ enum StateEngines {
  * Engines should implement the Engine trait
  */
 pub struct RicoEngine{
+    nav_engine: NavEngine,
     state_engines: Vec<StateEngines>,
-    curr_eng: usize
 }
 
 impl RicoEngine{
     pub fn new() -> LuaResult<Self>{
         let game_eng = GameEngine::new()?;
-        let state_engines = vec![StateEngines::GameEngine(game_eng)];
+        let sprite_eng = SpriteEngine::new();
+        let state_engines = vec![StateEngines::GameEngine(game_eng), StateEngines::SpriteEngine(sprite_eng)];
         let engine = RicoEngine{
+            nav_engine: NavEngine::new(vec!["Game".to_string(), "Sprite".to_string()]),
             state_engines: state_engines,
-            curr_eng: 0
         };
 
         Ok(engine)
@@ -90,11 +93,12 @@ impl RicoEngine{
 
                     WindowEvent::KeyboardInput { input, .. } => {
                         if let Some(keycode) = input.virtual_keycode {
-                            match self.state_engines[self.curr_eng]{
+                            match self.state_engines[self.nav_engine.selected]{
                                 StateEngines::GameEngine(ref mut eng) => {
                                     let mut lua_api = eng.lua_api.borrow_mut();
                                     bind_keyboard(&mut lua_api.keyboard, input.state, keycode);
-                                }
+                                },
+                                StateEngines::SpriteEngine(_) => {}
                             }
 
                             // exit on ESC
@@ -105,22 +109,30 @@ impl RicoEngine{
                     },
 
                     WindowEvent::MouseInput { button, state, .. } => {
-                        match self.state_engines[self.curr_eng]{
+                        bind_mouse_input(&mut self.nav_engine.mouse, button, state);
+                        match self.state_engines[self.nav_engine.selected]{
                             StateEngines::GameEngine(ref mut eng) => {
                                 bind_mouse_input(&mut eng.lua_api.borrow_mut().mouse, button, state);
                                 bind_mouse_input(&mut eng.console_engine.mouse, button, state);
+                            },
+                            StateEngines::SpriteEngine(ref mut eng) => {
+                                bind_mouse_input(&mut eng.mouse, button, state);
                             }
                         };
                     }
 
                     WindowEvent::CursorMoved { position, .. } => {
-                        match self.state_engines[self.curr_eng] {
-                            StateEngines::GameEngine(ref mut eng) => {
-                                let scale = window.scale_factor();
-                                let logical = position.to_logical::<f32>(scale);
+                        let scale = window.scale_factor();
+                        let logical = position.to_logical::<f32>(scale);
 
-                                bind_mouse_move(&mut eng.lua_api.borrow_mut().mouse, logical, 0, 0, WINDOW_WIDTH, WINDOW_WIDTH);
-                                bind_mouse_move(&mut eng.console_engine.mouse, logical, 0, WINDOW_WIDTH, WINDOW_WIDTH, WINDOW_WIDTH);
+                        bind_mouse_move(&mut self.nav_engine.mouse, logical, 0, 0, WINDOW_WIDTH, NAV_BAR_HEIGHT * SCALE);
+                        match self.state_engines[self.nav_engine.selected] {
+                            StateEngines::GameEngine(ref mut eng) => {
+                                bind_mouse_move(&mut eng.lua_api.borrow_mut().mouse, logical, 0, NAV_BAR_HEIGHT * SCALE, WINDOW_WIDTH, WINDOW_WIDTH);
+                                bind_mouse_move(&mut eng.console_engine.mouse, logical, 0, NAV_BAR_HEIGHT * SCALE + WINDOW_WIDTH, WINDOW_WIDTH, WINDOW_WIDTH);
+                            },
+                            StateEngines::SpriteEngine(ref mut eng) => {
+                                bind_mouse_move(&mut eng.mouse, logical, 0, NAV_BAR_HEIGHT * SCALE, WINDOW_WIDTH, WINDOW_WIDTH * 2);
                             }
                         }
                     }
@@ -134,24 +146,34 @@ impl RicoEngine{
 
     //Make sure to update engines here based on which screen it's on
     pub fn update(&mut self, buffer: &mut [u8]) -> LuaResult<()> {
-        return match self.state_engines[self.curr_eng] {
+        self.nav_engine.update();
+        let pixels = self.nav_engine.pixels();
+        copy_pixels_into_buffer(pixels, buffer, 0, 0);
+        return match self.state_engines[self.nav_engine.selected] {
             StateEngines::GameEngine(ref mut eng) => {
                 if !eng.console_engine.halted {
                     eng.update();
                     let pixels = eng.pixels();
 
-                    copy_pixels_into_buffer(pixels.deref(), buffer, 0, 0);
+                    copy_pixels_into_buffer(pixels.deref(), buffer, 0, NAV_BAR_HEIGHT * SCALE);
                 }
                 
                 eng.console_engine.update(&eng.lua_api.borrow().logs);
 
                 let pixels = eng.console_engine.pixels();
-                copy_pixels_into_buffer(pixels, buffer, 0, WINDOW_WIDTH);
+                copy_pixels_into_buffer(pixels, buffer, 0, WINDOW_WIDTH + (NAV_BAR_HEIGHT * SCALE));
                 
                 if eng.console_engine.restart {
                     self.state_engines[0] = StateEngines::GameEngine(GameEngine::new()?);
                 }
 
+                Ok(())
+            },
+            StateEngines::SpriteEngine(ref mut eng) => {
+                eng.update();
+                let pixels = eng.pixels();
+
+                copy_pixels_into_buffer(pixels, buffer, 0, NAV_BAR_HEIGHT * SCALE);
                 Ok(())
             }
         }
@@ -189,6 +211,11 @@ fn bind_keyboard(keyboard: &mut Keyboard, state: ElementState, keycode: VirtualK
     }
 }
 
+/* IMPORTANT: 
+ * This function does not automatically fix just_pressed every frame.
+ * Either do that in rico's update or the update of the engine that holds the mouse, see
+ * game_engine.rs for example.
+ */
 fn bind_mouse_input(mouse: &mut MousePress, button: MouseButton, state: ElementState){
     if button == MouseButton::Left {
         match state {

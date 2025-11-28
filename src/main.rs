@@ -1,6 +1,8 @@
 use mlua::prelude::LuaResult;
 mod lua_api;
+mod nav_bar_engine;
 mod script_engine;
+mod sprite_engine;
 mod console_engine;
 mod game_engine;
 mod rico_engine;
