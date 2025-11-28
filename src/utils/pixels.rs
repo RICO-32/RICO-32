@@ -219,14 +219,10 @@ pub fn image_from_tool(tool: Tools) -> [[COLORS; BUTTON_WIDTH as usize - 2]; BUT
 }
 
 pub fn image_from_util(util: Utils) -> [[COLORS; BUTTON_WIDTH as usize - 2]; BUTTON_WIDTH as usize - 2] {
-    let ye = COLORS::YELLOW;
-    let br = COLORS::BROWN;
     let bl = COLORS::BLANK;
     let re = COLORS::RED;
-    let db = COLORS::BLUE;
-    let si = COLORS::SILVER;
     let gr = COLORS::GRAY;
-    let pi = COLORS::PINK;
+    let ge = COLORS::GREEN;
     match util {
         Utils::FlipHor => {
             [
@@ -273,14 +269,14 @@ pub fn image_from_util(util: Utils) -> [[COLORS; BUTTON_WIDTH as usize - 2]; BUT
         Utils::Save => {
             [
                 [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
-                [bl, bl, bl, bl, bl, bl, ye, br, br, bl],
-                [bl, bl, bl, bl, bl, ye, ye, ye, br, bl],
-                [bl, bl, bl, bl, ye, ye, ye, ye, ye, bl],
-                [bl, bl, bl, ye, ye, ye, ye, ye, bl, bl],
-                [bl, bl, ye, ye, ye, ye, ye, bl, bl, bl],
-                [bl, bl, re, ye, ye, ye, bl, bl, bl, bl],
-                [bl, re, re, re, ye, bl, bl, bl, bl, bl],
-                [bl, re, re, bl, bl, bl, bl, bl, bl, bl],
+                [bl, bl, bl, bl, bl, bl, bl, bl, ge, bl],
+                [bl, bl, bl, bl, bl, bl, bl, ge, ge, bl],
+                [bl, bl, bl, bl, bl, bl, ge, ge, bl, bl],
+                [bl, bl, bl, bl, bl, ge, ge, bl, bl, bl],
+                [bl, bl, ge, bl, ge, ge, bl, bl, bl, bl],
+                [bl, ge, ge, ge, ge, bl, bl, bl, bl, bl],
+                [bl, bl, ge, ge, bl, bl, bl, bl, bl, bl],
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
                 [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
             ]
         },

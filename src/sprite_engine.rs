@@ -321,9 +321,24 @@ impl SpriteEngine{
                             }
                         },
                         Utils::Clear => {
-                            for i in 0..SPRITE_SIZE{
-                                for j in 0..SPRITE_SIZE{
-                                    self.sprite_pixs[i][j] = COLORS::BLANK;
+                            if self.moving_selection_content.is_some() {
+                                let h = self.moving_selection_content.as_ref().unwrap().len();
+                                for i in 0..h {
+                                    self.moving_selection_content.as_mut().unwrap()[i].fill(COLORS::BLANK);
+                                }
+                            } else if let Some((x1, y1, x2, y2)) = self.selection {
+                                let w = (x2 - x1 + 1) as usize;
+                                let h = (y2 - y1 + 1) as usize;
+                                for r in 0..h {
+                                    for c in 0..w {
+                                        self.sprite_pixs[y1 as usize + r][x1 as usize + c] = COLORS::BLANK;
+                                    }
+                                }
+                            } else {
+                                for i in 0..SPRITE_SIZE{
+                                    for j in 0..SPRITE_SIZE{
+                                        self.sprite_pixs[i][j] = COLORS::BLANK;
+                                    }
                                 }
                             }
                         }
@@ -347,13 +362,14 @@ impl SpriteEngine{
 
         for (i, tool) in [Tools::Pencil, Tools::Eraser, Tools::Fill, Tools::Select].iter().enumerate(){
             let idx = i as i32;
-            self.tool_button(10 + (idx as i32 % 8) * BUTTON_WIDTH, 148 + BUTTON_WIDTH * (idx >= 8) as i32, *tool);
+            self.tool_button(4 + (idx as i32 % 8) * BUTTON_WIDTH, 148, *tool);
         }
 
         for (i, util) in [Utils::FlipHor, Utils::FlipVert, Utils::Clear].iter().enumerate(){
             let idx = i as i32;
-            self.util_button(65 + (idx as i32 % 8) * BUTTON_WIDTH, 148 + BUTTON_WIDTH * (idx >= 8) as i32, *util);
+            self.util_button(64 + (idx as i32 % 8) * BUTTON_WIDTH, 148, *util);
         }
+        self.util_button(112, 148, Utils::Save);
 
         self.draw_canvas();
         self.handle_copy_paste();
