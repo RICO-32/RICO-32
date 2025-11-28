@@ -104,23 +104,25 @@ pub fn print_scr_mid(pixels: &mut PixelsType, x: i32, y: i32, col: COLORS, msg: 
 }
 
 pub fn rect_fill(pixels: &mut PixelsType, x: i32, y: i32, w: i32, h: i32, col: COLORS){
-    for j in x..=x+w{
-        for i in y..=y+h{
+    for j in x..x+w{
+        for i in y..y+h{
             set_pix(pixels, i, j, col);
         }
     }
 }
 
 pub fn rect(pixels: &mut PixelsType, x: i32, y: i32, w: i32, h: i32, col: COLORS){
-    for i in x..=x+w{
+    for i in x..x+w{
         set_pix(pixels, y, i, col);
         set_pix(pixels, y+h, i, col);
     }
 
-    for i in y..=y+h{
+    for i in y..y+h{
         set_pix(pixels, i, x, col);
         set_pix(pixels, i, x+w, col);
     }
+
+    set_pix(pixels, y+h, x+w, col);
 }
 
 pub fn circle(pixels: &mut PixelsType, cx: i32, cy: i32, r: i32, col: COLORS){

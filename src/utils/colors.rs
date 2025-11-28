@@ -27,6 +27,26 @@ impl COLORS {
     }
 }
 
+pub const ALL_COLORS: [COLORS; 17] = [
+    COLORS::BLANK,
+    COLORS::BLACK,
+    COLORS::WHITE,
+    COLORS::RED,
+    COLORS::LIME,
+    COLORS::BLUE,
+    COLORS::YELLOW,
+    COLORS::CYAN,
+    COLORS::MAGENTA,
+    COLORS::SILVER,
+    COLORS::GRAY,
+    COLORS::MAROON,
+    COLORS::OLIVE,
+    COLORS::GREEN,
+    COLORS::PURPLE,
+    COLORS::TEAL,
+    COLORS::NAVY,
+];
+
 pub fn color_from_str(name: &str) -> Option<COLORS> {
     match name.to_uppercase().as_str() {
         "BLACK"   => Some(COLORS::BLACK),

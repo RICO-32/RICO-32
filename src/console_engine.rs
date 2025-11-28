@@ -10,8 +10,8 @@ pub struct ConsoleEngine{
     pub restart: bool,
 }
 
-const HALT_BUTTON: (i32, i32, i32, i32) = (50, 2, 12, 8);
-const RESTART_BUTTON: (i32, i32, i32, i32) = (66, 2, 12, 8);
+const HALT_BUTTON: (i32, i32, i32, i32) = (50, 2, 13, 9);
+const RESTART_BUTTON: (i32, i32, i32, i32) = (66, 2, 13, 9);
 const G: COLORS = COLORS::GRAY;
 const B: COLORS = COLORS::BLANK;
 const RESTART_IMAGE: [[COLORS; 7]; 7] = [
@@ -41,7 +41,7 @@ impl ConsoleEngine{
         if self.halted {
             circle(&mut self.pixels, 56, 6, 2, COLORS::GREEN);
         } else {
-            rect_fill(&mut self.pixels, 54, 4, 4, 4, COLORS::RED);
+            rect_fill(&mut self.pixels, 54, 4, 5, 5, COLORS::RED);
         }
 
         rect_fill(&mut self.pixels, RESTART_BUTTON.0, RESTART_BUTTON.1, RESTART_BUTTON.2, RESTART_BUTTON.3, COLORS::SILVER);

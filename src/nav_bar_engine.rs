@@ -13,7 +13,7 @@ impl NavEngine{
             pixels: vec![vec![COLORS::BLACK; SCREEN_SIZE]; NAV_BAR_HEIGHT],
             mouse: MousePress::default(),
             options: options,
-            selected: 0
+            selected: 1
         }
     }
 
