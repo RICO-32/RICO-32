@@ -1,6 +1,6 @@
 use crate::rico_engine::{PixelsType, SCREEN_SIZE};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum COLORS {
     BLANK = 0,
     BLACK,
@@ -27,27 +27,55 @@ impl COLORS {
     }
 }
 
-pub fn tup_from_col(col: COLORS) -> (u8, u8, u8, u8){
-    match col {
-        COLORS::BLANK => (0, 0, 0, 0),
-        COLORS::BLACK => (0, 0, 0, 255),
-        COLORS::WHITE => (255, 255, 255, 255),
-        COLORS::GRAY => (128, 128, 128, 255),
-        COLORS::SILVER => (192, 192, 192, 255),
-        COLORS::RED => (200, 40, 40, 255),
-        COLORS::MAROON => (128, 0, 0, 255),
-        COLORS::ORANGE => (255, 140, 0, 255),
-        COLORS::YELLOW => (240, 230, 80, 255),
-        COLORS::GOLD => (255, 215, 0, 255),
-        COLORS::GREEN => (0, 180, 0, 255),
-        COLORS::OLIVE => (128, 128, 0, 255),
-        COLORS::BROWN => (139, 69, 19, 255),
-        COLORS::BLUE => (65, 105, 225, 255),
-        COLORS::TEAL => (0, 128, 128, 255),
-        COLORS::PURPLE => (138, 43, 226, 255),
-        COLORS::PINK => (255, 105, 180, 255),
+pub fn get_closest_color(rgba: [u8; 4]) -> COLORS {
+    let [r, g, b, a] = rgba;
+
+    // If fully transparent, treat as BLANK
+    if a == 0 {
+        return COLORS::BLANK;
     }
+
+    let mut best_color = COLORS::BLACK;
+    let mut best_dist: i32 = i32::MAX;
+
+    for &col in ALL_COLORS.iter() {
+        let (cr, cg, cb, ca) = ALL_TUPS[col as usize];
+
+        let dr = r as i32 - cr as i32;
+        let dg = g as i32 - cg as i32;
+        let db = b as i32 - cb as i32;
+        let da = a as i32 - ca as i32;
+
+        let dist = dr * dr + dg * dg + db * db + da * da;
+
+        if dist < best_dist {
+            best_dist = dist;
+            best_color = col;
+        }
+    }
+
+    best_color
 }
+
+pub const ALL_TUPS: [(u8, u8, u8, u8); 17] = [
+        (0, 0, 0, 0),
+        (0, 0, 0, 255),
+        (255, 255, 255, 255),
+        (128, 128, 128, 255),
+        (192, 192, 192, 255),
+        (200, 40, 40, 255),
+        (128, 0, 0, 255),
+        (255, 140, 0, 255),
+        (240, 230, 80, 255),
+        (255, 215, 0, 255),
+        (0, 180, 0, 255),
+        (128, 128, 0, 255),
+        (139, 69, 19, 255),
+        (65, 105, 225, 255),
+        (0, 128, 128, 255),
+        (138, 43, 226, 255),
+        (255, 105, 180, 255),
+    ];
 
 pub const ALL_COLORS: [COLORS; 17] = [
     COLORS::BLANK,

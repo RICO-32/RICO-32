@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use winit::event::VirtualKeyCode;
 
 use crate::{rico_engine::{PixelsType, ScreenEngine, SCREEN_SIZE}, utils::{colors::{ALL_COLORS, COLORS}, keyboard::Keyboard, mouse::MousePress, pixels::{clear, image_from_tool, image_from_util, rect, rect_fill, set_pix}}};
@@ -46,7 +44,6 @@ pub struct SpriteEngine{
     redo_stack: Vec<Vec<(usize, usize, COLORS)>>,
     last_frame_ur: bool,
     continuous_ur_frames: i32,
-    last_time: Instant
 }
 
 impl SpriteEngine{
@@ -68,7 +65,6 @@ impl SpriteEngine{
             redo_stack: Vec::new(),
             last_frame_ur: false,
             continuous_ur_frames: 0,
-            last_time: Instant::now()
         }
     }
 
@@ -439,9 +435,6 @@ impl SpriteEngine{
             self.undo_stack.push(self.new_changes.clone());
             self.new_changes = Vec::new();
         }
-
-        println!("{}", 1000/self.last_time.elapsed().as_millis());
-        self.last_time = Instant::now();
     }
 }
 impl ScreenEngine for SpriteEngine{

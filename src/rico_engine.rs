@@ -9,7 +9,7 @@ use winit::{
     window::WindowBuilder,
 };
 
-use crate::{game_engine::GameEngine, nav_bar_engine::NavEngine, sprite_engine::SpriteEngine, utils::{colors::tup_from_col, keyboard::Keyboard, mouse::MousePress}};
+use crate::{game_engine::GameEngine, nav_bar_engine::NavEngine, sprite_engine::SpriteEngine, utils::{colors::{ALL_TUPS}, keyboard::Keyboard, mouse::MousePress}};
 use crate::utils::colors::COLORS;
 
 pub const SCREEN_SIZE: usize = 128;
@@ -191,7 +191,7 @@ fn copy_pixels_into_buffer(pixels: &PixelsType, buffer: &mut [u8], start_x: usiz
             for dy in 0..SCALE{
                 for dx in 0..SCALE{
                     let idx = ((y * SCALE + dy) * WINDOW_WIDTH as usize + (x * SCALE + dx)) + start_y * WINDOW_WIDTH + start_x;
-                    let (r, g, b, a) = tup_from_col(pixels[y][x]); 
+                    let (r, g, b, a) = ALL_TUPS[pixels[y][x] as usize]; 
                     buffer[idx*4..idx*4+4].copy_from_slice(&[r, g, b, a]);
                 }
             }

@@ -4,6 +4,7 @@ use image::{ImageBuffer, Rgba};
 
 use crate::sprite_engine::{Tools, Utils, BUTTON_WIDTH};
 use crate::utils::bitmap::{BITMAP4X4, BITMAP4X6};
+use crate::utils::colors::get_closest_color;
 use crate::utils::{bitmap::BITMAP, colors::COLORS};
 use crate::rico_engine::{PixelsType, SCREEN_SIZE};
 
@@ -32,8 +33,8 @@ pub fn draw(pixels: &mut PixelsType, x: i32, y: i32, img: &ImageBuffer<Rgba<u8>,
     }
 
     for (dx, dy, pixel) in img.enumerate_pixels() {
-        //let [r, g, b, a] = pixel.0;
-        set_pix(pixels, y+dy as i32, x+dx as i32, COLORS::RED);
+        let rgba = pixel.0;
+        set_pix(pixels, y+dy as i32, x+dx as i32, get_closest_color(rgba));
     }
 
     Ok(())
