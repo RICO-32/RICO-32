@@ -1,6 +1,8 @@
+use std::time::Instant;
+
 use winit::event::VirtualKeyCode;
 
-use crate::{rico_engine::{PixelsType, ScreenEngine, SCREEN_SIZE}, utils::{colors::{ALL_COLORS, COLORS}, keyboard::Keyboard, mouse::MousePress, pixels::{clear, image_from_tool, image_from_util, rect, rect_fill, set_pix}}};
+use crate::{rico_engine::{PixelsType, ScreenEngine, SCREEN_SIZE}, utils::{colors::{ALL_COLORS, COLORS}, keyboard::Keyboard, mouse::MousePress, pixels::{clear, image_from_tool, image_from_util, rect, rect_fill, set_pix}, time::sync}};
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum Tools{
@@ -21,6 +23,7 @@ pub enum Utils{
 pub const BUTTON_WIDTH: i32 = 12;
 const SPRITE_SIZE: usize = 32;
 const DRAW_Y: i32 = 44;
+const FRAME_RATE: i32 = 60;
 
 const DIRS: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
 
@@ -44,6 +47,8 @@ pub struct SpriteEngine{
     redo_stack: Vec<Vec<(usize, usize, COLORS)>>,
     last_frame_ur: bool,
     continuous_ur_frames: i32,
+
+    last_time: Instant
 }
 
 impl SpriteEngine{
@@ -65,6 +70,7 @@ impl SpriteEngine{
             redo_stack: Vec::new(),
             last_frame_ur: false,
             continuous_ur_frames: 0,
+            last_time: Instant::now()
         }
     }
 
@@ -276,7 +282,7 @@ impl SpriteEngine{
             if self.last_frame_ur { self.continuous_ur_frames += 1 }
             else { self.continuous_ur_frames = 0 };
             self.last_frame_ur = true;
-            if (self.continuous_ur_frames < 40 && self.continuous_ur_frames > 0) || (self.continuous_ur_frames % 3 != 0) { return; }
+            if (self.continuous_ur_frames < 25 && self.continuous_ur_frames > 0) || (self.continuous_ur_frames % 2 != 0) { return; }
 
             match {
                 if t == 1 { self.undo_stack.pop() } else { self.redo_stack.pop() }
@@ -400,6 +406,7 @@ impl SpriteEngine{
     }
 
     pub fn update(&mut self) {
+        sync(&mut self.last_time, FRAME_RATE);
         clear(&mut self.pixels, COLORS::BLACK);
         //clear(&mut self.pixels, COLORS::GRAY);
 
@@ -433,6 +440,7 @@ impl SpriteEngine{
 
         if self.new_changes.len() > 0{
             self.undo_stack.push(self.new_changes.clone());
+            self.redo_stack.clear();
             self.new_changes = Vec::new();
         }
     }
