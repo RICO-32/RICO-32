@@ -6,6 +6,7 @@ version = 4
 name = "RICO-32"
 version = "0.1.0"
 dependencies = [
+ "byteorder",
  "image",
  "mlua",
  "pixels",
