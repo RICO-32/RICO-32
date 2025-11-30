@@ -11,7 +11,7 @@ pub fn set_pix(pixels: &mut PixelsType, y: i32, x: i32, col: COLORS){
     //If the new pixel has 0 alpha, just keep the old guy
     //We don't wanna implement full alpha stuff cause pixel art 
     //This much is fine for images with empty bgs
-    if col.3 == 0 {
+    if col == COLORS::BLANK {
         return;
     }
 
@@ -32,8 +32,8 @@ pub fn draw(pixels: &mut PixelsType, x: i32, y: i32, img: &ImageBuffer<Rgba<u8>,
     }
 
     for (dx, dy, pixel) in img.enumerate_pixels() {
-        let [r, g, b, a] = pixel.0;
-        set_pix(pixels, y+dy as i32, x+dx as i32, COLORS(r, g, b, a));
+        //let [r, g, b, a] = pixel.0;
+        set_pix(pixels, y+dy as i32, x+dx as i32, COLORS::RED);
     }
 
     Ok(())
