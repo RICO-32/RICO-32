@@ -4,12 +4,12 @@ use mlua::prelude::*;
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
     dpi::{LogicalPosition, LogicalSize},
-    event::{ElementState, Event, MouseButton, VirtualKeyCode, WindowEvent},
+    event::{ElementState, Event, MouseButton, MouseScrollDelta, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
 
-use crate::{game_engine::GameEngine, nav_bar_engine::NavEngine, sprite_engine::SpriteEngine, utils::{keyboard::Keyboard, mouse::MousePress}};
+use crate::{game_engine::GameEngine, nav_bar_engine::NavEngine, sprite_engine::SpriteEngine, utils::{colors::{ALL_TUPS}, keyboard::Keyboard, mouse::MousePress}};
 use crate::utils::colors::COLORS;
 
 pub const SCREEN_SIZE: usize = 128;
@@ -98,13 +98,26 @@ impl RicoEngine{
                                     let mut lua_api = eng.lua_api.borrow_mut();
                                     bind_keyboard(&mut lua_api.keyboard, input.state, keycode);
                                 },
-                                StateEngines::SpriteEngine(_) => {}
+                                StateEngines::SpriteEngine(ref mut eng) => {
+                                    bind_keyboard(&mut eng.keyboard, input.state, keycode);
+                                }
                             }
 
                             // exit on ESC
                             if keycode == winit::event::VirtualKeyCode::Escape {
                                 *control_flow = ControlFlow::Exit;
                             }
+                        }
+                    },
+
+                    WindowEvent::MouseWheel { delta, .. } => {
+                        if let StateEngines::SpriteEngine(ref mut eng) = self.state_engines[self.nav_engine.selected]{
+                            let scroll_y = match delta {
+                                MouseScrollDelta::LineDelta(_, y) => y,
+                                MouseScrollDelta::PixelDelta(pos) => pos.y as f32,
+                            };
+
+                            eng.update_start_row(scroll_y);
                         }
                     },
 
@@ -153,8 +166,10 @@ impl RicoEngine{
             StateEngines::GameEngine(ref mut eng) => {
                 if !eng.console_engine.halted {
                     eng.update();
-                    let pixels = eng.pixels();
+                }
 
+                {
+                    let pixels = eng.pixels();
                     copy_pixels_into_buffer(pixels.deref(), buffer, 0, NAV_BAR_HEIGHT * SCALE);
                 }
                 
@@ -189,7 +204,7 @@ fn copy_pixels_into_buffer(pixels: &PixelsType, buffer: &mut [u8], start_x: usiz
             for dy in 0..SCALE{
                 for dx in 0..SCALE{
                     let idx = ((y * SCALE + dy) * WINDOW_WIDTH as usize + (x * SCALE + dx)) + start_y * WINDOW_WIDTH + start_x;
-                    let COLORS(r, g, b, a) = pixels[y][x];
+                    let (r, g, b, a) = ALL_TUPS[pixels[y][x] as usize]; 
                     buffer[idx*4..idx*4+4].copy_from_slice(&[r, g, b, a]);
                 }
             }

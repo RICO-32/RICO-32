@@ -38,7 +38,7 @@ The console is designed to be simple yet powerful, allowing developers to create
 - **16-Color Palette**: Predefined color palette for consistent retro aesthetics
 - **Lua Scripting**: Full Lua 5.4 support with custom module system
 - **Built-in Console**: Integrated console engine for logging and debugging
-- **Image Support**: Load and draw PNG images from the assets directory
+- **Sprite Support**: Create custom 32x32 sprites within the console and use and load them in the game
 - **Input Handling**: Mouse and keyboard input with frame-accurate state tracking
 - **Frame Rate Control**: Configurable frame rate with delta time support
 - **Modular Architecture**: Clean separation between game engine, console engine, and scripting
@@ -159,12 +159,12 @@ Draws a filled circle.
 - `r` (number): Radius
 - `COLOR` (string): Fill color
 
-#### `draw(x, y, file)`
-Draws an image from the assets directory.
+#### `draw(x, y, idx)`
+Draws a sprite created in the sprite engine.
 
 **Parameters:**
 - `x, y` (number): Top-left corner coordinates
-- `file` (string): Filename in the `assets/` directory (e.g., `"sprite.png"`)
+- `idx` (number): Index of the sprite (check by clicking on it in the sprite tab, should display which sprite is being edited)
 
 ### Text Functions
 

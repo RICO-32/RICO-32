@@ -5,8 +5,8 @@ function start()
 end
 
 function button(x, y, w, h, label)
-    rico:rectfill(x, y, w, h, "CYAN")
-    rico:rect(x, y, w, h, "MAGENTA")
+    rico:rectfill(x, y, w, h, "SILVER")
+    rico:rect(x, y, w, h, "BLUE")
     rico:print_scr_mini(x+4, y+4, "PURPLE", label)
     local mouse = rico:mouse()
     if mouse.just_pressed then
@@ -27,7 +27,7 @@ function update(dt)
     player:upd()
     rico:clear("BLACK")
     rico:print_scr(1, 50, "GREEN", "WOWAZA")
-    rico:draw(1, 45, "correct.png")
+    rico:draw(1, 45, 8)
     button(60, 50, 40, 10, "BUTTON!")
     rico:circle(90, 90, 10, "PURPLE")
     if rico:key_just_pressed("Enter") then

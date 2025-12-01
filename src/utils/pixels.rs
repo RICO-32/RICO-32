@@ -1,7 +1,6 @@
 use std::error::Error;
 
-use image::{ImageBuffer, Rgba};
-
+use crate::sprite_engine::{Tools, Utils, BUTTON_WIDTH};
 use crate::utils::bitmap::{BITMAP4X4, BITMAP4X6};
 use crate::utils::{bitmap::BITMAP, colors::COLORS};
 use crate::rico_engine::{PixelsType, SCREEN_SIZE};
@@ -10,7 +9,7 @@ pub fn set_pix(pixels: &mut PixelsType, y: i32, x: i32, col: COLORS){
     //If the new pixel has 0 alpha, just keep the old guy
     //We don't wanna implement full alpha stuff cause pixel art 
     //This much is fine for images with empty bgs
-    if col.3 == 0 {
+    if col == COLORS::BLANK {
         return;
     }
 
@@ -23,16 +22,17 @@ pub fn set_pix(pixels: &mut PixelsType, y: i32, x: i32, col: COLORS){
 
 
 //Place holder functions
-pub fn draw(pixels: &mut PixelsType, x: i32, y: i32, img: &ImageBuffer<Rgba<u8>, Vec<u8>>) -> Result<(), Box<dyn Error>> {
-    let (width, height) = img.dimensions();
+pub fn draw(pixels: &mut PixelsType, x: i32, y: i32, img: &PixelsType) -> Result<(), Box<dyn Error>> {
+    let (width, height): (usize, usize) = (32, 32);
 
-    if width as usize >= SCREEN_SIZE || height as usize >= SCREEN_SIZE{
+    if width >= SCREEN_SIZE || height >= SCREEN_SIZE{
         return Ok(());
     }
 
-    for (dx, dy, pixel) in img.enumerate_pixels() {
-        let [r, g, b, a] = pixel.0;
-        set_pix(pixels, y+dy as i32, x+dx as i32, COLORS(r, g, b, a));
+    for i in 0..width {
+        for j in 0..height{
+            set_pix(pixels, y+j as i32, x+i as i32, img[j][i]);
+        }
     }
 
     Ok(())
@@ -104,23 +104,25 @@ pub fn print_scr_mid(pixels: &mut PixelsType, x: i32, y: i32, col: COLORS, msg: 
 }
 
 pub fn rect_fill(pixels: &mut PixelsType, x: i32, y: i32, w: i32, h: i32, col: COLORS){
-    for j in x..=x+w{
-        for i in y..=y+h{
+    for j in x..x+w{
+        for i in y..y+h{
             set_pix(pixels, i, j, col);
         }
     }
 }
 
 pub fn rect(pixels: &mut PixelsType, x: i32, y: i32, w: i32, h: i32, col: COLORS){
-    for i in x..=x+w{
+    for i in x..x+w{
         set_pix(pixels, y, i, col);
         set_pix(pixels, y+h, i, col);
     }
 
-    for i in y..=y+h{
+    for i in y..y+h{
         set_pix(pixels, i, x, col);
         set_pix(pixels, i, x+w, col);
     }
+
+    set_pix(pixels, y+h, x+w, col);
 }
 
 pub fn circle(pixels: &mut PixelsType, cx: i32, cy: i32, r: i32, col: COLORS){
@@ -145,3 +147,138 @@ pub fn clear(pixels: &mut PixelsType, col: COLORS){
         }
     }
 }
+
+pub fn image_from_tool(tool: Tools) -> [[COLORS; BUTTON_WIDTH as usize - 2]; BUTTON_WIDTH as usize - 2] {
+    let ye = COLORS::YELLOW;
+    let br = COLORS::BROWN;
+    let bl = COLORS::BLANK;
+    let re = COLORS::RED;
+    let db = COLORS::BLUE;
+    let si = COLORS::SILVER;
+    let gr = COLORS::GRAY;
+    let pi = COLORS::PINK;
+    match tool {
+        Tools::Pencil => {
+            [
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+                [bl, bl, bl, bl, bl, bl, ye, br, br, bl],
+                [bl, bl, bl, bl, bl, ye, ye, ye, br, bl],
+                [bl, bl, bl, bl, ye, ye, ye, ye, ye, bl],
+                [bl, bl, bl, ye, ye, ye, ye, ye, bl, bl],
+                [bl, bl, ye, ye, ye, ye, ye, bl, bl, bl],
+                [bl, bl, re, ye, ye, ye, bl, bl, bl, bl],
+                [bl, re, re, re, ye, bl, bl, bl, bl, bl],
+                [bl, re, re, bl, bl, bl, bl, bl, bl, bl],
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+            ]
+        },
+        Tools::Fill => {
+            [
+                [bl, bl, bl, bl, si, gr, gr, bl, bl, bl],
+                [bl, bl, bl, si, si, gr, gr, bl, bl, bl],
+                [bl, db, db, si, gr, gr, gr, si, bl, bl],
+                [db, db, si, si, gr, gr, si, si, si, bl],
+                [db, si, si, si, gr, gr, si, si, si, si],
+                [db, si, si, gr, gr, gr, si, si, si, si],
+                [db, si, si, si, si, si, si, si, si, si],
+                [db, bl, si, si, si, si, si, si, si, si],
+                [db, bl, bl, si, si, si, si, si, si, si],
+                [bl, bl, bl, bl, bl, si, si, si, si, bl],
+            ]
+        },
+        Tools::Eraser => {
+            [
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+                [bl, bl, bl, bl, bl, re, re, bl, bl, bl],
+                [bl, bl, bl, bl, re, pi, re, re, bl, bl],
+                [bl, bl, bl, re, re, re, pi, re, re, bl],
+                [bl, bl, re, re, re, re, re, pi, re, bl],
+                [bl, re, pi, re, re, re, re, re, bl, bl],
+                [bl, re, re, pi, re, re, re, bl, bl, bl],
+                [bl, bl, re, re, pi, re, bl, bl, bl, bl],
+                [bl, bl, bl, re, re, bl, bl, bl, bl, bl],
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+            ]
+        },
+        Tools::Select => {
+            [
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+                [bl, si, si, bl, si, si, bl, si, si, bl],
+                [bl, si, bl, bl, bl, bl, bl, bl, si, bl],
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+                [bl, si, bl, bl, bl, bl, bl, bl, si, bl],
+                [bl, si, bl, bl, bl, bl, bl, bl, si, bl],
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+                [bl, si, bl, bl, bl, bl, bl, bl, si, bl],
+                [bl, si, si, bl, si, si, bl, si, si, bl],
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+            ]
+        },
+    }
+}
+
+pub fn image_from_util(util: Utils) -> [[COLORS; BUTTON_WIDTH as usize - 2]; BUTTON_WIDTH as usize - 2] {
+    let bl = COLORS::BLANK;
+    let re = COLORS::RED;
+    let gr = COLORS::GRAY;
+    let ge = COLORS::GREEN;
+    match util {
+        Utils::FlipHor => {
+            [
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+                [bl, bl, bl, gr, bl, bl, gr, bl, bl, bl],
+                [bl, bl, gr, gr, bl, bl, gr, gr, bl, bl],
+                [bl, gr, gr, gr, gr, gr, gr, gr, gr, bl],
+                [bl, gr, gr, gr, gr, gr, gr, gr, gr, bl],
+                [bl, bl, gr, gr, bl, bl, gr, gr, bl, bl],
+                [bl, bl, bl, gr, bl, bl, gr, bl, bl, bl],
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+            ]
+        },
+        Utils::FlipVert => {
+            [
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+                [bl, bl, bl, bl, gr, gr, bl, bl, bl, bl],
+                [bl, bl, bl, gr, gr, gr, gr, bl, bl, bl],
+                [bl, bl, gr, gr, gr, gr, gr, gr, bl, bl],
+                [bl, bl, bl, bl, gr, gr, bl, bl, bl, bl],
+                [bl, bl, bl, bl, gr, gr, bl, bl, bl, bl],
+                [bl, bl, gr, gr, gr, gr, gr, gr, bl, bl],
+                [bl, bl, bl, gr, gr, gr, gr, bl, bl, bl],
+                [bl, bl, bl, bl, gr, gr, bl, bl, bl, bl],
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+            ]
+        },
+        Utils::Clear => {
+            [
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+                [bl, re, re, bl, bl, bl, bl, re, re, bl],
+                [bl, re, re, re, bl, bl, re, re, re, bl],
+                [bl, bl, re, re, re, re, re, re, bl, bl],
+                [bl, bl, bl, re, re, re, re, bl, bl, bl],
+                [bl, bl, bl, re, re, re, re, bl, bl, bl],
+                [bl, bl, re, re, re, re, re, re, bl, bl],
+                [bl, re, re, re, bl, bl, re, re, re, bl],
+                [bl, re, re, bl, bl, bl, bl, re, re, bl],
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+            ]
+        },
+        Utils::Save => {
+            [
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+                [bl, bl, bl, bl, bl, bl, bl, bl, ge, bl],
+                [bl, bl, bl, bl, bl, bl, bl, ge, ge, bl],
+                [bl, bl, bl, bl, bl, bl, ge, ge, bl, bl],
+                [bl, bl, bl, bl, bl, ge, ge, bl, bl, bl],
+                [bl, bl, ge, bl, ge, ge, bl, bl, bl, bl],
+                [bl, ge, ge, ge, ge, bl, bl, bl, bl, bl],
+                [bl, bl, ge, ge, bl, bl, bl, bl, bl, bl],
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+                [bl, bl, bl, bl, bl, bl, bl, bl, bl, bl],
+            ]
+        },
+    }
+}
+
