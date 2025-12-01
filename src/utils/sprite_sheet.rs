@@ -4,7 +4,7 @@ use std::io::{self, Write};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
 use crate::rico_engine::PixelsType;
-use crate::utils::colors::{ALL_COLORS};
+use crate::utils::colors::{ALL_COLORS, COLORS};
 
 const FILE_PATH: &str = "assets/sheet.sprt";
 
@@ -25,7 +25,8 @@ pub fn read_sheet(sprites: &mut Vec<PixelsType>) -> io::Result<()> {
     let mut frame_buffer = vec![0u8; sprites_count as usize * 32 * 32];
     file.read_exact(&mut frame_buffer)?;
 
-    for (s, chunk) in frame_buffer.chunks(32 * 32).enumerate(){
+    for chunk in frame_buffer.chunks(32 * 32){
+        let mut sprite = vec![vec![COLORS::BLANK; 32]; 32];
         for i in 0..32{
             for j in 0..32{
                 if chunk[i*32+j] > 16 {
@@ -34,9 +35,10 @@ pub fn read_sheet(sprites: &mut Vec<PixelsType>) -> io::Result<()> {
                             "Not a valid pixel"
                     ));
                 }
-                sprites[s][i][j] = ALL_COLORS[chunk[i*32 + j] as usize];
+                sprite[i][j] = ALL_COLORS[chunk[i*32 + j] as usize];
             }
         }
+        sprites.push(sprite);
     }
 
     Ok(())

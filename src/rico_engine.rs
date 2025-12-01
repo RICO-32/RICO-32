@@ -4,7 +4,7 @@ use mlua::prelude::*;
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
     dpi::{LogicalPosition, LogicalSize},
-    event::{ElementState, Event, MouseButton, VirtualKeyCode, WindowEvent},
+    event::{ElementState, Event, MouseButton, MouseScrollDelta, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
@@ -107,6 +107,17 @@ impl RicoEngine{
                             if keycode == winit::event::VirtualKeyCode::Escape {
                                 *control_flow = ControlFlow::Exit;
                             }
+                        }
+                    },
+
+                    WindowEvent::MouseWheel { delta, .. } => {
+                        if let StateEngines::SpriteEngine(ref mut eng) = self.state_engines[self.nav_engine.selected]{
+                            let scroll_y = match delta {
+                                MouseScrollDelta::LineDelta(_, y) => y,
+                                MouseScrollDelta::PixelDelta(pos) => pos.y as f32,
+                            };
+
+                            eng.update_start_row(scroll_y);
                         }
                     },
 

@@ -50,13 +50,16 @@ pub struct SpriteEngine{
 
     last_time: Instant,
     idx: usize,
-    upto_date: bool
+    upto_date: bool,
+    start_row: i32,
+    frame_hash: i32
 }
 
 impl SpriteEngine{
     pub fn new() -> Self{
-        let mut sprite_sheet = vec![vec![vec![COLORS::BLANK; 32]; 32]; 64];
-        if let Err(_) = read_sheet(&mut sprite_sheet) {
+        let mut sprite_sheet = Vec::new();
+        if let Err(_) = read_sheet(&mut sprite_sheet) { 
+            sprite_sheet = vec![vec![vec![COLORS::BLANK; 32]; 32]; 60];
             let _ = write_sheet(&sprite_sheet);
         }
 
@@ -79,7 +82,9 @@ impl SpriteEngine{
             continuous_ur_frames: 0,
             last_time: Instant::now(),
             idx: 0,
-            upto_date: true
+            upto_date: true,
+            start_row: 0,
+            frame_hash: 0
         }
     }
 
@@ -419,12 +424,12 @@ impl SpriteEngine{
         }
     }
 
-    fn sprite_small(&mut self, idx: i32){
+    fn sprite_small(&mut self, idx: i32, true_idx: i32){
         let y = 174 + (idx / 6) * 16;
         let x = 16 + (idx % 6) * 16;
         for i in 0..16{
             for j in 0..16{
-                set_pix(&mut self.pixels, y + i, x + j, self.sprite_sheet[idx as usize][i as usize*2][j as usize*2]);
+                set_pix(&mut self.pixels, y + i, x + j, self.sprite_sheet[true_idx as usize][i as usize*2][j as usize*2]);
             }
         }
 
@@ -432,12 +437,59 @@ impl SpriteEngine{
 
         if self.mouse.just_pressed && self.mouse.x != -1{
                 if self.mouse.x >= x && self.mouse.x < x + 16 && self.mouse.y >= y && self.mouse.y < y + 16 {
-                    self.idx = idx as usize;
+                    self.idx = true_idx as usize;
+                    self.selection = None;
+                    self.selection_start_pos = None;
+                    self.move_start_info = None;
                 }
         }
     }
 
+    pub fn update_start_row(&mut self, delta: f32){
+        if self.frame_hash == 0 && self.mouse.x >= 16 && self.mouse.x < 16 + 16 * 6 && self.mouse.y >= 174 && self.mouse.y < 174 + 16 * 4{
+            if delta > 0.0 {
+                self.start_row -= 1;
+            } else if delta < 0.0 {
+                self.start_row += 1;
+            }
+            self.start_row = self.start_row.max(0).min(self.sprite_sheet.len() as i32 / 6 - 4);
+        }
+    }
+
+    fn draw_sprite_sheet(&mut self){
+        let start_idx = self.start_row * 6;
+        for i in start_idx..start_idx+24{
+            self.sprite_small(i-start_idx, i);
+        }
+        let start_idx = start_idx as usize;
+        if self.idx >= start_idx && self.idx < start_idx+24 {
+            let y = 174 + ((self.idx - start_idx) / 6) * 16;
+            let x = 16 + ((self.idx - start_idx) % 6) * 16;
+            rect(&mut self.pixels, x as i32, y as i32, 16, 16, COLORS::WHITE);
+        }
+        let scroll_start = 16.0 * 4.0 * (start_idx as f32 / self.sprite_sheet.len() as f32);
+        let scroll_end = 16.0 * 4.0 * ((start_idx as f32 + 24.0) / self.sprite_sheet.len() as f32);
+        rect_fill(&mut self.pixels, 16 + 16 * 6, 174 + scroll_start as i32, 3, (scroll_end - scroll_start) as i32, COLORS::WHITE);
+
+        let add_x = 16 + 16 * 5 + 8;
+        rect_fill(&mut self.pixels, add_x, 242, 9, 9, COLORS::GRAY);
+        for y in 242+2..242+7{
+            set_pix(&mut self.pixels, y, add_x + 4, COLORS::BLACK);
+        }
+        for x in 2..7{
+            set_pix(&mut self.pixels, 242 + 4, add_x + x, COLORS::BLACK);
+        }
+
+
+        if self.mouse.just_pressed && self.mouse.x >= 16 + 16 * 5 + 8 && self.mouse.x < add_x + 9 && self.mouse.y > 242 && self.mouse.y < 242 + 9{
+            let adding = vec![vec![vec![COLORS::BLANK; 32]; 32]; 10];
+            self.sprite_sheet.extend(adding);
+            let _ = write_sheet(&self.sprite_sheet);
+        }
+    }
+
     pub fn update(&mut self) {
+        self.frame_hash = (self.frame_hash + 1) % 5;
         sync(&mut self.last_time, FRAME_RATE);
         clear(&mut self.pixels, COLORS::BLACK);
         //clear(&mut self.pixels, COLORS::GRAY);
@@ -467,14 +519,7 @@ impl SpriteEngine{
         self.handle_copy_paste();
 
         self.handle_undo_redo();
-
-        for i in 0..24{
-            self.sprite_small(i);
-        }
-        let y = 174 + (self.idx as i32 / 6) * 16;
-        let x = 16 + (self.idx as i32  % 6) * 16;
-        rect(&mut self.pixels, x, y, 16, 16, COLORS::WHITE);
-
+        self.draw_sprite_sheet();
 
         if self.mouse.just_pressed {
             self.mouse.just_pressed = false;
