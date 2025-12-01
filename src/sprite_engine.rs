@@ -277,6 +277,7 @@ impl SpriteEngine{
             }
         }
 
+        rect(&mut self.pixels, x, y, BUTTON_WIDTH-1, BUTTON_WIDTH-1, COLORS::GRAY);
         if self.selected_color == col {
             rect(&mut self.pixels, x, y, BUTTON_WIDTH-1, BUTTON_WIDTH-1, COLORS::WHITE);
         }
