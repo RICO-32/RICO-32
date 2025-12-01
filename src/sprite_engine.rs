@@ -482,14 +482,14 @@ impl SpriteEngine{
 
 
         if self.mouse.just_pressed && self.mouse.x >= 16 + 16 * 5 + 8 && self.mouse.x < add_x + 9 && self.mouse.y > 242 && self.mouse.y < 242 + 9{
-            let adding = vec![vec![vec![COLORS::BLANK; 32]; 32]; 10];
+            let adding = vec![vec![vec![COLORS::BLANK; 32]; 32]; 6];
             self.sprite_sheet.extend(adding);
             let _ = write_sheet(&self.sprite_sheet);
         }
     }
 
     pub fn update(&mut self) {
-        self.frame_hash = (self.frame_hash + 1) % 5;
+        self.frame_hash = (self.frame_hash + 1) % 7;
         sync(&mut self.last_time, FRAME_RATE);
         clear(&mut self.pixels, COLORS::BLACK);
         //clear(&mut self.pixels, COLORS::GRAY);
