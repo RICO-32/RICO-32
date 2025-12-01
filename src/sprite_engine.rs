@@ -470,6 +470,10 @@ impl SpriteEngine{
         for i in 0..24{
             self.sprite_small(i);
         }
+        let y = 174 + (self.idx as i32 / 6) * 16;
+        let x = 16 + (self.idx as i32  % 6) * 16;
+        rect(&mut self.pixels, x, y, 16, 16, COLORS::WHITE);
+
 
         if self.mouse.just_pressed {
             self.mouse.just_pressed = false;
