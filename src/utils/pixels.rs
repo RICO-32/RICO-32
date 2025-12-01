@@ -1,10 +1,7 @@
 use std::error::Error;
 
-use image::{ImageBuffer, Rgba};
-
 use crate::sprite_engine::{Tools, Utils, BUTTON_WIDTH};
 use crate::utils::bitmap::{BITMAP4X4, BITMAP4X6};
-use crate::utils::colors::get_closest_color;
 use crate::utils::{bitmap::BITMAP, colors::COLORS};
 use crate::rico_engine::{PixelsType, SCREEN_SIZE};
 
@@ -25,16 +22,17 @@ pub fn set_pix(pixels: &mut PixelsType, y: i32, x: i32, col: COLORS){
 
 
 //Place holder functions
-pub fn draw(pixels: &mut PixelsType, x: i32, y: i32, img: &ImageBuffer<Rgba<u8>, Vec<u8>>) -> Result<(), Box<dyn Error>> {
-    let (width, height) = img.dimensions();
+pub fn draw(pixels: &mut PixelsType, x: i32, y: i32, img: &PixelsType) -> Result<(), Box<dyn Error>> {
+    let (width, height): (usize, usize) = (32, 32);
 
-    if width as usize >= SCREEN_SIZE || height as usize >= SCREEN_SIZE{
+    if width >= SCREEN_SIZE || height >= SCREEN_SIZE{
         return Ok(());
     }
 
-    for (dx, dy, pixel) in img.enumerate_pixels() {
-        let rgba = pixel.0;
-        set_pix(pixels, y+dy as i32, x+dx as i32, get_closest_color(rgba));
+    for i in 0..width {
+        for j in 0..height{
+            set_pix(pixels, y+j as i32, x+i as i32, img[j][i]);
+        }
     }
 
     Ok(())

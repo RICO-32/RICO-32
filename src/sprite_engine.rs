@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use winit::event::VirtualKeyCode;
 
-use crate::{rico_engine::{PixelsType, ScreenEngine, SCREEN_SIZE}, utils::{colors::{ALL_COLORS, COLORS}, keyboard::Keyboard, mouse::MousePress, pixels::{clear, image_from_tool, image_from_util, rect, rect_fill, set_pix}, time::sync}};
+use crate::{rico_engine::{PixelsType, ScreenEngine, SCREEN_SIZE}, utils::{colors::{ALL_COLORS, COLORS}, keyboard::Keyboard, mouse::MousePress, pixels::{clear, image_from_tool, image_from_util, print_scr_mid, rect, rect_fill, set_pix}, sprite_sheet::{read_sheet, write_sheet}, time::sync}};
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum Tools{
@@ -22,7 +22,7 @@ pub enum Utils{
 
 pub const BUTTON_WIDTH: i32 = 12;
 const SPRITE_SIZE: usize = 32;
-const DRAW_Y: i32 = 44;
+const DRAW_Y: i32 = 52;
 const FRAME_RATE: i32 = 60;
 
 const DIRS: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
@@ -31,7 +31,7 @@ pub struct SpriteEngine{
     pixels: PixelsType,
     selected_color: COLORS,
     pub mouse: MousePress,
-    pub sprite_pixs: PixelsType,
+    pub sprite_sheet: Vec<PixelsType>,
     pub tool: Tools,
     pub keyboard: Keyboard,
 
@@ -48,16 +48,23 @@ pub struct SpriteEngine{
     last_frame_ur: bool,
     continuous_ur_frames: i32,
 
-    last_time: Instant
+    last_time: Instant,
+    idx: usize,
+    upto_date: bool
 }
 
 impl SpriteEngine{
     pub fn new() -> Self{
+        let mut sprite_sheet = vec![vec![vec![COLORS::BLANK; 32]; 32]; 64];
+        if let Err(_) = read_sheet(&mut sprite_sheet) {
+            let _ = write_sheet(&sprite_sheet);
+        }
+
         SpriteEngine { 
             pixels: vec![vec![COLORS::BLACK; SCREEN_SIZE]; SCREEN_SIZE * 2],
             mouse: MousePress::default(),
             selected_color: COLORS::BLACK,
-            sprite_pixs: vec![vec![COLORS::BLANK; SPRITE_SIZE]; SPRITE_SIZE],
+            sprite_sheet: sprite_sheet,
             tool: Tools::Pencil,
             selection: None,
             selection_start_pos: None,
@@ -70,14 +77,17 @@ impl SpriteEngine{
             redo_stack: Vec::new(),
             last_frame_ur: false,
             continuous_ur_frames: 0,
-            last_time: Instant::now()
+            last_time: Instant::now(),
+            idx: 0,
+            upto_date: true
         }
     }
 
     fn set_pix(&mut self, y: usize, x: usize, col: COLORS){
-        if self.sprite_pixs[y][x] == col { return; }
-        self.new_changes.push((y, x, self.sprite_pixs[y][x]));
-        self.sprite_pixs[y][x] = col;
+        if self.sprite_sheet[self.idx][y][x] == col { return; }
+        self.new_changes.push((y, x, self.sprite_sheet[self.idx][y][x]));
+        self.upto_date = false;
+        self.sprite_sheet[self.idx][y][x] = col;
     }
 
     fn stamp_selection(&mut self) {
@@ -104,7 +114,7 @@ impl SpriteEngine{
                 self.set_pix(y, x, self.selected_color);
             },
             Tools::Fill => {
-                let col = self.sprite_pixs[y][x];
+                let col = self.sprite_sheet[self.idx][y][x];
                 let mut q: Vec<(i32, i32)> = vec![(y as i32, x as i32)];
                 let mut visited: [[bool; SPRITE_SIZE]; SPRITE_SIZE] = [[false; SPRITE_SIZE]; SPRITE_SIZE];
                 while q.len() > 0 {
@@ -119,7 +129,7 @@ impl SpriteEngine{
                     for dir in DIRS {
                         let ny = t.0 + dir.0;
                         let nx = t.1 + dir.1;
-                        if ny >= 0 && ny < SPRITE_SIZE as i32 && nx >= 0 && nx < SPRITE_SIZE as i32 && col == self.sprite_pixs[ny as usize][nx as usize] {
+                        if ny >= 0 && ny < SPRITE_SIZE as i32 && nx >= 0 && nx < SPRITE_SIZE as i32 && col == self.sprite_sheet[self.idx][ny as usize][nx as usize] {
                             q.push((ny, nx));
                         }
                     }
@@ -135,7 +145,7 @@ impl SpriteEngine{
     fn draw_canvas(&mut self) {
         for y in 0..SPRITE_SIZE as i32{
             for x in 0..SPRITE_SIZE as i32{
-                let mut col = self.sprite_pixs[y as usize][x as usize];
+                let mut col = self.sprite_sheet[self.idx][y as usize][x as usize];
                 if col == COLORS::BLANK {
                     col = if (y + x) % 2 == 0 { COLORS::SILVER } else { COLORS::WHITE };
                 }
@@ -159,7 +169,7 @@ impl SpriteEngine{
                             let mut content = vec![vec![COLORS::BLANK; w]; h];
                             for r in 0..h {
                                 for c in 0..w {
-                                    content[r][c] = self.sprite_pixs[y1 as usize + r][x1 as usize + c];
+                                    content[r][c] = self.sprite_sheet[self.idx][y1 as usize + r][x1 as usize + c];
                                     self.set_pix(y1 as usize + r, x1 as usize + c, COLORS::BLANK);
                                 }
                             }
@@ -293,8 +303,8 @@ impl SpriteEngine{
                     self.move_start_info = None;
                     let mut pushing: Vec<(usize, usize, COLORS)> = Vec::new();
                     for change in changes{
-                        pushing.push((change.0, change.1, self.sprite_pixs[change.0][change.1]));
-                        self.sprite_pixs[change.0][change.1] = change.2;
+                        pushing.push((change.0, change.1, self.sprite_sheet[self.idx][change.0][change.1]));
+                        self.sprite_sheet[self.idx][change.0][change.1] = change.2;
                     }
                     if t == 1 { self.redo_stack.push(pushing) } else { self.undo_stack.push(pushing) };
                 },
@@ -315,7 +325,7 @@ impl SpriteEngine{
                 let mut content = vec![vec![COLORS::BLANK; w]; h];
                 for r in 0..h {
                     for c in 0..w {
-                        content[r][c] = self.sprite_pixs[y1 as usize + r][x1 as usize + c];
+                        content[r][c] = self.sprite_sheet[self.idx][y1 as usize + r][x1 as usize + c];
                     }
                 }
                 self.copied_content = Some(content);
@@ -351,7 +361,7 @@ impl SpriteEngine{
                             } else if let Some((x1, y1, x2, y2)) = self.selection {
                                 let w = (x2 - x1 + 1) as usize;
                                 let h = (y2 - y1 + 1) as usize;
-                                let cloned = self.sprite_pixs.clone();
+                                let cloned = self.sprite_sheet[self.idx].clone();
                                 for r in 0..h {
                                     for c in 0..w {
                                         self.set_pix(y1 as usize + r, x1 as usize + c, cloned[y2 as usize - r][x1 as usize + c]);
@@ -368,7 +378,7 @@ impl SpriteEngine{
                             } else if let Some((x1, y1, x2, y2)) = self.selection {
                                 let w = (x2 - x1 + 1) as usize;
                                 let h = (y2 - y1 + 1) as usize;
-                                let cloned = self.sprite_pixs.clone();
+                                let cloned = self.sprite_sheet[self.idx].clone();
                                 for r in 0..h {
                                     for c in 0..w {
                                         self.set_pix(y1 as usize + r, x1 as usize + c, cloned[y1 as usize + r][x2 as usize - c]);
@@ -398,10 +408,31 @@ impl SpriteEngine{
                                 }
                             }
                         }
-                        Utils::Save => {}
+                        Utils::Save => {
+                            self.upto_date = true;
+                            let _ = write_sheet(&self.sprite_sheet);
+                        }
                     }
                 }
             }
+        }
+    }
+
+    fn sprite_small(&mut self, idx: i32){
+        let y = 174 + (idx / 6) * 16;
+        let x = 16 + (idx % 6) * 16;
+        for i in 0..16{
+            for j in 0..16{
+                set_pix(&mut self.pixels, y + i, x + j, self.sprite_sheet[idx as usize][i as usize*2][j as usize*2]);
+            }
+        }
+
+        rect(&mut self.pixels, x, y, 16, 16, COLORS::GRAY);
+
+        if self.mouse.just_pressed && self.mouse.x != -1{
+                if self.mouse.x >= x && self.mouse.x < x + 16 && self.mouse.y >= y && self.mouse.y < y + 16 {
+                    self.idx = idx as usize;
+                }
         }
     }
 
@@ -419,19 +450,26 @@ impl SpriteEngine{
 
         for (i, tool) in [Tools::Pencil, Tools::Eraser, Tools::Fill, Tools::Select].iter().enumerate(){
             let idx = i as i32;
-            self.tool_button(4 + (idx as i32 % 8) * BUTTON_WIDTH, 148, *tool);
+            self.tool_button(4 + (idx as i32 % 8) * BUTTON_WIDTH, 154, *tool);
         }
 
         for (i, util) in [Utils::FlipHor, Utils::FlipVert, Utils::Clear].iter().enumerate(){
             let idx = i as i32;
-            self.util_button(64 + (idx as i32 % 8) * BUTTON_WIDTH, 148, *util);
+            self.util_button(64 + (idx as i32 % 8) * BUTTON_WIDTH, 154, *util);
         }
-        self.util_button(112, 148, Utils::Save);
+        self.util_button(112, 154, Utils::Save);
 
+        let mut sprite_text = "Editing sprite ".to_owned() + &self.idx.to_string();
+        if !self.upto_date { sprite_text += &"*".to_owned() };
+        print_scr_mid(&mut self.pixels, 16, DRAW_Y-8, COLORS::GRAY, sprite_text);
         self.draw_canvas();
         self.handle_copy_paste();
 
         self.handle_undo_redo();
+
+        for i in 0..24{
+            self.sprite_small(i);
+        }
 
         if self.mouse.just_pressed {
             self.mouse.just_pressed = false;

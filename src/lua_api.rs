@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use image::{ImageBuffer, ImageReader, Rgba};
 use mlua::UserData;
 
 use crate::game_engine::BASE_FPS;
@@ -11,13 +10,14 @@ use crate::utils::keyboard::{key_from_str, Keyboard};
 use crate::utils::mouse::MousePress;
 use crate::utils::pixels::{circle, clear, draw, print_scr, print_scr_mid, print_scr_mini, rect, rect_fill, set_pix};
 use crate::rico_engine::{PixelsType, SCREEN_SIZE};
+use crate::utils::sprite_sheet::read_image_idx;
 
 pub struct LuaAPI{
     pub mouse: MousePress,
     pub keyboard: Keyboard,
     pub frame_rate: i32,
     pub pixels: PixelsType,
-    pub sprites: HashMap<String, ImageBuffer<Rgba<u8>, Vec<u8>>>,
+    pub sprites: HashMap<i32, PixelsType>,
     pub logs: Vec<String>
 }
 
@@ -91,19 +91,16 @@ impl UserData for LuaAPIHandle {
         );
 
         methods.add_method_mut("draw",
-            |_, this, (x, y, file): (i32, i32, String)| {
+            |_, this, (x, y, idx): (i32, i32, i32)| {
                 let mut eng = this.0.borrow_mut(); // mutable borrow once
-                let img = if let Some(i) = eng.sprites.get(&file) {
+                let img = if let Some(i) = eng.sprites.get(&idx) {
                     i.clone()
                 } else {
-                    let loaded = ImageReader::open(format!("assets/{}", file))
-                        .map_err(mlua::Error::external)?
-                        .decode()
-                        .map_err(mlua::Error::external)?
-                        .to_rgba8();
+                    let mut loaded: PixelsType = vec![vec![COLORS::BLACK; 32]; 32];
+                    let _ = read_image_idx(&mut loaded, idx as usize);
 
-                    eng.sprites.insert(file.clone(), loaded);
-                    eng.sprites.get(&file).unwrap().clone()
+                    eng.sprites.insert(idx, loaded);
+                    eng.sprites.get(&idx).unwrap().clone()
                 };
 
                 draw(&mut eng.pixels, x, y, &img)

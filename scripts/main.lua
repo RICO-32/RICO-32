@@ -27,7 +27,7 @@ function update(dt)
     player:upd()
     rico:clear("BLACK")
     rico:print_scr(1, 50, "GREEN", "WOWAZA")
-    rico:draw(1, 45, "correct.png")
+    rico:draw(1, 45, 8)
     button(60, 50, 40, 10, "BUTTON!")
     rico:circle(90, 90, 10, "PURPLE")
     if rico:key_just_pressed("Enter") then

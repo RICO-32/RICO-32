@@ -1,11 +1,15 @@
 use std::fs::File;
-use std::io::{self, Read, Write};
+use std::io::{Read, Seek, SeekFrom};
+use std::io::{self, Write};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
-use crate::utils::colors::{ALL_COLORS, COLORS};
+use crate::rico_engine::PixelsType;
+use crate::utils::colors::{ALL_COLORS};
 
-fn read_sheet(sprites: &mut Vec<Vec<Vec<COLORS>>>) -> io::Result<()> {
-    let mut file = File::open("sheet.sprt")?;
+const FILE_PATH: &str = "assets/sheet.sprt";
+
+pub fn read_sheet(sprites: &mut Vec<PixelsType>) -> io::Result<()> {
+    let mut file = File::open(FILE_PATH)?;
 
     let magic = file.read_u32::<LittleEndian>()?;
     let version = file.read_u16::<LittleEndian>()?;
@@ -38,8 +42,55 @@ fn read_sheet(sprites: &mut Vec<Vec<Vec<COLORS>>>) -> io::Result<()> {
     Ok(())
 }
 
-fn write_sheet(sprites: &Vec<Vec<Vec<COLORS>>>) -> io::Result<()> {
-    let mut file = File::create("sheet.sprt")?;
+pub fn read_image_idx( sprite: &mut PixelsType, idx: usize) -> io::Result<()> {
+    let mut file = File::open(FILE_PATH)?;
+
+    let magic = file.read_u32::<LittleEndian>()?;
+    let version = file.read_u16::<LittleEndian>()?;
+    let sprites_count = file.read_u16::<LittleEndian>()? as usize;
+
+    if magic != 0x54525053 || version != 1 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "Not a valid SPRT file"
+        ));
+    }
+
+    if idx >= sprites_count {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "Sprite index out of bounds"
+        ));
+    }
+
+    let sprite_size = 32 * 32; 
+    let header_size = 4 + 2 + 2;
+
+    file.seek(SeekFrom::Start((header_size + idx * sprite_size) as u64))?;
+
+    let mut buffer = vec![0u8; sprite_size];
+    file.read_exact(&mut buffer)?;
+
+    for i in 0..32 {
+        for j in 0..32 {
+            let val = buffer[i * 32 + j];
+
+            if val > 16 {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "Not a valid pixel"
+                ));
+            }
+
+            sprite[i][j] = ALL_COLORS[val as usize];
+        }
+    }
+
+    Ok(())
+}
+
+pub fn write_sheet(sprites: &Vec<PixelsType>) -> io::Result<()> {
+    let mut file = File::create(FILE_PATH)?;
 
     let magic: u32 = 0x54525053;
     let version: u16 = 1;

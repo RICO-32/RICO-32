@@ -27,36 +27,6 @@ impl COLORS {
     }
 }
 
-pub fn get_closest_color(rgba: [u8; 4]) -> COLORS {
-    let [r, g, b, a] = rgba;
-
-    // If fully transparent, treat as BLANK
-    if a == 0 {
-        return COLORS::BLANK;
-    }
-
-    let mut best_color = COLORS::BLACK;
-    let mut best_dist: i32 = i32::MAX;
-
-    for &col in ALL_COLORS.iter() {
-        let (cr, cg, cb, ca) = ALL_TUPS[col as usize];
-
-        let dr = r as i32 - cr as i32;
-        let dg = g as i32 - cg as i32;
-        let db = b as i32 - cb as i32;
-        let da = a as i32 - ca as i32;
-
-        let dist = dr * dr + dg * dg + db * db + da * da;
-
-        if dist < best_dist {
-            best_dist = dist;
-            best_color = col;
-        }
-    }
-
-    best_color
-}
-
 pub const ALL_TUPS: [(u8, u8, u8, u8); 17] = [
         (0, 0, 0, 0),
         (0, 0, 0, 255),

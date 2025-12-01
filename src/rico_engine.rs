@@ -155,8 +155,10 @@ impl RicoEngine{
             StateEngines::GameEngine(ref mut eng) => {
                 if !eng.console_engine.halted {
                     eng.update();
-                    let pixels = eng.pixels();
+                }
 
+                {
+                    let pixels = eng.pixels();
                     copy_pixels_into_buffer(pixels.deref(), buffer, 0, NAV_BAR_HEIGHT * SCALE);
                 }
                 
