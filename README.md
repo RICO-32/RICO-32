@@ -20,6 +20,7 @@ A fantasy console inspired by PICO-8, built with Rust for performance and Lua fo
 - [Screenshots](#screenshots)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Sprite Engine](#sprite-engine)
 - [API Reference](#api-reference)
 - [Examples](#examples)
 - [Contributing](#contributing)
@@ -87,9 +88,7 @@ The console is designed to be simple yet powerful, allowing developers to create
 
 1. **Create your game script**: Edit `scripts/main.lua` to start building your game.
 
-2. **Add assets** (optional): Place PNG images in the `assets/` directory.
-
-3. **Run your game**: Execute `cargo run` and your game will start!
+2. **Run your game**: Execute `cargo run` and your game will start!
 
 ### Example Game
 
@@ -110,9 +109,66 @@ function update(dt)
 end
 ```
 
+## Sprite Engine
+
+RICO-32 includes a built-in sprite editor for creating and managing 32×32 pixel sprites. Access the sprite editor from the main interface to design sprites that can be used in your games.
+
+### Features
+
+- **32×32 Sprite Canvas**: Edit sprites pixel-by-pixel with a 3× zoomed preview
+- **60-Sprite Sheet**: Store up to 60 sprites (expandable) in a persistent sprite sheet
+     - Sprite sheet is stored in assets/sheet.sprt for persistency
+     - RICO-32 features an inbuilt sprite file spec to store and read the sprite sheet for the engine
+- **Drawing Tools**:
+  - **Pencil**: Draw individual pixels with the selected color
+  - **Fill**: Flood-fill connected areas with the selected color
+  - **Eraser**: Remove pixels (set to transparent)
+  - **Select**: Create rectangular selections for advanced editing
+- **Selection Tools**:
+  - Click and drag to create rectangular selections
+  - Move selections by clicking inside and dragging
+  - Copy (Ctrl+C) and paste (Ctrl+V) selections
+  - Flip horizontal/vertical within selections or entire sprite
+  - Clear selected areas or entire sprite
+- **Undo/Redo**: Full undo/redo support with keyboard shortcuts
+- **16-Color Palette**: Quick access to all RICO-32 colors
+- **Auto-Save Indicator**: Changes are marked with an asterisk (*) until saved
+
+### Using the Sprite Editor
+
+1. **Select a sprite**: Click on any sprite in the sprite sheet panel (bottom of screen). Scroll to view more sprites.
+2. **Choose a tool**: Click one of the tool buttons (Pencil, Eraser, Fill, Select)
+3. **Pick a color**: Click a color from the palette at the top
+4. **Draw**: Click and drag on the canvas to draw or use tools
+5. **Save**: Click the save button to persist changes to disk
+
+### Adding More Sprites
+
+Click the **+** button at the bottom of the sprite sheet panel to add 6 more sprite slots. The sprite sheet automatically expands to accommodate your needs.
+
+### In-Game Usage
+
+Load and draw sprites in your Lua scripts using the `draw()` function:
+
+```lua
+function start()
+    rico:set_frame_rate(60)
+end
+
+function update(dt)
+    rico:clear("BLACK")
+    
+    -- Draw sprite 0 at position (48, 48)
+    rico:draw(48, 48, 0)
+    
+    -- Draw sprite 5 at position (80, 48)
+    rico:draw(80, 48, 5)
+end
+```
+
 ## API Reference
 
-All RICO API functions must be prefixed with `rico:` to be called in Lua.
+All RICO API functions must be prefixed with `rico:` to be called in Lua. This does not include the core functions listed below.
 
 ### Core Functions
 
@@ -253,12 +309,6 @@ Copyright (c) 2025 Dhruv Goel
 ## TODO
 
 ### Planned Features
-
-- [ ] **Sprite Engine**: Develop a comprehensive sprite engine with support for:
-  - Sprite sheets and animations
-  - Sprite flipping and rotation
-  - Sprite collision detection
-  - Sprite batching for performance optimization
   
 - [ ] **Integrated Development Environment (IDE)**: Create a built-in IDE featuring:
   - Code editor with syntax highlighting for Lua
