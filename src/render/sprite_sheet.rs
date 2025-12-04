@@ -3,8 +3,10 @@ use std::io::{Read, Seek, SeekFrom};
 use std::io::{self, Write};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
-use crate::rico_engine::PixelsType;
-use crate::utils::colors::{ALL_COLORS, COLORS};
+use crate::{
+    engine::rico::PixelsType,
+    render::colors::{ALL_COLORS, COLORS},
+};
 
 const FILE_PATH: &str = "assets/sheet.sprt";
 

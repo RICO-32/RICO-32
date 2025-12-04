@@ -9,8 +9,8 @@ use winit::{
     window::WindowBuilder,
 };
 
-use crate::{game_engine::GameEngine, nav_bar_engine::NavEngine, sprite_engine::SpriteEngine, utils::{colors::{ALL_TUPS}, keyboard::Keyboard, mouse::MousePress}};
-use crate::utils::colors::COLORS;
+use crate::{render::{colors::{ALL_TUPS, COLORS}}, input::{keyboard::Keyboard, mouse::MousePress}};
+use super::{game::GameEngine, nav_bar::NavEngine, sprite::SpriteEngine};
 
 pub const SCREEN_SIZE: usize = 128;
 pub const SCALE: usize = 4;

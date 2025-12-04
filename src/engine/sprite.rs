@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use winit::event::VirtualKeyCode;
 
-use crate::{rico_engine::{PixelsType, ScreenEngine, SCREEN_SIZE}, utils::{colors::{ALL_COLORS, COLORS}, keyboard::Keyboard, mouse::MousePress, pixels::{clear, image_from_tool, image_from_util, print_scr_mid, rect, rect_fill, set_pix}, sprite_sheet::{read_sheet, write_sheet}, time::sync}};
+use crate::{engine::rico::{PixelsType, ScreenEngine, SCREEN_SIZE}, render::{colors::{ALL_COLORS, COLORS}, pixels::{clear, image_from_tool, image_from_util, print_scr_mid, rect, rect_fill, set_pix}, sprite_sheet::{read_sheet, write_sheet}}, input::{keyboard::Keyboard, mouse::MousePress}, time::sync};
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum Tools{
@@ -20,10 +20,30 @@ pub enum Utils{
     Save
 }
 
+//I SWEAR THIS IS BETTER THAN ALL THE MAGIC NUMBERS
 pub const BUTTON_WIDTH: i32 = 12;
 const SPRITE_SIZE: usize = 32;
 const DRAW_Y: i32 = 52;
 const FRAME_RATE: i32 = 60;
+const PIXEL_SIZE: i32 = 3;
+const CANVAS_X: i32 = 16;
+const COLORS_PER_ROW: i32 = 8;
+const COLOR_PALETTE_Y: i32 = 10;
+const TOOLS_Y: i32 = 154;
+const UTILS_X: i32 = 64;
+const SAVE_X: i32 = 112;
+const SPRITESHEET_Y: i32 = 174;
+const SPRITESHEET_COLS: i32 = 6;
+const SPRITESHEET_ROWS: i32 = 4;
+const SPRITE_PREVIEW_SIZE: i32 = 16;
+const ADD_SPRITE_BUTTON_Y: i32 = 242;
+const ADD_SPRITE_BUTTON_SIZE: i32 = 9;
+const UNDO_REDO_FRAME_DELAY: i32 = 25;
+const UNDO_REDO_CONTINUOUS_FRAME_DIVISOR: i32 = 2;
+const FRAME_HASH_MODULO: i32 = 7;
+const INITIAL_SPRITE_SHEET_SIZE: usize = 60;
+const SPRITES_TO_ADD: usize = 6;
+
 
 const DIRS: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
 
@@ -59,7 +79,7 @@ impl SpriteEngine{
     pub fn new() -> Self{
         let mut sprite_sheet = Vec::new();
         if let Err(_) = read_sheet(&mut sprite_sheet) { 
-            sprite_sheet = vec![vec![vec![COLORS::BLANK; 32]; 32]; 60];
+            sprite_sheet = vec![vec![vec![COLORS::BLANK; SPRITE_SIZE]; SPRITE_SIZE]; INITIAL_SPRITE_SHEET_SIZE];
             let _ = write_sheet(&sprite_sheet);
         }
 
@@ -154,13 +174,13 @@ impl SpriteEngine{
                 if col == COLORS::BLANK {
                     col = if (y + x) % 2 == 0 { COLORS::SILVER } else { COLORS::WHITE };
                 }
-                rect_fill(&mut self.pixels, 16+x*3, DRAW_Y+y*3, 3, 3, col);
+                rect_fill(&mut self.pixels, CANVAS_X+x*PIXEL_SIZE, DRAW_Y+y*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE, col);
             }
         }
         
-        let on_canvas = self.mouse.x >= 16 && self.mouse.x < 16+(SPRITE_SIZE as i32*3) && self.mouse.y >= DRAW_Y && self.mouse.y < DRAW_Y+(SPRITE_SIZE as i32*3);
-        let grid_x = ((self.mouse.x - 16) / 3).max(0).min(SPRITE_SIZE as i32 - 1);
-        let grid_y = ((self.mouse.y - DRAW_Y) / 3).max(0).min(SPRITE_SIZE as i32 - 1);
+        let on_canvas = self.mouse.x >= CANVAS_X && self.mouse.x < CANVAS_X+(SPRITE_SIZE as i32*PIXEL_SIZE) && self.mouse.y >= DRAW_Y && self.mouse.y < DRAW_Y+(SPRITE_SIZE as i32*PIXEL_SIZE);
+        let grid_x = ((self.mouse.x - CANVAS_X) / PIXEL_SIZE).max(0).min(SPRITE_SIZE as i32 - 1);
+        let grid_y = ((self.mouse.y - DRAW_Y) / PIXEL_SIZE).max(0).min(SPRITE_SIZE as i32 - 1);
 
         if self.tool == Tools::Select {
             if self.mouse.just_pressed && on_canvas {
@@ -216,22 +236,22 @@ impl SpriteEngine{
                 for r in 0..h {
                     for c in 0..w {
                         let mut col = content[r][c];
-                        let draw_x = 16 + (x1 + c as i32) * 3;
-                        let draw_y = DRAW_Y + (y1 + r as i32) * 3;
+                        let draw_x = CANVAS_X + (x1 + c as i32) * PIXEL_SIZE;
+                        let draw_y = DRAW_Y + (y1 + r as i32) * PIXEL_SIZE;
 
                         if col == COLORS::BLANK {
                             col = if (draw_y + draw_x) % 2 == 0 { COLORS::SILVER } else { COLORS::WHITE };
                         }
-                        rect_fill(&mut self.pixels, draw_x, draw_y, 3, 3, col);
+                        rect_fill(&mut self.pixels, draw_x, draw_y, PIXEL_SIZE, PIXEL_SIZE, col);
                     }
                 }
             }
 
             if let Some((x1, y1, x2, y2)) = self.selection {
-                let x = 16 + x1 * 3;
-                let y = DRAW_Y + y1 * 3;
-                let w = (x2 - x1 + 1) * 3;
-                let h = (y2 - y1 + 1) * 3;
+                let x = CANVAS_X + x1 * PIXEL_SIZE;
+                let y = DRAW_Y + y1 * PIXEL_SIZE;
+                let w = (x2 - x1 + 1) * PIXEL_SIZE;
+                let h = (y2 - y1 + 1) * PIXEL_SIZE;
                 rect(&mut self.pixels, x, y, w, h, COLORS::WHITE);
                 rect(&mut self.pixels, x-1, y-1, w+2, h+2, COLORS::BLACK);
             }
@@ -298,7 +318,7 @@ impl SpriteEngine{
             if self.last_frame_ur { self.continuous_ur_frames += 1 }
             else { self.continuous_ur_frames = 0 };
             self.last_frame_ur = true;
-            if (self.continuous_ur_frames < 25 && self.continuous_ur_frames > 0) || (self.continuous_ur_frames % 2 != 0) { return; }
+            if (self.continuous_ur_frames < UNDO_REDO_FRAME_DELAY && self.continuous_ur_frames > 0) || (self.continuous_ur_frames % UNDO_REDO_CONTINUOUS_FRAME_DIVISOR != 0) { return; }
 
             match {
                 if t == 1 { self.undo_stack.pop() } else { self.redo_stack.pop() }
@@ -425,18 +445,18 @@ impl SpriteEngine{
     }
 
     fn sprite_small(&mut self, idx: i32, true_idx: i32){
-        let y = 174 + (idx / 6) * 16;
-        let x = 16 + (idx % 6) * 16;
-        for i in 0..16{
-            for j in 0..16{
+        let y = SPRITESHEET_Y + (idx / SPRITESHEET_COLS) * SPRITE_PREVIEW_SIZE;
+        let x = CANVAS_X + (idx % SPRITESHEET_COLS) * SPRITE_PREVIEW_SIZE;
+        for i in 0..SPRITE_PREVIEW_SIZE{
+            for j in 0..SPRITE_PREVIEW_SIZE{
                 set_pix(&mut self.pixels, y + i, x + j, self.sprite_sheet[true_idx as usize][i as usize*2][j as usize*2]);
             }
         }
 
-        rect(&mut self.pixels, x, y, 16, 16, COLORS::GRAY);
+        rect(&mut self.pixels, x, y, SPRITE_PREVIEW_SIZE, SPRITE_PREVIEW_SIZE, COLORS::GRAY);
 
         if self.mouse.just_pressed && self.mouse.x != -1{
-                if self.mouse.x >= x && self.mouse.x < x + 16 && self.mouse.y >= y && self.mouse.y < y + 16 {
+                if self.mouse.x >= x && self.mouse.x < x + SPRITE_PREVIEW_SIZE && self.mouse.y >= y && self.mouse.y < y + SPRITE_PREVIEW_SIZE {
                     self.idx = true_idx as usize;
                     self.selection = None;
                     self.selection_start_pos = None;
@@ -446,50 +466,52 @@ impl SpriteEngine{
     }
 
     pub fn update_start_row(&mut self, delta: f32){
-        if self.frame_hash == 0 && self.mouse.x >= 16 && self.mouse.x < 16 + 16 * 6 && self.mouse.y >= 174 && self.mouse.y < 174 + 16 * 4{
+        if self.frame_hash == 0 && self.mouse.x >= CANVAS_X && self.mouse.x < CANVAS_X + SPRITE_PREVIEW_SIZE * SPRITESHEET_COLS && self.mouse.y >= SPRITESHEET_Y && self.mouse.y < SPRITESHEET_Y + SPRITE_PREVIEW_SIZE * SPRITESHEET_ROWS{
             if delta > 0.0 {
                 self.start_row -= 1;
             } else if delta < 0.0 {
                 self.start_row += 1;
             }
-            self.start_row = self.start_row.max(0).min(self.sprite_sheet.len() as i32 / 6 - 4);
+            self.start_row = self.start_row.max(0).min(self.sprite_sheet.len() as i32 / SPRITESHEET_COLS - SPRITESHEET_ROWS);
         }
     }
 
     fn draw_sprite_sheet(&mut self){
-        let start_idx = self.start_row * 6;
-        for i in start_idx..start_idx+24{
+        let sprites_to_show = (SPRITESHEET_COLS * SPRITESHEET_ROWS) as usize;
+        let start_idx = self.start_row * SPRITESHEET_COLS;
+        for i in start_idx..start_idx+sprites_to_show as i32{
             self.sprite_small(i-start_idx, i);
         }
-        let start_idx = start_idx as usize;
-        if self.idx >= start_idx && self.idx < start_idx+24 {
-            let y = 174 + ((self.idx - start_idx) / 6) * 16;
-            let x = 16 + ((self.idx - start_idx) % 6) * 16;
-            rect(&mut self.pixels, x as i32, y as i32, 16, 16, COLORS::WHITE);
+        let start_idx_usize = start_idx as usize;
+        if self.idx >= start_idx_usize && self.idx < start_idx_usize+sprites_to_show {
+            let y = SPRITESHEET_Y + ((self.idx - start_idx_usize) as i32 / SPRITESHEET_COLS) * SPRITE_PREVIEW_SIZE;
+            let x = CANVAS_X + ((self.idx - start_idx_usize) as i32 % SPRITESHEET_COLS) * SPRITE_PREVIEW_SIZE;
+            rect(&mut self.pixels, x as i32, y as i32, SPRITE_PREVIEW_SIZE, SPRITE_PREVIEW_SIZE, COLORS::WHITE);
         }
-        let scroll_start = 16.0 * 4.0 * (start_idx as f32 / self.sprite_sheet.len() as f32);
-        let scroll_end = 16.0 * 4.0 * ((start_idx as f32 + 24.0) / self.sprite_sheet.len() as f32);
-        rect_fill(&mut self.pixels, 16 + 16 * 6, 174 + scroll_start as i32, 3, (scroll_end - scroll_start) as i32, COLORS::WHITE);
+        let scroll_height = (SPRITE_PREVIEW_SIZE * SPRITESHEET_ROWS) as f32;
+        let scroll_start = scroll_height * (start_idx as f32 / self.sprite_sheet.len() as f32);
+        let scroll_end = scroll_height * ((start_idx_usize + sprites_to_show) as f32 / self.sprite_sheet.len() as f32);
+        rect_fill(&mut self.pixels, CANVAS_X + SPRITE_PREVIEW_SIZE * SPRITESHEET_COLS, SPRITESHEET_Y + scroll_start as i32, PIXEL_SIZE, (scroll_end - scroll_start) as i32, COLORS::WHITE);
 
-        let add_x = 16 + 16 * 5 + 8;
-        rect_fill(&mut self.pixels, add_x, 242, 9, 9, COLORS::GRAY);
-        for y in 242+2..242+7{
+        let add_x = CANVAS_X + SPRITE_PREVIEW_SIZE * (SPRITESHEET_COLS - 1) + 8;
+        rect_fill(&mut self.pixels, add_x, ADD_SPRITE_BUTTON_Y, ADD_SPRITE_BUTTON_SIZE, ADD_SPRITE_BUTTON_SIZE, COLORS::GRAY);
+        for y in ADD_SPRITE_BUTTON_Y+2..ADD_SPRITE_BUTTON_Y+7{
             set_pix(&mut self.pixels, y, add_x + 4, COLORS::BLACK);
         }
         for x in 2..7{
-            set_pix(&mut self.pixels, 242 + 4, add_x + x, COLORS::BLACK);
+            set_pix(&mut self.pixels, ADD_SPRITE_BUTTON_Y + 4, add_x + x, COLORS::BLACK);
         }
 
 
-        if self.mouse.just_pressed && self.mouse.x >= 16 + 16 * 5 + 8 && self.mouse.x < add_x + 9 && self.mouse.y > 242 && self.mouse.y < 242 + 9{
-            let adding = vec![vec![vec![COLORS::BLANK; 32]; 32]; 6];
+        if self.mouse.just_pressed && self.mouse.x >= add_x && self.mouse.x < add_x + ADD_SPRITE_BUTTON_SIZE && self.mouse.y > ADD_SPRITE_BUTTON_Y && self.mouse.y < ADD_SPRITE_BUTTON_Y + ADD_SPRITE_BUTTON_SIZE{
+            let adding = vec![vec![vec![COLORS::BLANK; SPRITE_SIZE]; SPRITE_SIZE]; SPRITES_TO_ADD];
             self.sprite_sheet.extend(adding);
             let _ = write_sheet(&self.sprite_sheet);
         }
     }
 
     pub fn update(&mut self) {
-        self.frame_hash = (self.frame_hash + 1) % 7;
+        self.frame_hash = (self.frame_hash + 1) % FRAME_HASH_MODULO;
         sync(&mut self.last_time, FRAME_RATE);
         clear(&mut self.pixels, COLORS::BLACK);
         //clear(&mut self.pixels, COLORS::GRAY);
@@ -498,23 +520,23 @@ impl SpriteEngine{
         for (i, col) in ALL_COLORS.iter().enumerate(){
             if *col == COLORS::BLANK { continue; }
             let idx = i as i32 - 1;
-            self.color_button(16 + (idx as i32 % 8) * BUTTON_WIDTH, 10 + BUTTON_WIDTH * (idx >= 8) as i32, *col);
+            self.color_button(CANVAS_X + (idx % COLORS_PER_ROW) * BUTTON_WIDTH, COLOR_PALETTE_Y + BUTTON_WIDTH * (idx >= COLORS_PER_ROW) as i32, *col);
         }
 
         for (i, tool) in [Tools::Pencil, Tools::Eraser, Tools::Fill, Tools::Select].iter().enumerate(){
             let idx = i as i32;
-            self.tool_button(4 + (idx as i32 % 8) * BUTTON_WIDTH, 154, *tool);
+            self.tool_button(4 + (idx % COLORS_PER_ROW) * BUTTON_WIDTH, TOOLS_Y, *tool);
         }
 
         for (i, util) in [Utils::FlipHor, Utils::FlipVert, Utils::Clear].iter().enumerate(){
             let idx = i as i32;
-            self.util_button(64 + (idx as i32 % 8) * BUTTON_WIDTH, 154, *util);
+            self.util_button(UTILS_X + (idx % COLORS_PER_ROW) * BUTTON_WIDTH, TOOLS_Y, *util);
         }
-        self.util_button(112, 154, Utils::Save);
+        self.util_button(SAVE_X, TOOLS_Y, Utils::Save);
 
         let mut sprite_text = "Editing sprite ".to_owned() + &self.idx.to_string();
         if !self.upto_date { sprite_text += &"*".to_owned() };
-        print_scr_mid(&mut self.pixels, 16, DRAW_Y-8, COLORS::GRAY, sprite_text);
+        print_scr_mid(&mut self.pixels, CANVAS_X, DRAW_Y-8, COLORS::GRAY, sprite_text);
         self.draw_canvas();
         self.handle_copy_paste();
 

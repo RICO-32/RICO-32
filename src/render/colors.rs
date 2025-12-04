@@ -1,4 +1,4 @@
-use crate::rico_engine::{PixelsType, SCREEN_SIZE};
+use crate::engine::rico::{PixelsType, SCREEN_SIZE};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum COLORS {

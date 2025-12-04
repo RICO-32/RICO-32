@@ -1,4 +1,4 @@
-use crate::{rico_engine::{PixelsType, ScreenEngine, NAV_BAR_HEIGHT, SCREEN_SIZE}, utils::{colors::COLORS, mouse::MousePress, pixels::{clear, print_scr_mid, rect_fill}}};
+use crate::{engine::rico::{PixelsType, ScreenEngine, NAV_BAR_HEIGHT, SCREEN_SIZE}, render::{colors::COLORS, pixels::{clear, print_scr_mid, rect_fill}}, input::mouse::MousePress};
 
 pub struct NavEngine{
     pixels: PixelsType,

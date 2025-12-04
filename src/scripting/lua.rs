@@ -4,13 +4,20 @@ use std::rc::Rc;
 
 use mlua::UserData;
 
-use crate::game_engine::BASE_FPS;
-use crate::utils::colors::{color_from_str, str_from_color, COLORS};
-use crate::utils::keyboard::{key_from_str, Keyboard};
-use crate::utils::mouse::MousePress;
-use crate::utils::pixels::{circle, clear, draw, print_scr, print_scr_mid, print_scr_mini, rect, rect_fill, set_pix};
-use crate::rico_engine::{PixelsType, SCREEN_SIZE};
-use crate::utils::sprite_sheet::read_image_idx;
+use crate::{
+    engine::{game::BASE_FPS, rico::{PixelsType, SCREEN_SIZE}},
+    input::{
+        keyboard::{key_from_str, Keyboard},
+        mouse::MousePress,
+    },
+    render::{
+        colors::{color_from_str, str_from_color, COLORS},
+        pixels::{
+            circle, clear, draw, print_scr, print_scr_mid, print_scr_mini, rect, rect_fill, set_pix,
+        },
+        sprite_sheet::read_image_idx,
+    },
+};
 
 pub struct LuaAPI{
     pub mouse: MousePress,

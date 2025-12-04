@@ -1,9 +1,15 @@
 use std::error::Error;
 
-use crate::sprite_engine::{Tools, Utils, BUTTON_WIDTH};
-use crate::utils::bitmap::{BITMAP4X4, BITMAP4X6};
-use crate::utils::{bitmap::BITMAP, colors::COLORS};
-use crate::rico_engine::{PixelsType, SCREEN_SIZE};
+use crate::{
+    engine::{
+        rico::{PixelsType, SCREEN_SIZE},
+        sprite::{Tools, Utils, BUTTON_WIDTH},
+    },
+    render::{
+        bitmap::{BITMAP, BITMAP4X4, BITMAP4X6},
+        colors::COLORS,
+    },
+};
 
 pub fn set_pix(pixels: &mut PixelsType, y: i32, x: i32, col: COLORS){
     //If the new pixel has 0 alpha, just keep the old guy

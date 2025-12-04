@@ -3,11 +3,11 @@ use std::{cell::RefCell, rc::Rc};
 
 use mlua::prelude::LuaResult;
 
-use crate::console_engine::ConsoleEngine;
-use crate::lua_api::LuaAPI;
-use crate::script_engine::ScriptEngine;
-use crate::rico_engine::{PixelsType, ScreenEngine};
-use crate::utils::time::sync;
+use crate::engine::console::ConsoleEngine;
+use crate::scripting::lua::LuaAPI;
+use crate::engine::script::ScriptEngine;
+use crate::engine::rico::{PixelsType, ScreenEngine};
+use crate::time::sync;
 
 pub const BASE_FPS: i32 = 60;
 

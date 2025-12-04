@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use crate::{rico_engine::{PixelsType, ScreenEngine}, utils::{colors::COLORS, mouse::MousePress, pixels::{circle, clear, print_scr_mid, rect_fill, set_pix}}};
+use crate::{engine::rico::{PixelsType, ScreenEngine}, input::{mouse::MousePress}, render::{colors::COLORS, pixels::{circle, clear, print_scr_mid, rect_fill, set_pix}}};
 
 pub struct ConsoleEngine{
     pixels: PixelsType,

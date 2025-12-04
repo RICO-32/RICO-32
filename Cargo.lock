@@ -3,17 +3,6 @@
 version = 4
 
 [[package]]
-name = "RICO-32"
-version = "0.1.0"
-dependencies = [
- "byteorder",
- "mlua",
- "pixels",
- "winapi",
- "winit",
-]
-
-[[package]]
 name = "ab_glyph"
 version = "0.2.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1150,6 +1139,17 @@ name = "renderdoc-sys"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1382d1f0a252c4bf97dc20d979a2fdd05b024acd7c2ed0f7595d7817666a157"
+
+[[package]]
+name = "rico-32"
+version = "0.1.0"
+dependencies = [
+ "byteorder",
+ "mlua",
+ "pixels",
+ "winapi",
+ "winit",
+]
 
 [[package]]
 name = "rustc-demangle"

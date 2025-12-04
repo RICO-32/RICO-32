@@ -5,8 +5,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::{fs};
 
-use crate::lua_api::LuaAPI;
-use crate::lua_api::LuaAPIHandle;
+use crate::scripting::lua::{LuaAPI, LuaAPIHandle};
 
 pub struct ScriptEngine {
     pub lua: Lua,

@@ -1,13 +1,5 @@
 use mlua::prelude::LuaResult;
-mod lua_api;
-mod nav_bar_engine;
-mod script_engine;
-mod sprite_engine;
-mod console_engine;
-mod game_engine;
-mod rico_engine;
-mod utils;
-use rico_engine::RicoEngine;
+use rico_32::engine::rico::RicoEngine;
 
 fn main() -> LuaResult<()> {
     let engine = RicoEngine::new()?;
