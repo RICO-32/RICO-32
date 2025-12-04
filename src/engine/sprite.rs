@@ -1,5 +1,6 @@
 use std::time::Instant;
 
+use macro_procs::ScreenEngine;
 use winit::event::VirtualKeyCode;
 
 use crate::{engine::rico::{PixelsType, ScreenEngine, SCREEN_SIZE}, render::{colors::{ALL_COLORS, COLORS}, pixels::{clear, image_from_tool, image_from_util, print_scr_mid, rect, rect_fill, set_pix}, sprite_sheet::{read_sheet, write_sheet}}, input::{keyboard::Keyboard, mouse::MousePress}, time::sync};
@@ -47,6 +48,7 @@ const SPRITES_TO_ADD: usize = 6;
 
 const DIRS: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
 
+#[derive(ScreenEngine)]
 pub struct SpriteEngine{
     pixels: PixelsType,
     selected_color: COLORS,
@@ -133,7 +135,7 @@ impl SpriteEngine{
         self.moving_selection_content = None;
     }
 
-    fn handle_click(&mut self, y: usize, x: usize){
+    fn handle_click(&mut self, y: usize, x: usize) {
         match self.tool{
             Tools::Pencil => {
                 self.set_pix(y, x, self.selected_color);
@@ -318,23 +320,22 @@ impl SpriteEngine{
             if self.last_frame_ur { self.continuous_ur_frames += 1 }
             else { self.continuous_ur_frames = 0 };
             self.last_frame_ur = true;
-            if (self.continuous_ur_frames < UNDO_REDO_FRAME_DELAY && self.continuous_ur_frames > 0) || (self.continuous_ur_frames % UNDO_REDO_CONTINUOUS_FRAME_DIVISOR != 0) { return; }
+            if (self.continuous_ur_frames < UNDO_REDO_FRAME_DELAY && self.continuous_ur_frames > 0)
+                || (self.continuous_ur_frames % UNDO_REDO_CONTINUOUS_FRAME_DIVISOR != 0) {
+                return;
+            }
 
-            match {
-                if t == 1 { self.undo_stack.pop() } else { self.redo_stack.pop() }
-            } {
-                Some(changes) => {
-                    self.selection = None;
-                    self.selection_start_pos = None;
-                    self.move_start_info = None;
-                    let mut pushing: Vec<(usize, usize, COLORS)> = Vec::new();
-                    for change in changes{
-                        pushing.push((change.0, change.1, self.sprite_sheet[self.idx][change.0][change.1]));
-                        self.sprite_sheet[self.idx][change.0][change.1] = change.2;
-                    }
-                    if t == 1 { self.redo_stack.push(pushing) } else { self.undo_stack.push(pushing) };
-                },
-                None => {}
+            let popped = if t == 1 { self.undo_stack.pop() } else { self.redo_stack.pop() };
+            if let Some(changes) = popped{
+                self.selection = None;
+                self.selection_start_pos = None;
+                self.move_start_info = None;
+                let mut pushing: Vec<(usize, usize, COLORS)> = Vec::new();
+                for change in changes{
+                    pushing.push((change.0, change.1, self.sprite_sheet[self.idx][change.0][change.1]));
+                    self.sprite_sheet[self.idx][change.0][change.1] = change.2;
+                }
+                if t == 1 { self.redo_stack.push(pushing) } else { self.undo_stack.push(pushing) };
             }
         } else {
             self.last_frame_ur = false;
@@ -482,12 +483,14 @@ impl SpriteEngine{
         for i in start_idx..start_idx+sprites_to_show as i32{
             self.sprite_small(i-start_idx, i);
         }
+        
         let start_idx_usize = start_idx as usize;
         if self.idx >= start_idx_usize && self.idx < start_idx_usize+sprites_to_show {
             let y = SPRITESHEET_Y + ((self.idx - start_idx_usize) as i32 / SPRITESHEET_COLS) * SPRITE_PREVIEW_SIZE;
             let x = CANVAS_X + ((self.idx - start_idx_usize) as i32 % SPRITESHEET_COLS) * SPRITE_PREVIEW_SIZE;
             rect(&mut self.pixels, x as i32, y as i32, SPRITE_PREVIEW_SIZE, SPRITE_PREVIEW_SIZE, COLORS::WHITE);
         }
+
         let scroll_height = (SPRITE_PREVIEW_SIZE * SPRITESHEET_ROWS) as f32;
         let scroll_start = scroll_height * (start_idx as f32 / self.sprite_sheet.len() as f32);
         let scroll_end = scroll_height * ((start_idx_usize + sprites_to_show) as f32 / self.sprite_sheet.len() as f32);
@@ -495,6 +498,7 @@ impl SpriteEngine{
 
         let add_x = CANVAS_X + SPRITE_PREVIEW_SIZE * (SPRITESHEET_COLS - 1) + 8;
         rect_fill(&mut self.pixels, add_x, ADD_SPRITE_BUTTON_Y, ADD_SPRITE_BUTTON_SIZE, ADD_SPRITE_BUTTON_SIZE, COLORS::GRAY);
+
         for y in ADD_SPRITE_BUTTON_Y+2..ADD_SPRITE_BUTTON_Y+7{
             set_pix(&mut self.pixels, y, add_x + 4, COLORS::BLACK);
         }
@@ -553,11 +557,5 @@ impl SpriteEngine{
             self.redo_stack.clear();
             self.new_changes = Vec::new();
         }
-    }
-}
-impl ScreenEngine for SpriteEngine{
-    type Pixels<'a> = &'a PixelsType;
-    fn pixels(&self) -> Self::Pixels<'_> {
-        &self.pixels
     }
 }

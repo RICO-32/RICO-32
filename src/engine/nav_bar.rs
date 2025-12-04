@@ -1,5 +1,8 @@
+use macro_procs::ScreenEngine;
+
 use crate::{engine::rico::{PixelsType, ScreenEngine, NAV_BAR_HEIGHT, SCREEN_SIZE}, render::{colors::COLORS, pixels::{clear, print_scr_mid, rect_fill}}, input::mouse::MousePress};
 
+#[derive(ScreenEngine)]
 pub struct NavEngine{
     pixels: PixelsType,
     options: Vec<String>,
@@ -39,12 +42,5 @@ impl NavEngine{
         if self.mouse.just_pressed {
             self.mouse.just_pressed = false;
         };
-    }
-}
-
-impl ScreenEngine for NavEngine{
-    type Pixels<'a> = &'a PixelsType;
-    fn pixels(&self) -> Self::Pixels<'_> {
-        &self.pixels
     }
 }

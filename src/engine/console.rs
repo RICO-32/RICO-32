@@ -1,7 +1,10 @@
 use std::time::Instant;
 
+use macro_procs::ScreenEngine;
+
 use crate::{engine::rico::{PixelsType, ScreenEngine}, input::{mouse::MousePress}, render::{colors::COLORS, pixels::{circle, clear, print_scr_mid, rect_fill, set_pix}}};
 
+#[derive(ScreenEngine)]
 pub struct ConsoleEngine{
     pixels: PixelsType,
     pub last_time: Instant,
@@ -80,12 +83,5 @@ impl ConsoleEngine{
         if self.mouse.just_pressed {
             self.mouse.just_pressed = false;
         };
-    }
-}
-
-impl ScreenEngine for ConsoleEngine{
-    type Pixels<'a> = &'a PixelsType;
-    fn pixels(&self) -> Self::Pixels<'_> {
-        &self.pixels
     }
 }
