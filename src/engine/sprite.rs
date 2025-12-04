@@ -3,7 +3,7 @@ use std::time::Instant;
 use macro_procs::ScreenEngine;
 use winit::event::VirtualKeyCode;
 
-use crate::{engine::rico::{PixelsType, ScreenEngine, SCREEN_SIZE}, render::{colors::{ALL_COLORS, COLORS}, pixels::{clear, image_from_tool, image_from_util, print_scr_mid, rect, rect_fill, set_pix}, sprite_sheet::{read_sheet, write_sheet}}, input::{keyboard::Keyboard, mouse::MousePress}, time::sync};
+use crate::{engine::rico::{PixelsType, ScreenEngine, SCREEN_SIZE}, input::{keyboard::Keyboard, mouse::MousePress}, render::{colors::{ALL_COLORS, COLORS}, pixels::{clear, image_from_tool, image_from_util, print_scr_mid, rect, rect_fill, set_pix}, sprite_sheet::{read_sheet, write_sheet}}, time::sync};
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum Tools{

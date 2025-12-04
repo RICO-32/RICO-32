@@ -11,7 +11,7 @@ use crate::{
         mouse::MousePress,
     },
     render::{
-        colors::{color_from_str, str_from_color, COLORS},
+        colors::{COLORS},
         pixels::{
             circle, clear, draw, print_scr, print_scr_mid, print_scr_mini, rect, rect_fill, set_pix,
         },
@@ -55,7 +55,7 @@ impl UserData for LuaAPIHandle {
         });
 
         methods.add_method("set_pix", move |_, this, (x, y, col): (i32, i32, String)| {
-            if let Some(val) = color_from_str(&col.to_string()){
+            if let Ok(val) = col.parse::<COLORS>() {
                 set_pix(&mut this.0.borrow_mut().pixels, y, x, val);
             }
             Ok(())
@@ -67,12 +67,12 @@ impl UserData for LuaAPIHandle {
                             "Pixel out of bounds: {}, {}", x, y
                 )));
             }
-            Ok(str_from_color(this.0.borrow().pixels[y][x]))
+            Ok(this.0.borrow().pixels[y][x].to_string())
         });
 
         methods.add_method_mut("print_scr",
             |_, this, (x, y, col, msg): (i32, i32, String, String)| {
-                if let Some(c) = color_from_str(&col) {
+                if let Ok(c) = col.parse::<COLORS>() {
                     print_scr(&mut this.0.borrow_mut().pixels, x, y, c, msg);
                 }
                 Ok(())
@@ -81,7 +81,7 @@ impl UserData for LuaAPIHandle {
 
         methods.add_method_mut("print_scr_mini",
             |_, this, (x, y, col, msg): (i32, i32, String, String)| {
-                if let Some(c) = color_from_str(&col) {
+                if let Ok(c) = col.parse::<COLORS>() {
                     print_scr_mini(&mut this.0.borrow_mut().pixels, x, y, c, msg);
                 }
                 Ok(())
@@ -90,7 +90,7 @@ impl UserData for LuaAPIHandle {
 
         methods.add_method_mut("print_scr_mid",
             |_, this, (x, y, col, msg): (i32, i32, String, String)| {
-                if let Some(c) = color_from_str(&col) {
+                if let Ok(c) = col.parse::<COLORS>() {
                     print_scr_mid(&mut this.0.borrow_mut().pixels, x, y, c, msg);
                 }
                 Ok(())
@@ -118,7 +118,7 @@ impl UserData for LuaAPIHandle {
 
         methods.add_method_mut("rectfill",
             |_, this, (x, y, w, h, col): (i32, i32, i32, i32, String)| {
-                if let Some(c) = color_from_str(&col) {
+                if let Ok(c) = col.parse::<COLORS>() {
                     rect_fill(&mut this.0.borrow_mut().pixels, x, y, w, h, c);
                 }
                 Ok(())
@@ -127,7 +127,7 @@ impl UserData for LuaAPIHandle {
 
         methods.add_method_mut("rect",
             |_, this, (x, y, w, h, col): (i32, i32, i32, i32, String)| {
-                if let Some(c) = color_from_str(&col) {
+                if let Ok(c) = col.parse::<COLORS>() {
                     rect(&mut this.0.borrow_mut().pixels, x, y, w, h, c);
                 }
                 Ok(())
@@ -136,7 +136,7 @@ impl UserData for LuaAPIHandle {
 
         methods.add_method_mut("circle",
             |_, this, (x, y, r, col): (i32, i32, i32, String)| {
-                if let Some(c) = color_from_str(&col) {
+                if let Ok(c) = col.parse::<COLORS>() {
                     circle(&mut this.0.borrow_mut().pixels, x, y, r, c);
                 }
                 Ok(())
@@ -145,7 +145,7 @@ impl UserData for LuaAPIHandle {
 
         methods.add_method_mut("clear",
             |_, this, col: String| {
-                if let Some(c) = color_from_str(&col) {
+                if let Ok(c) = col.parse::<COLORS>() {
                     clear(&mut this.0.borrow_mut().pixels, c);
                 }
                 Ok(())

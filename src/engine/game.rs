@@ -34,15 +34,23 @@ impl GameEngine{
        Ok(eng)
     }
 
-
     //Syncs with frame rate, runs all queued up commands from this prev frame, calls main update
-    pub fn update(&mut self) {
-        let dt = sync(&mut self.console_engine.last_time, self.lua_api.borrow().frame_rate);
-        let _ = self.script_engine.call_update(dt);
-        if self.lua_api.borrow().mouse.just_pressed {
-            self.lua_api.borrow_mut().mouse.just_pressed = false;
-        };
-        self.lua_api.borrow_mut().keyboard.keys_just_pressed.clear();
+    pub fn update(&mut self) -> LuaResult<()> {
+        if !self.console_engine.halted {
+            let dt = sync(&mut self.console_engine.last_time, self.lua_api.borrow().frame_rate);
+            let _ = self.script_engine.call_update(dt);
+            if self.lua_api.borrow().mouse.just_pressed {
+                self.lua_api.borrow_mut().mouse.just_pressed = false;
+            };
+            self.lua_api.borrow_mut().keyboard.keys_just_pressed.clear();
+        }
+
+        self.console_engine.update(&self.lua_api.borrow().logs);
+
+        if self.console_engine.restart {
+            *self = GameEngine::new()?;
+        }
+        Ok(())
     }
 }
 

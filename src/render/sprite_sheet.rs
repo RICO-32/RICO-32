@@ -3,9 +3,10 @@ use std::io::{Read, Seek, SeekFrom};
 use std::io::{self, Write};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
+use crate::render::colors::ALL_COLORS;
 use crate::{
     engine::rico::PixelsType,
-    render::colors::{ALL_COLORS, COLORS},
+    render::colors::{COLORS},
 };
 
 const FILE_PATH: &str = "assets/sheet.sprt";
@@ -37,6 +38,7 @@ pub fn read_sheet(sprites: &mut Vec<PixelsType>) -> io::Result<()> {
                             "Not a valid pixel"
                     ));
                 }
+                
                 sprite[i][j] = ALL_COLORS[chunk[i*32 + j] as usize];
             }
         }

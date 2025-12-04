@@ -9,7 +9,7 @@ use winit::{
     window::WindowBuilder,
 };
 
-use crate::{render::{colors::{ALL_TUPS, COLORS}}, input::{keyboard::Keyboard, mouse::MousePress}};
+use crate::{render::{colors::{COLORS}}, input::{keyboard::Keyboard, mouse::MousePress}};
 use super::{game::GameEngine, nav_bar::NavEngine, sprite::SpriteEngine};
 
 pub const SCREEN_SIZE: usize = 128;
@@ -164,23 +164,13 @@ impl RicoEngine{
         copy_pixels_into_buffer(pixels, buffer, 0, 0);
         return match self.state_engines[self.nav_engine.selected] {
             StateEngines::GameEngine(ref mut eng) => {
-                if !eng.console_engine.halted {
-                    eng.update();
-                }
+                eng.update()?;
 
-                {
-                    let pixels = eng.pixels();
-                    copy_pixels_into_buffer(pixels.deref(), buffer, 0, NAV_BAR_HEIGHT * SCALE);
-                }
-                
-                eng.console_engine.update(&eng.lua_api.borrow().logs);
+                let pixels = eng.pixels();
+                copy_pixels_into_buffer(pixels.deref(), buffer, 0, NAV_BAR_HEIGHT * SCALE);
 
                 let pixels = eng.console_engine.pixels();
                 copy_pixels_into_buffer(pixels, buffer, 0, WINDOW_WIDTH + (NAV_BAR_HEIGHT * SCALE));
-                
-                if eng.console_engine.restart {
-                    self.state_engines[0] = StateEngines::GameEngine(GameEngine::new()?);
-                }
 
                 Ok(())
             },
@@ -204,7 +194,7 @@ fn copy_pixels_into_buffer(pixels: &PixelsType, buffer: &mut [u8], start_x: usiz
             for dy in 0..SCALE{
                 for dx in 0..SCALE{
                     let idx = ((y * SCALE + dy) * WINDOW_WIDTH as usize + (x * SCALE + dx)) + start_y * WINDOW_WIDTH + start_x;
-                    let (r, g, b, a) = ALL_TUPS[pixels[y][x] as usize]; 
+                    let (r, g, b, a) = pixels[y][x].rgba();
                     buffer[idx*4..idx*4+4].copy_from_slice(&[r, g, b, a]);
                 }
             }
