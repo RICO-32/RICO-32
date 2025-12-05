@@ -36,8 +36,8 @@ local CFG = {
     c_star_far = "GRAY",
     c_star_mid = "SILVER",
     c_star_near = "WHITE",
-    c_player = "LIME",
-    c_bullet = "MAGENTA",
+    c_player = "GREEN",
+    c_bullet = "PINK",
     c_enemy1 = "RED",
     c_enemy2 = "YELLOW",
     c_enemy3 = "PURPLE",
@@ -211,7 +211,7 @@ local function draw_player()
     rico:circle(x,y+6,3,"YELLOW")            -- thruster glow
     rico:circle(x,y+8,2,"RED")
     if G.player.inv>0 and (math.floor(G.time/120)%2==0) then
-        rico:circle(x,y,CFG.radius+4,"CYAN")
+        rico:circle(x,y,CFG.radius+4,"TEAL")
     end
 end
 ------------------------------------------------------------
@@ -277,7 +277,7 @@ local function draw_enemies()
         else
             rico:circle(x,y,CFG.e_radius+4,"GRAY")
             rico:rectfill(x-6,y-3,12,6,CFG.c_enemy2)
-            rico:circle(x,y,3,"CYAN")
+            rico:circle(x,y,3,"TEAL")
         end
     end
 end

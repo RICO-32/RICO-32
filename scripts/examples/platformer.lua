@@ -250,7 +250,7 @@ function update(dt)
         rico:print_scr(30, 50, "YELLOW", "YOU WIN!")
         rico:print_scr_mid(20, 65, "WHITE", "Coins: "..coins.."/"..total_coins)
         rico:print_scr_mid(20, 75, "WHITE", "Time: "..math.floor(timer/1000).."s")
-        rico:print_scr_mid(15, 95, "LIME", "Press ENTER to restart")
+        rico:print_scr_mid(15, 95, "GREEN", "Press ENTER to restart")
         
         if rico:key_just_pressed("Enter") then
             game_state = "playing"
@@ -381,7 +381,7 @@ function update(dt)
     if aabb_collision(player.x, player.y, player.w, player.h, goal.x, goal.y, goal.w, goal.h) then
         game_state = "win"
         for i=1,20 do
-            create_particle(goal.x + goal.w/2, goal.y + goal.h/2, "LIME", nil, nil)
+            create_particle(goal.x + goal.w/2, goal.y + goal.h/2, "GREEN", nil, nil)
         end
     end
     
@@ -416,7 +416,7 @@ function update(dt)
     -- Sky gradient
     for y=0,127 do
         local intensity = math.floor(y / 128 * 4)
-        local colors = {"CYAN", "TEAL", "NAVY", "BLACK"}
+        local colors = {"BLACK", "TEAL", "BLACK", "BLACK"}
         rico:rectfill(0, y, 128, 1, colors[intensity + 1])
     end
     
@@ -435,7 +435,7 @@ function update(dt)
         local py = math.floor(plat.y - camera.y)
         if px > -plat.w and px < 128 and py > -plat.h and py < 128 then
             -- Grass top
-            rico:rectfill(px, py, plat.w, 2, "LIME")
+            rico:rectfill(px, py, plat.w, 2, "GREEN")
             -- Dirt body
             rico:rectfill(px, py + 2, plat.w, plat.h - 2, "MAROON")
             -- Details
@@ -499,8 +499,8 @@ function update(dt)
                 rico:rectfill(ex + 1, ey + 1, enemy.w - 2, enemy.h - 2, "PURPLE")
                 -- Wings (animated)
                 local wing_offset = math.floor(math.sin(timer / 100) * 2)
-                rico:set_pix(ex, ey + 2 + wing_offset, "MAGENTA")
-                rico:set_pix(ex + enemy.w - 1, ey + 2 + wing_offset, "MAGENTA")
+                rico:set_pix(ex, ey + 2 + wing_offset, "PINK")
+                rico:set_pix(ex + enemy.w - 1, ey + 2 + wing_offset, "PINK")
                 -- Eyes
                 rico:set_pix(ex + 2, ey + 2, "WHITE")
                 rico:set_pix(ex + 3, ey + 2, "WHITE")
@@ -514,7 +514,7 @@ function update(dt)
     if gx > -goal.w and gx < 128 and gy > -goal.h and gy < 128 then
         rico:rectfill(gx, gy, 2, goal.h, "WHITE")
         local flag_wave = math.floor(math.sin(timer / 100) * 2)
-        rico:rectfill(gx + 2, gy + flag_wave, 6, 8, "LIME")
+        rico:rectfill(gx + 2, gy + flag_wave, 6, 8, "GREEN")
     end
     
     -- Draw particles
@@ -525,24 +525,24 @@ function update(dt)
     local py = math.floor(player.y - camera.y)
     
     -- Body
-    rico:rectfill(px, py + 2, player.w, player.h - 2, "BLUE")
+    rico:rectfill(px, py + 2, player.w, player.h - 2, "PURPLE")
     -- Head
-    rico:rectfill(px + 1, py, player.w - 2, 3, "CYAN")
+    rico:rectfill(px + 1, py + 3, player.w - 2, 3, "GREEN")
     
     -- Eyes
     if player.facing_right then
-        rico:set_pix(px + 5, py + 1, "WHITE")
+        rico:set_pix(px + 5, py + 4, "WHITE")
     else
-        rico:set_pix(px + 2, py + 1, "WHITE")
+        rico:set_pix(px + 2, py + 4, "WHITE")
     end
     
     -- Legs (animation)
     if player.anim_frame == 1 and player.on_ground then
-        rico:rectfill(px + 1, py + player.h, 2, 2, "BLUE")
-        rico:rectfill(px + 5, py + player.h, 2, 2, "BLUE")
+        rico:rectfill(px + 1, py + player.h, 2, 2, "PURPLE")
+        rico:rectfill(px + 5, py + player.h, 2, 2, "PURPLE")
     else
-        rico:rectfill(px + 2, py + player.h, 2, 2, "BLUE")
-        rico:rectfill(px + 4, py + player.h, 2, 2, "BLUE")
+        rico:rectfill(px + 2, py + player.h, 2, 2, "PURPLE")
+        rico:rectfill(px + 4, py + player.h, 2, 2, "PURPLE")
     end
     
     -- UI
@@ -550,4 +550,3 @@ function update(dt)
     rico:print_scr_mini(2, 2, "YELLOW", "COINS: "..coins.."/"..total_coins)
     rico:print_scr_mini(70, 2, "WHITE", "TIME: "..math.floor(timer/1000).."s")
 end
-
