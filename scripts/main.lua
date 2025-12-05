@@ -39,7 +39,7 @@ function update(dt)
 
         local x = math.random(0, 127)
         local y = math.random(0, 127)
-        local cols = {"GREEN", "CYAN", "BLUE", "RED", "TEAL"}
+        local cols = {"GREEN", "TEAL", "BLUE", "RED", "PURPLE"}
         local col = cols[math.random(1, #cols)]
         if rico:key_pressed("Enter") then
             rico:log("Pressed enter")

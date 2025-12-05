@@ -1,4 +1,5 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, fmt};
+use mlua::prelude::LuaResult;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -19,13 +20,28 @@ use crate::{
     },
 };
 
+pub enum LogTypes {
+    Ok(String),
+    Err(String)
+}
+
+impl fmt::Display for LogTypes {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            LogTypes::Err(ref e) => e,
+            LogTypes::Ok(ref m) => m
+        };
+        write!(f, "{s}")
+    }
+}
+
 pub struct LuaAPI{
     pub mouse: MousePress,
     pub keyboard: Keyboard,
     pub frame_rate: i32,
     pub pixels: PixelsType,
     pub sprites: HashMap<i32, PixelsType>,
-    pub logs: Vec<String>
+    pub logs: Vec<LogTypes>
 }
 
 impl LuaAPI {
@@ -39,25 +55,47 @@ impl LuaAPI {
             keyboard: Keyboard::default()
         }
     }
+
+    pub fn add_log(&mut self, log: LogTypes){
+        let msg = log.to_string();
+
+        for chunk in msg.as_bytes().chunks(30){
+            let chunk_string = String::from_utf8(chunk.to_vec()).unwrap();
+            let part: LogTypes = match log {
+                LogTypes::Ok(_) => LogTypes::Ok(chunk_string),
+                LogTypes::Err(_) => LogTypes::Err(chunk_string),
+            };
+            self.logs.push(part);
+        }
+    }
 }
 
 #[derive(Clone)]
 pub struct LuaAPIHandle(pub Rc<RefCell<LuaAPI>>);
 
+fn col_from_str(col: String) -> LuaResult<COLORS> {
+    match col.parse::<COLORS>() {
+        Ok(c) => Ok(c),
+        Err(_) => Err(mlua::Error::RuntimeError(format!("{} is not a valid color", col)))
+    }
+}
+
 impl UserData for LuaAPIHandle {
     fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
         methods.add_method("log", move |_, this, msg: String| {
-                let msg = format!("[Log] {}", msg);
-                for chunk in msg.as_bytes().chunks(30){
-                    this.0.borrow_mut().logs.push(String::from_utf8(chunk.to_vec()).unwrap());
-                }
-                Ok(())
+            let msg = format!("[Log] {}", msg);
+            this.0.borrow_mut().add_log(LogTypes::Ok(msg));
+            Ok(())
         });
 
         methods.add_method("set_pix", move |_, this, (x, y, col): (i32, i32, String)| {
-            if let Ok(val) = col.parse::<COLORS>() {
-                set_pix(&mut this.0.borrow_mut().pixels, y, x, val);
+            if x >= SCREEN_SIZE as i32 || y >= SCREEN_SIZE as i32 || x < 0 || y < 0 {
+                return Err(mlua::Error::RuntimeError(format!("Pixel out of bounds: {}, {}", x, y)));
             }
+
+            let val = col_from_str(col)?;
+            set_pix(&mut this.0.borrow_mut().pixels, y, x, val);
+
             Ok(())
         });
 
@@ -72,27 +110,24 @@ impl UserData for LuaAPIHandle {
 
         methods.add_method_mut("print_scr",
             |_, this, (x, y, col, msg): (i32, i32, String, String)| {
-                if let Ok(c) = col.parse::<COLORS>() {
-                    print_scr(&mut this.0.borrow_mut().pixels, x, y, c, msg);
-                }
+                let c = col_from_str(col)?;
+                print_scr(&mut this.0.borrow_mut().pixels, x, y, c, msg);
                 Ok(())
             }
         );
 
         methods.add_method_mut("print_scr_mini",
             |_, this, (x, y, col, msg): (i32, i32, String, String)| {
-                if let Ok(c) = col.parse::<COLORS>() {
-                    print_scr_mini(&mut this.0.borrow_mut().pixels, x, y, c, msg);
-                }
+                let c = col_from_str(col)?;
+                print_scr_mini(&mut this.0.borrow_mut().pixels, x, y, c, msg);
                 Ok(())
             }
         );
 
         methods.add_method_mut("print_scr_mid",
             |_, this, (x, y, col, msg): (i32, i32, String, String)| {
-                if let Ok(c) = col.parse::<COLORS>() {
-                    print_scr_mid(&mut this.0.borrow_mut().pixels, x, y, c, msg);
-                }
+                let c = col_from_str(col)?;
+                print_scr_mid(&mut this.0.borrow_mut().pixels, x, y, c, msg);
                 Ok(())
             }
         );
@@ -104,50 +139,48 @@ impl UserData for LuaAPIHandle {
                     i.clone()
                 } else {
                     let mut loaded: PixelsType = vec![vec![COLORS::BLACK; 32]; 32];
-                    let _ = read_image_idx(&mut loaded, idx as usize);
+                    if let Err(err) = read_image_idx(&mut loaded, idx as usize){
+                        return Err(mlua::Error::RuntimeError(err.to_string()));
+                    };
 
                     eng.sprites.insert(idx, loaded);
                     eng.sprites.get(&idx).unwrap().clone()
                 };
 
-                draw(&mut eng.pixels, x, y, &img)
-                    .map_err(mlua::Error::external)
+                draw(&mut eng.pixels, x, y, &img);
+                Ok(())
             }
         );
 
 
         methods.add_method_mut("rectfill",
             |_, this, (x, y, w, h, col): (i32, i32, i32, i32, String)| {
-                if let Ok(c) = col.parse::<COLORS>() {
-                    rect_fill(&mut this.0.borrow_mut().pixels, x, y, w, h, c);
-                }
+                let c = col_from_str(col)?;
+                rect_fill(&mut this.0.borrow_mut().pixels, x, y, w, h, c);
                 Ok(())
             }
         );
 
         methods.add_method_mut("rect",
             |_, this, (x, y, w, h, col): (i32, i32, i32, i32, String)| {
-                if let Ok(c) = col.parse::<COLORS>() {
-                    rect(&mut this.0.borrow_mut().pixels, x, y, w, h, c);
-                }
+                let c = col_from_str(col)?;
+                rect(&mut this.0.borrow_mut().pixels, x, y, w, h, c);
                 Ok(())
             }
         );
 
         methods.add_method_mut("circle",
             |_, this, (x, y, r, col): (i32, i32, i32, String)| {
-                if let Ok(c) = col.parse::<COLORS>() {
-                    circle(&mut this.0.borrow_mut().pixels, x, y, r, c);
-                }
+                let c = col_from_str(col)?;
+                circle(&mut this.0.borrow_mut().pixels, x, y, r, c);
                 Ok(())
             }
         );
 
         methods.add_method_mut("clear",
             |_, this, col: String| {
-                if let Ok(c) = col.parse::<COLORS>() {
-                    clear(&mut this.0.borrow_mut().pixels, c);
-                }
+                let c = col_from_str(col)?;
+                clear(&mut this.0.borrow_mut().pixels, c);
                 Ok(())
             }
         );
@@ -172,8 +205,9 @@ impl UserData for LuaAPIHandle {
             |_, this, key: String| {
                 if let Some(kc) = key_from_str(&key) {
                     return Ok(this.0.borrow().keyboard.keys_pressed.contains(&kc));
+                } else {
+                    return Err(mlua::Error::RuntimeError(format!("{} is not a valid key", key)));
                 }
-                Ok(false)
             }
         );
 
@@ -181,8 +215,9 @@ impl UserData for LuaAPIHandle {
             |_, this, key: String| {
                 if let Some(kc) = key_from_str(&key) {
                     return Ok(this.0.borrow().keyboard.keys_just_pressed.contains(&kc));
+                } else {
+                    return Err(mlua::Error::RuntimeError(format!("{} is not a valid key", key)));
                 }
-                Ok(false)
             }
         );
     }
