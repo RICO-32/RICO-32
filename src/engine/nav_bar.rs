@@ -7,7 +7,8 @@ pub struct NavEngine{
     pixels: PixelsType,
     options: Vec<String>,
     pub mouse: MousePress,
-    pub selected: usize
+    pub selected: usize,
+    pub just_switched: bool
 }
 
 impl NavEngine{
@@ -16,16 +17,20 @@ impl NavEngine{
             pixels: vec![vec![COLORS::BLACK; SCREEN_SIZE]; NAV_BAR_HEIGHT],
             mouse: MousePress::default(),
             options: options,
-            selected: 0
+            selected: 0,
+            just_switched: false
         }
     }
 
     pub fn update(&mut self) {
         clear(&mut self.pixels, COLORS::GRAY);
         let mut cur_x = 1;
+        if self.just_switched { self.just_switched = false };
+
         for (i, option) in self.options.iter().enumerate(){
             if self.mouse.just_pressed && self.mouse.x != -1 {
                 if self.mouse.x >= cur_x && self.mouse.x <= cur_x + option.len() as i32 * 4 + 5{
+                    self.just_switched = true;
                     self.selected = i;
                 }
             }

@@ -2,9 +2,9 @@
 
 -- Grid settings
 grid_width = 10
-grid_height = 16
-block_size = 8
-margin_x = 16
+grid_height = 20
+block_size = 6
+margin_x = 20
 
 -- Game grid
 grid = {}
@@ -28,30 +28,88 @@ colors = {"CYAN","YELLOW","MAGENTA","LIME","RED","BLUE","ORANGE"}
 -- Game state
 game_state = "start"
 score = 0
+level = 1
+lines_cleared = 0
 current_piece = nil
+next_piece = nil
 piece_x, piece_y = 4,1
 drop_timer = 0
-drop_speed = 500 -- ms per drop
+drop_speed = 800
 soft_drop_timer = 0
-soft_drop_speed = 50
+soft_drop_speed = 40
 move_timer = 0
 move_speed = 120
+lock_delay = 0
+lock_delay_max = 500
+particles = {}
+shake_timer = 0
+combo = 0
+high_score = 0
+ghost_y = 1
 
 -- Start
 function start()
     rico:set_frame_rate(60)
 end
 
+-- Particle system
+function create_particle(x, y, color_idx)
+    for i=1,3 do
+        table.insert(particles, {
+            x = x,
+            y = y,
+            vx = (math.random() - 0.5) * 0.3,
+            vy = -math.random() * 0.5 - 0.2,
+            life = 500,
+            color = colors[color_idx]
+        })
+    end
+end
+
+function update_particles(dt)
+    for i=#particles,1,-1 do
+        local p = particles[i]
+        p.x = p.x + p.vx * dt
+        p.y = p.y + p.vy * dt
+        p.vy = p.vy + 0.001 * dt
+        p.life = p.life - dt
+        if p.life <= 0 then
+            table.remove(particles, i)
+        end
+    end
+end
+
+function draw_particles()
+    for _,p in ipairs(particles) do
+        local alpha = p.life / 500
+        if alpha > 0.5 then
+            rico:rectfill(math.floor(p.x), math.floor(p.y), 2, 2, p.color)
+        end
+    end
+end
+
 -- Spawn a new piece
 function spawn_piece()
-    current_piece = tetrominoes[math.random(1,#tetrominoes)]
+    current_piece = next_piece or tetrominoes[math.random(1,#tetrominoes)]
+    next_piece = tetrominoes[math.random(1,#tetrominoes)]
     piece_x = 4
     piece_y = 1
     drop_timer = 0
     soft_drop_timer = 0
     move_timer = 0
+    lock_delay = 0
+    calculate_ghost()
     if check_collision(piece_x, piece_y, current_piece) then
         game_state = "gameover"
+        if score > high_score then high_score = score end
+    end
+end
+
+-- Calculate ghost piece position
+function calculate_ghost()
+    ghost_y = piece_y
+    while not check_collision(piece_x, ghost_y + 1, current_piece) do
+        ghost_y = ghost_y + 1
     end
 end
 
@@ -107,6 +165,7 @@ end
 
 -- Clear full lines
 function clear_lines()
+    local cleared = 0
     for y=grid_height,1,-1 do
         local full = true
         for x=1,grid_width do
@@ -116,39 +175,102 @@ function clear_lines()
             end
         end
         if full then
-            score = score + 100
+            cleared = cleared + 1
+            -- Create particles
+            for x=1,grid_width do
+                create_particle(margin_x + (x-1)*block_size + block_size/2, (y-1)*block_size + block_size/2, grid[y][x])
+            end
+            -- Shift down
             for yy=y,2,-1 do
                 for x=1,grid_width do
                     grid[yy][x] = grid[yy-1][x]
                 end
             end
             for x=1,grid_width do grid[1][x] = 0 end
+            y = y + 1
         end
+    end
+    if cleared > 0 then
+        lines_cleared = lines_cleared + cleared
+        local points = {0, 100, 300, 500, 800}
+        score = score + points[cleared+1] * level
+        combo = combo + 1
+        score = score + combo * 50
+        shake_timer = 150
+        -- Level up every 10 lines
+        level = math.floor(lines_cleared / 10) + 1
+        drop_speed = math.max(100, 800 - (level-1) * 50)
+    else
+        combo = 0
     end
 end
 
 -- Restart game
 function restart_game()
     score = 0
+    level = 1
+    lines_cleared = 0
+    combo = 0
     grid = {}
     for y=1,grid_height do
         grid[y] = {}
         for x=1,grid_width do grid[y][x] = 0 end
     end
+    particles = {}
+    next_piece = nil
     spawn_piece()
+end
+
+-- Hard drop
+function hard_drop()
+    while not check_collision(piece_x, piece_y+1, current_piece) do
+        piece_y = piece_y + 1
+        score = score + 2
+    end
+    lock_piece()
 end
 
 -- Update
 function update(dt)
+    -- Screen shake
+    local shake_x, shake_y = 0, 0
+    if shake_timer > 0 then
+        shake_timer = shake_timer - dt
+        shake_x = (math.random() - 0.5) * 2
+        shake_y = (math.random() - 0.5) * 2
+    end
+    
     -- Background
-    rico:clear("DARKGRAY")
-    rico:rectfill(0,0,margin_x,grid_height*block_size,"GRAY")
-    rico:rectfill(margin_x + grid_width*block_size,0,margin_x + grid_width*block_size+2,grid_height*block_size,"GRAY")
-    rico:rectfill(margin_x,0,grid_width*block_size,grid_height*block_size,"BLACK")
+    rico:clear("BLACK")
+    
+    -- Draw border with gradient effect
+    for i=0,3 do
+        local c = {"NAVY","TEAL","NAVY","BLACK"}
+        rico:rect(margin_x-4+i, -4+i, grid_width*block_size+8-i*2, grid_height*block_size+8-i*2, c[i+1])
+    end
+    
+    -- Draw playfield background
+    for y=0,grid_height-1 do
+        for x=0,grid_width-1 do
+            if (x+y) % 2 == 0 then
+                rico:rectfill(margin_x + x*block_size + shake_x, y*block_size + shake_y, block_size, block_size, "NAVY")
+            else
+                rico:rectfill(margin_x + x*block_size + shake_x, y*block_size + shake_y, block_size, block_size, "BLACK")
+            end
+        end
+    end
 
     -- Start menu
     if game_state == "start" then
-        rico:print_scr_mid(32,60,"WHITE","PRESS ENTER TO START")
+        rico:print_scr(28, 20, "CYAN", "TETRIS")
+        rico:print_scr_mid(10, 50, "WHITE", "ARROW KEYS - MOVE")
+        rico:print_scr_mid(10, 60, "WHITE", "UP - ROTATE")
+        rico:print_scr_mid(10, 70, "WHITE", "DOWN - SOFT DROP")
+        rico:print_scr_mid(10, 80, "WHITE", "SPACE - HARD DROP")
+        rico:print_scr_mid(6, 100, "YELLOW", "PRESS ENTER TO START")
+        if high_score > 0 then
+            rico:print_scr_mid(10, 115, "LIME", "HIGH SCORE: "..high_score)
+        end
         if rico:key_just_pressed("Enter") then
             game_state = "playing"
             restart_game()
@@ -158,9 +280,14 @@ function update(dt)
 
     -- Game over
     if game_state == "gameover" then
-        rico:print_scr_mid(32,50,"RED","GAME OVER")
-        rico:print_scr_mid(32,70,"WHITE","SCORE: "..score)
-        rico:print_scr_mid(32,90,"WHITE","PRESS ENTER TO RESTART")
+        rico:print_scr(20, 40, "RED", "GAME OVER")
+        rico:print_scr_mid(20, 60, "WHITE", "SCORE: "..score)
+        rico:print_scr_mid(20, 70, "WHITE", "LEVEL: "..level)
+        rico:print_scr_mid(20, 80, "WHITE", "LINES: "..lines_cleared)
+        if score == high_score and score > 0 then
+            rico:print_scr_mid(10, 95, "YELLOW", "NEW HIGH SCORE!")
+        end
+        rico:print_scr_mid(4, 110, "LIME", "PRESS ENTER TO RESTART")
         if rico:key_just_pressed("Enter") then
             game_state = "playing"
             restart_game()
@@ -178,9 +305,13 @@ function update(dt)
         if rico:key_pressed("Left") and not check_collision(piece_x-1, piece_y, current_piece) then
             piece_x = piece_x - 1
             move_timer = 0
+            lock_delay = 0
+            calculate_ghost()
         elseif rico:key_pressed("Right") and not check_collision(piece_x+1, piece_y, current_piece) then
             piece_x = piece_x + 1
             move_timer = 0
+            lock_delay = 0
+            calculate_ghost()
         end
     end
 
@@ -189,11 +320,23 @@ function update(dt)
         local rotated = rotate(current_piece)
         if not check_collision(piece_x, piece_y, rotated) then
             current_piece = rotated
+            lock_delay = 0
+            calculate_ghost()
         elseif not check_collision(piece_x-1, piece_y, rotated) then
             piece_x = piece_x -1; current_piece = rotated
+            lock_delay = 0
+            calculate_ghost()
         elseif not check_collision(piece_x+1, piece_y, rotated) then
             piece_x = piece_x +1; current_piece = rotated
+            lock_delay = 0
+            calculate_ghost()
         end
+    end
+    
+    -- Hard drop
+    if rico:key_just_pressed("Space") then
+        hard_drop()
+        return
     end
 
     -- Soft drop (held)
@@ -203,8 +346,8 @@ function update(dt)
             soft_drop_timer = 0
             if not check_collision(piece_x, piece_y+1, current_piece) then
                 piece_y = piece_y + 1
-            else
-                lock_piece()
+                score = score + 1
+                calculate_ghost()
             end
         end
     else
@@ -214,49 +357,105 @@ function update(dt)
             drop_timer = 0
             if not check_collision(piece_x, piece_y+1, current_piece) then
                 piece_y = piece_y + 1
-            else
-                lock_piece()
+                calculate_ghost()
             end
         end
+    end
+    
+    -- Manual lock when piece hits bottom
+    if check_collision(piece_x, piece_y+1, current_piece) and rico:key_just_pressed("Down") then
+        lock_piece()
     end
 
     --------------------------
     -- DRAW GRID + PIECE
     --------------------------
 
-    -- Draw locked blocks
+    -- Draw locked blocks with 3D effect
     for y=1,grid_height do
         for x=1,grid_width do
             local val = grid[y][x]
             if val ~= 0 then
-                rico:rectfill(
-                    margin_x + (x-1)*block_size,
-                    (y-1)*block_size,
-                    block_size,
-                    block_size,
-                    colors[val]
-                )
+                local bx = margin_x + (x-1)*block_size + shake_x
+                local by = (y-1)*block_size + shake_y
+                -- Shadow
+                rico:rectfill(bx+1, by+1, block_size-1, block_size-1, "NAVY")
+                -- Main block
+                rico:rectfill(bx, by, block_size-1, block_size-1, colors[val])
+                -- Highlight
+                rico:rectfill(bx, by, block_size-2, 1, "WHITE")
+                rico:rectfill(bx, by, 1, block_size-2, "WHITE")
             end
         end
     end
 
-    -- Draw current falling piece
+    -- Draw ghost piece
+    if ghost_y ~= piece_y then
+        for y=1,#current_piece do
+            for x=1,#current_piece[y] do
+                local val = current_piece[y][x]
+                if val ~= 0 then
+                    local bx = margin_x + (piece_x + x - 2)*block_size + shake_x
+                    local by = (ghost_y + y - 2)*block_size + shake_y
+                    rico:rect(bx, by, block_size-1, block_size-1, "GRAY")
+                end
+            end
+        end
+    end
+
+    -- Draw current falling piece with 3D effect
     for y=1,#current_piece do
         for x=1,#current_piece[y] do
             local val = current_piece[y][x]
             if val ~= 0 then
-                rico:rectfill(
-                    margin_x + (piece_x + x - 2)*block_size,
-                    (piece_y + y - 2)*block_size,
-                    block_size,
-                    block_size,
-                    colors[val]
-                )
+                local bx = margin_x + (piece_x + x - 2)*block_size + shake_x
+                local by = (piece_y + y - 2)*block_size + shake_y
+                -- Shadow
+                rico:rectfill(bx+1, by+1, block_size-1, block_size-1, "NAVY")
+                -- Main block
+                rico:rectfill(bx, by, block_size-1, block_size-1, colors[val])
+                -- Highlight
+                rico:rectfill(bx, by, block_size-2, 1, "WHITE")
+                rico:rectfill(bx, by, 1, block_size-2, "WHITE")
             end
         end
     end
 
-    -- UI
-    rico:print_scr(2,2,"WHITE","Score: "..score)
-end
+    -- Draw particles
+    update_particles(dt)
+    draw_particles()
 
+    -- UI Panel
+    local ui_x = margin_x + grid_width*block_size + 10
+    rico:print_scr_mini(ui_x, 5, "SILVER", "SCORE")
+    rico:print_scr_mid(ui_x, 12, "WHITE", tostring(score))
+    
+    rico:print_scr_mini(ui_x, 25, "SILVER", "LEVEL")
+    rico:print_scr_mid(ui_x, 32, "YELLOW", tostring(level))
+    
+    rico:print_scr_mini(ui_x, 45, "SILVER", "LINES")
+    rico:print_scr_mid(ui_x, 52, "CYAN", tostring(lines_cleared))
+    
+    if combo > 1 then
+        rico:print_scr_mini(ui_x, 65, "LIME", "COMBO")
+        rico:print_scr_mid(ui_x, 72, "LIME", "x"..combo)
+    end
+    
+    -- Next piece preview
+    rico:print_scr_mini(ui_x, 90, "SILVER", "NEXT")
+    if next_piece then
+        for y=1,#next_piece do
+            for x=1,#next_piece[y] do
+                local val = next_piece[y][x]
+                if val ~= 0 then
+                    rico:rectfill(ui_x + (x-1)*4, 96 + (y-1)*4, 3, 3, colors[val])
+                end
+            end
+        end
+    end
+    
+    -- High score
+    if high_score > 0 then
+        rico:print_scr_mini(2, 123, "OLIVE", "HI:"..high_score)
+    end
+end

@@ -56,4 +56,3 @@ function update(dt)
         rico:set_frame_rate(new_frame_rate)
     end
 end
-

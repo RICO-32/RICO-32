@@ -1,4 +1,4 @@
-use std::{ops::Deref, usize};
+use std::{ops::Deref, time::Instant, usize};
 
 use mlua::prelude::*;
 use pixels::{Pixels, SurfaceTexture};
@@ -164,6 +164,10 @@ impl RicoEngine{
         copy_pixels_into_buffer(pixels, buffer, 0, 0);
         return match self.state_engines[self.nav_engine.selected] {
             StateEngines::GameEngine(ref mut eng) => {
+                if self.nav_engine.just_switched {
+                    eng.console_engine.last_time = Instant::now();
+                }
+
                 eng.update()?;
 
                 let pixels = eng.pixels();
