@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use macro_procs::ScreenEngine;
 
-use crate::{engine::rico::{PixelsType, ScreenEngine}, input::{mouse::MousePress}, render::{colors::COLORS, pixels::{circle, clear, print_scr_mid, rect_fill, set_pix}}};
+use crate::{engine::rico::{PixelsType, ScreenEngine}, input::mouse::MousePress, render::{colors::COLORS, pixels::{circle, clear, print_scr_mid, rect_fill, set_pix}}, scripting::lua::LogTypes};
 
 #[derive(ScreenEngine)]
 pub struct ConsoleEngine{
@@ -73,12 +73,16 @@ impl ConsoleEngine{
         }
     }
 
-    pub fn update(&mut self, logs: &Vec<String>) {
+    pub fn update(&mut self, logs: &Vec<LogTypes>) {
         clear(&mut self.pixels, COLORS::GRAY);
         self.draw_game_control();
         self.assess_game_control();
-        for (i, log) in logs[logs.len().saturating_sub(20)..].iter().enumerate(){
-            print_scr_mid(&mut self.pixels, 1, 6*i as i32 + 2 + 3 * 6, COLORS::BLACK, log.to_string());
+        for (i, log) in logs[logs.len().saturating_sub(19)..].iter().enumerate(){
+            let col = match log {
+                LogTypes::Err(_) => COLORS::MAROON,
+                LogTypes::Ok(_) => COLORS::BLACK
+            };
+            print_scr_mid(&mut self.pixels, 1, 6*i as i32 + 2 + 3 * 6, col, log.to_string());
         }
         if self.mouse.just_pressed {
             self.mouse.just_pressed = false;

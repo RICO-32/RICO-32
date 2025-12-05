@@ -65,7 +65,7 @@ pub fn read_image_idx( sprite: &mut PixelsType, idx: usize) -> io::Result<()> {
     if idx >= sprites_count {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            "Sprite index out of bounds"
+            format!("Sprite index {} out of bounds", idx)
         ));
     }
 

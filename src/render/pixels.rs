@@ -1,8 +1,6 @@
-use std::error::Error;
-
 use crate::{
     engine::{
-        rico::{PixelsType, SCREEN_SIZE},
+        rico::PixelsType,
         sprite::{Tools, Utils, BUTTON_WIDTH},
     },
     render::{
@@ -27,21 +25,14 @@ pub fn set_pix(pixels: &mut PixelsType, y: i32, x: i32, col: COLORS){
 }
 
 
-//Place holder functions
-pub fn draw(pixels: &mut PixelsType, x: i32, y: i32, img: &PixelsType) -> Result<(), Box<dyn Error>> {
+pub fn draw(pixels: &mut PixelsType, x: i32, y: i32, img: &PixelsType) {
     let (width, height): (usize, usize) = (32, 32);
-
-    if width >= SCREEN_SIZE || height >= SCREEN_SIZE{
-        return Ok(());
-    }
 
     for i in 0..width {
         for j in 0..height{
             set_pix(pixels, y+j as i32, x+i as i32, img[j][i]);
         }
     }
-
-    Ok(())
 }
 
 /* Loop over every character and use the 8x8 bitmap
