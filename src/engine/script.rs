@@ -17,7 +17,7 @@ impl ScriptEngine {
      * Redo the engine initialization whenever restarting the game in the engine
      * Call new, boot, and call_start
      */
-    pub fn new(scripts_dir: &str) -> LuaResult<Self> {
+    pub fn new(scripts_dir: &str) -> Self {
         let options = LuaOptions::new();
         let lua = Lua::new_with(StdLib::ALL_SAFE, options).expect("Could not load lua state");
 
@@ -26,9 +26,9 @@ impl ScriptEngine {
             scripts_dir: String::from(scripts_dir),
         };
 
-        engine.register_loader()?;
+        engine.register_loader().unwrap();
 
-        Ok(engine)
+        engine
     }
 
     //Define all lua API functions here
