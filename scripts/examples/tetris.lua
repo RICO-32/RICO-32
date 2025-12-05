@@ -245,31 +245,27 @@ function update(dt)
     
     -- Draw border with gradient effect
     for i=0,3 do
-        local c = {"NAVY","TEAL","NAVY","BLACK"}
+        local c = {"BLUE","TEAL","GREEN","BLACK"}
         rico:rect(margin_x-4+i, -4+i, grid_width*block_size+8-i*2, grid_height*block_size+8-i*2, c[i+1])
     end
     
     -- Draw playfield background
     for y=0,grid_height-1 do
         for x=0,grid_width-1 do
-            if (x+y) % 2 == 0 then
-                rico:rectfill(margin_x + x*block_size + shake_x, y*block_size + shake_y, block_size, block_size, "NAVY")
-            else
                 rico:rectfill(margin_x + x*block_size + shake_x, y*block_size + shake_y, block_size, block_size, "BLACK")
-            end
         end
     end
 
     -- Start menu
     if game_state == "start" then
-        rico:print_scr(28, 20, "CYAN", "TETRIS")
+        rico:print_scr(28, 20, "PURPLE", "TETRIS")
         rico:print_scr_mid(10, 50, "WHITE", "ARROW KEYS - MOVE")
         rico:print_scr_mid(10, 60, "WHITE", "UP - ROTATE")
         rico:print_scr_mid(10, 70, "WHITE", "DOWN - SOFT DROP")
         rico:print_scr_mid(10, 80, "WHITE", "SPACE - HARD DROP")
         rico:print_scr_mid(6, 100, "YELLOW", "PRESS ENTER TO START")
         if high_score > 0 then
-            rico:print_scr_mid(10, 115, "LIME", "HIGH SCORE: "..high_score)
+            rico:print_scr_mid(10, 115, "GREEN", "HIGH SCORE: "..high_score)
         end
         if rico:key_just_pressed("Enter") then
             game_state = "playing"
@@ -287,7 +283,7 @@ function update(dt)
         if score == high_score and score > 0 then
             rico:print_scr_mid(10, 95, "YELLOW", "NEW HIGH SCORE!")
         end
-        rico:print_scr_mid(4, 110, "LIME", "PRESS ENTER TO RESTART")
+        rico:print_scr_mid(4, 110, "GREEN", "PRESS ENTER TO RESTART")
         if rico:key_just_pressed("Enter") then
             game_state = "playing"
             restart_game()
@@ -378,8 +374,6 @@ function update(dt)
             if val ~= 0 then
                 local bx = margin_x + (x-1)*block_size + shake_x
                 local by = (y-1)*block_size + shake_y
-                -- Shadow
-                rico:rectfill(bx+1, by+1, block_size-1, block_size-1, "NAVY")
                 -- Main block
                 rico:rectfill(bx, by, block_size-1, block_size-1, colors[val])
                 -- Highlight
@@ -410,8 +404,6 @@ function update(dt)
             if val ~= 0 then
                 local bx = margin_x + (piece_x + x - 2)*block_size + shake_x
                 local by = (piece_y + y - 2)*block_size + shake_y
-                -- Shadow
-                rico:rectfill(bx+1, by+1, block_size-1, block_size-1, "NAVY")
                 -- Main block
                 rico:rectfill(bx, by, block_size-1, block_size-1, colors[val])
                 -- Highlight
@@ -434,11 +426,11 @@ function update(dt)
     rico:print_scr_mid(ui_x, 32, "YELLOW", tostring(level))
     
     rico:print_scr_mini(ui_x, 45, "SILVER", "LINES")
-    rico:print_scr_mid(ui_x, 52, "CYAN", tostring(lines_cleared))
+    rico:print_scr_mid(ui_x, 52, "PURPLE", tostring(lines_cleared))
     
     if combo > 1 then
-        rico:print_scr_mini(ui_x, 65, "LIME", "COMBO")
-        rico:print_scr_mid(ui_x, 72, "LIME", "x"..combo)
+        rico:print_scr_mini(ui_x, 65, "GREEN", "COMBO")
+        rico:print_scr_mid(ui_x, 72, "GREEN", "x"..combo)
     end
     
     -- Next piece preview

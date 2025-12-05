@@ -1,6 +1,5 @@
 use std::{ops::Deref, time::Instant, usize};
 
-use mlua::prelude::*;
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
     dpi::{LogicalPosition, LogicalSize},

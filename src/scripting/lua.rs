@@ -89,10 +89,6 @@ impl UserData for LuaAPIHandle {
         });
 
         methods.add_method("set_pix", move |_, this, (x, y, col): (i32, i32, String)| {
-            if x >= SCREEN_SIZE as i32 || y >= SCREEN_SIZE as i32 || x < 0 || y < 0 {
-                return Err(mlua::Error::RuntimeError(format!("Pixel out of bounds: {}, {}", x, y)));
-            }
-
             let val = col_from_str(col)?;
             set_pix(&mut this.0.borrow_mut().pixels, y, x, val);
 
