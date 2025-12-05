@@ -2,8 +2,6 @@ use std::cell::Ref;
 use std::error::Error;
 use std::{cell::RefCell, rc::Rc};
 
-use mlua::prelude::LuaResult;
-
 use crate::engine::console::ConsoleEngine;
 use crate::scripting::lua::{LogTypes, LuaAPI};
 use crate::engine::script::ScriptEngine;
@@ -19,8 +17,8 @@ pub struct GameEngine{
 }
 
 impl GameEngine{
-    pub fn new() -> LuaResult<Self> {
-        let script_engine = ScriptEngine::new("scripts")?;
+    pub fn new() -> Self {
+        let script_engine = ScriptEngine::new("scripts");
 
         let mut eng = GameEngine {
             script_engine,
@@ -28,17 +26,11 @@ impl GameEngine{
             lua_api: Rc::from(RefCell::from(LuaAPI::default()))
         };
 
-        eng.script_engine.register_api(eng.lua_api.clone())?;
+        if let Err(err) = eng.script_engine.register_api(eng.lua_api.clone()){ eng.add_errors(err); };
+        if let Err(err) = eng.script_engine.boot(){ eng.add_errors(err); };
+        if let Err(err) = eng.script_engine.call_start(){ eng.add_errors(err); };
 
-        if let Err(err) = eng.script_engine.boot(){
-            eng.add_errors(err);
-        };
-
-        if let Err(err) = eng.script_engine.call_start(){
-            eng.add_errors(err);
-        };
-
-       Ok(eng)
+       eng
     }
 
     fn add_errors<T: Error>(&mut self, err: T){
@@ -57,7 +49,7 @@ impl GameEngine{
     }
 
     //Syncs with frame rate, runs all queued up commands from this prev frame, calls main update
-    pub fn update(&mut self) -> LuaResult<()> {
+    pub fn update(&mut self) {
         if !self.console_engine.halted {
             let dt = sync(&mut self.console_engine.last_time, self.lua_api.borrow().frame_rate);
 
@@ -74,9 +66,8 @@ impl GameEngine{
         self.console_engine.update(&self.lua_api.borrow().logs);
 
         if self.console_engine.restart {
-            *self = GameEngine::new()?;
+            *self = GameEngine::new();
         }
-        Ok(())
     }
 }
 

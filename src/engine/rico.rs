@@ -43,16 +43,15 @@ pub struct RicoEngine{
 }
 
 impl RicoEngine{
-    pub fn new() -> LuaResult<Self>{
-        let game_eng = GameEngine::new()?;
+    pub fn new() -> Self {
+        let game_eng = GameEngine::new();
         let sprite_eng = SpriteEngine::new();
         let state_engines = vec![StateEngines::GameEngine(game_eng), StateEngines::SpriteEngine(sprite_eng)];
-        let engine = RicoEngine{
+        
+        RicoEngine{
             nav_engine: NavEngine::new(vec!["Game".to_string(), "Sprite".to_string()]),
             state_engines: state_engines,
-        };
-
-        Ok(engine)
+        }
     }
 
     //Base boot function, needs to take in whole self cause borrowing bs
@@ -76,7 +75,7 @@ impl RicoEngine{
                 Event::RedrawRequested(_) => {
                     //Pass in buffer and redraw all based pixels every frame
                     let buffer = pixels.frame_mut();
-                    let _ = self.update(buffer);
+                    self.update(buffer);
 
                     if let Err(_) = pixels.render() {
                         *control_flow = ControlFlow::Exit;
@@ -158,7 +157,7 @@ impl RicoEngine{
     }
 
     //Make sure to update engines here based on which screen it's on
-    pub fn update(&mut self, buffer: &mut [u8]) -> LuaResult<()> {
+    pub fn update(&mut self, buffer: &mut [u8]) {
         self.nav_engine.update();
         let pixels = self.nav_engine.pixels();
         copy_pixels_into_buffer(pixels, buffer, 0, 0);
@@ -168,22 +167,19 @@ impl RicoEngine{
                     eng.console_engine.last_time = Instant::now();
                 }
 
-                eng.update()?;
+                eng.update();
 
                 let pixels = eng.pixels();
                 copy_pixels_into_buffer(pixels.deref(), buffer, 0, NAV_BAR_HEIGHT * SCALE);
 
                 let pixels = eng.console_engine.pixels();
                 copy_pixels_into_buffer(pixels, buffer, 0, WINDOW_WIDTH + (NAV_BAR_HEIGHT * SCALE));
-
-                Ok(())
             },
             StateEngines::SpriteEngine(ref mut eng) => {
                 eng.update();
                 let pixels = eng.pixels();
 
                 copy_pixels_into_buffer(pixels, buffer, 0, NAV_BAR_HEIGHT * SCALE);
-                Ok(())
             }
         }
     }
