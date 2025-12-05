@@ -23,7 +23,7 @@ tetrominoes = {
     {{6,0,0},{6,6,6}},  -- J
     {{0,0,7},{7,7,7}}   -- L
 }
-colors = {"CYAN","YELLOW","MAGENTA","LIME","RED","BLUE","ORANGE"}
+colors = {"TEAL","YELLOW","PINK","GREEN","RED","BLUE","ORANGE"}
 
 -- Game state
 game_state = "start"

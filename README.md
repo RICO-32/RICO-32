@@ -266,10 +266,10 @@ Sets the target frame rate. Set to 0 or negative for unlimited frame rate.
 
 The following 16 colors are available:
 
-- `"BLACK"`, `"WHITE"`, `"RED"`, `"LIME"`
-- `"BLUE"`, `"YELLOW"`, `"CYAN"`, `"MAGENTA"`
-- `"SILVER"`, `"GRAY"`, `"MAROON"`, `"OLIVE"`
-- `"GREEN"`, `"PURPLE"`, `"TEAL"`, `"NAVY"`
+- `"BLACK", "WHITE","GRAY", "SILVER"`
+- `"RED", "MAROON", "ORANGE", "YELLOW"`
+- `"GOLD", "GREEN", "OLIVE", "BROWN"`
+- `"BLUE", "TEAL", "PURPLE", "PINK"`
 
 ## Examples
 
