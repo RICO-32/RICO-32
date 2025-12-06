@@ -2,8 +2,8 @@ use mlua::prelude::*;
 
 use mlua::StdLib;
 use std::cell::RefCell;
+use std::fs;
 use std::rc::Rc;
-use std::{fs};
 
 use crate::scripting::lua::{LuaAPI, LuaAPIHandle};
 
@@ -21,12 +21,9 @@ impl ScriptEngine {
         let options = LuaOptions::new();
         let lua = Lua::new_with(StdLib::ALL_SAFE, options).expect("Could not load lua state");
 
-        let engine = ScriptEngine {
-            lua,
-            scripts_dir: String::from(scripts_dir),
-        };
+        let engine = ScriptEngine { lua, scripts_dir: String::from(scripts_dir) };
 
-        engine.register_loader().unwrap();
+        engine.register_loader().expect("Could not register Lua moldule loader");
 
         engine
     }
@@ -40,7 +37,7 @@ impl ScriptEngine {
 
     /* Only way I could think to allow modularization
      * Just a wrapper to load in lua scripts and insert into main
-     * Keeps Lua API the same 
+     * Keeps Lua API the same
      */
     fn register_loader(&self) -> LuaResult<()> {
         let scripts = self.scripts_dir.clone();
@@ -75,7 +72,7 @@ impl ScriptEngine {
         self.lua.load(&code).exec()
     }
 
-    /* Calls start() in main.Lua 
+    /* Calls start() in main.Lua
      * Requires users to call start() for other files if they have more
      * Might switch later but would require preloading all modules which might be a pain
      */

@@ -1,4 +1,7 @@
-use std::{thread, time::{self, Instant}};
+use std::{
+    thread,
+    time::{self, Instant},
+};
 
 const MILLIS_IN_SEC: f64 = 1000.0;
 
@@ -21,4 +24,3 @@ pub fn sync(last_time: &mut Instant, frame_rate: i32) -> u128 {
     *last_time = Instant::now();
     dt
 }
-

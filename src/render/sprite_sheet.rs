@@ -1,13 +1,10 @@
-use std::fs::File;
-use std::io::{Read, Seek, SeekFrom};
-use std::io::{self, Write};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use std::fs::File;
+use std::io::{self, Write};
+use std::io::{Read, Seek, SeekFrom};
 
 use crate::render::colors::ALL_COLORS;
-use crate::{
-    engine::rico::PixelsType,
-    render::colors::{COLORS},
-};
+use crate::{engine::rico::PixelsType, render::colors::Colors};
 
 const FILE_PATH: &str = "assets/sheet.sprt";
 
@@ -19,27 +16,21 @@ pub fn read_sheet(sprites: &mut Vec<PixelsType>) -> io::Result<()> {
     let sprites_count = file.read_u16::<LittleEndian>()?;
 
     if magic != 0x54525053 || version != 1 {
-        return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "Not a valid SPRT file"
-        ));
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "Not a valid SPRT file"));
     }
 
     let mut frame_buffer = vec![0u8; sprites_count as usize * 32 * 32];
     file.read_exact(&mut frame_buffer)?;
 
-    for chunk in frame_buffer.chunks(32 * 32){
-        let mut sprite = vec![vec![COLORS::BLANK; 32]; 32];
-        for i in 0..32{
-            for j in 0..32{
-                if chunk[i*32+j] > 16 {
-                    return Err(io::Error::new(
-                            io::ErrorKind::InvalidData,
-                            "Not a valid pixel"
-                    ));
+    for chunk in frame_buffer.chunks(32 * 32) {
+        let mut sprite = vec![vec![Colors::Blank; 32]; 32];
+        for i in 0..32 {
+            for j in 0..32 {
+                if chunk[i * 32 + j] > 16 {
+                    return Err(io::Error::new(io::ErrorKind::InvalidData, "Not a valid pixel"));
                 }
-                
-                sprite[i][j] = ALL_COLORS[chunk[i*32 + j] as usize];
+
+                sprite[i][j] = ALL_COLORS[chunk[i * 32 + j] as usize];
             }
         }
         sprites.push(sprite);
@@ -48,7 +39,7 @@ pub fn read_sheet(sprites: &mut Vec<PixelsType>) -> io::Result<()> {
     Ok(())
 }
 
-pub fn read_image_idx( sprite: &mut PixelsType, idx: usize) -> io::Result<()> {
+pub fn read_image_idx(sprite: &mut PixelsType, idx: usize) -> io::Result<()> {
     let mut file = File::open(FILE_PATH)?;
 
     let magic = file.read_u32::<LittleEndian>()?;
@@ -56,20 +47,17 @@ pub fn read_image_idx( sprite: &mut PixelsType, idx: usize) -> io::Result<()> {
     let sprites_count = file.read_u16::<LittleEndian>()? as usize;
 
     if magic != 0x54525053 || version != 1 {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "Not a valid SPRT file"
-        ));
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "Not a valid SPRT file"));
     }
 
     if idx >= sprites_count {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            format!("Sprite index {} out of bounds", idx)
+            format!("Sprite index {} out of bounds", idx),
         ));
     }
 
-    let sprite_size = 32 * 32; 
+    let sprite_size = 32 * 32;
     let header_size = 4 + 2 + 2;
 
     file.seek(SeekFrom::Start((header_size + idx * sprite_size) as u64))?;
@@ -82,10 +70,7 @@ pub fn read_image_idx( sprite: &mut PixelsType, idx: usize) -> io::Result<()> {
             let val = buffer[i * 32 + j];
 
             if val > 16 {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    "Not a valid pixel"
-                ));
+                return Err(io::Error::new(io::ErrorKind::InvalidData, "Not a valid pixel"));
             }
 
             sprite[i][j] = ALL_COLORS[val as usize];
@@ -107,11 +92,7 @@ pub fn write_sheet(sprites: &Vec<PixelsType>) -> io::Result<()> {
     file.write_u16::<LittleEndian>(sprites_count)?;
 
     for sprite in sprites {
-        let flat_bytes: Vec<u8> = sprite
-            .iter()
-            .flatten()
-            .map(|&c| c as u8)
-            .collect();
+        let flat_bytes: Vec<u8> = sprite.iter().flatten().map(|&c| c as u8).collect();
 
         file.write_all(&flat_bytes)?;
     }

@@ -3,37 +3,49 @@ use std::error::Error;
 use std::{cell::RefCell, rc::Rc};
 
 use crate::engine::console::ConsoleEngine;
-use crate::scripting::lua::{LogTypes, LuaAPI};
-use crate::engine::script::ScriptEngine;
 use crate::engine::rico::{PixelsType, ScreenEngine};
+use crate::engine::script::ScriptEngine;
+use crate::scripting::lua::{LogTypes, LuaAPI};
 use crate::time::sync;
 
 pub const BASE_FPS: i32 = 60;
 
-pub struct GameEngine{
+pub struct GameEngine {
     pub script_engine: ScriptEngine,
     pub console_engine: ConsoleEngine,
-    pub lua_api: Rc<RefCell<LuaAPI>>
+    pub lua_api: Rc<RefCell<LuaAPI>>,
 }
 
-impl GameEngine{
+impl Default for GameEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl GameEngine {
     pub fn new() -> Self {
         let script_engine = ScriptEngine::new("scripts");
 
         let mut eng = GameEngine {
             script_engine,
             console_engine: ConsoleEngine::new(),
-            lua_api: Rc::from(RefCell::from(LuaAPI::default()))
+            lua_api: Rc::from(RefCell::from(LuaAPI::default())),
         };
 
-        if let Err(err) = eng.script_engine.register_api(eng.lua_api.clone()){ eng.add_errors(err); };
-        if let Err(err) = eng.script_engine.boot(){ eng.add_errors(err); };
-        if let Err(err) = eng.script_engine.call_start(){ eng.add_errors(err); };
+        if let Err(err) = eng.script_engine.register_api(eng.lua_api.clone()) {
+            eng.add_errors(err);
+        };
+        if let Err(err) = eng.script_engine.boot() {
+            eng.add_errors(err);
+        };
+        if let Err(err) = eng.script_engine.call_start() {
+            eng.add_errors(err);
+        };
 
-       eng
+        eng
     }
 
-    fn add_errors<T: Error>(&mut self, err: T){
+    fn add_errors<T: Error>(&mut self, err: T) {
         let msg = err.to_string();
 
         let mut cleaned = msg
@@ -43,7 +55,7 @@ impl GameEngine{
             .collect::<Vec<_>>();
 
         cleaned.push(" ".to_string());
-        for chunk in cleaned.iter(){
+        for chunk in cleaned.iter() {
             self.lua_api.borrow_mut().add_log(LogTypes::Err(chunk.to_string()));
         }
     }
@@ -53,7 +65,7 @@ impl GameEngine{
         if !self.console_engine.halted {
             let dt = sync(&mut self.console_engine.last_time, self.lua_api.borrow().frame_rate);
 
-            if let Err(err) = self.script_engine.call_update(dt){
+            if let Err(err) = self.script_engine.call_update(dt) {
                 self.add_errors(err);
             }
 
@@ -71,9 +83,9 @@ impl GameEngine{
     }
 }
 
-impl ScreenEngine for GameEngine{
+impl ScreenEngine for GameEngine {
     type Pixels<'a> = Ref<'a, PixelsType>;
-    fn pixels(&self) -> Self::Pixels<'_>{
+    fn pixels(&self) -> Self::Pixels<'_> {
         Ref::map(self.lua_api.borrow(), |api| &api.pixels)
     }
 }
