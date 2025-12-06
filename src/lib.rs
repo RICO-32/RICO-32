@@ -1,5 +1,5 @@
 pub mod engine;
-mod render;
 mod input;
+mod render;
 mod scripting;
 mod time;

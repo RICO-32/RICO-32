@@ -3,22 +3,33 @@ use std::time::Instant;
 use macro_procs::ScreenEngine;
 use winit::event::VirtualKeyCode;
 
-use crate::{engine::rico::{PixelsType, ScreenEngine, SCREEN_SIZE}, input::{keyboard::Keyboard, mouse::MousePress}, render::{colors::{ALL_COLORS, COLORS}, pixels::{clear, image_from_tool, image_from_util, print_scr_mid, rect, rect_fill, set_pix}, sprite_sheet::{read_sheet, write_sheet}}, time::sync};
+use crate::{
+    engine::rico::{PixelsType, ScreenEngine, SCREEN_SIZE},
+    input::{keyboard::Keyboard, mouse::MousePress},
+    render::{
+        colors::{ALL_COLORS, COLORS},
+        pixels::{
+            clear, image_from_tool, image_from_util, print_scr_mid, rect, rect_fill, set_pix,
+        },
+        sprite_sheet::{read_sheet, write_sheet},
+    },
+    time::sync,
+};
 
 #[derive(Copy, Clone, PartialEq)]
-pub enum Tools{
+pub enum Tools {
     Pencil,
     Fill,
     Eraser,
-    Select
+    Select,
 }
 
 #[derive(Copy, Clone, PartialEq)]
-pub enum Utils{
+pub enum Utils {
     FlipHor,
     FlipVert,
     Clear,
-    Save
+    Save,
 }
 
 //I SWEAR THIS IS BETTER THAN ALL THE MAGIC NUMBERS
@@ -45,11 +56,10 @@ const FRAME_HASH_MODULO: i32 = 7;
 const INITIAL_SPRITE_SHEET_SIZE: usize = 60;
 const SPRITES_TO_ADD: usize = 6;
 
-
 const DIRS: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
 
 #[derive(ScreenEngine)]
-pub struct SpriteEngine{
+pub struct SpriteEngine {
     pixels: PixelsType,
     selected_color: COLORS,
     pub mouse: MousePress,
@@ -57,10 +67,10 @@ pub struct SpriteEngine{
     pub tool: Tools,
     pub keyboard: Keyboard,
 
-    selection: Option<(i32, i32, i32, i32)>, 
+    selection: Option<(i32, i32, i32, i32)>,
     selection_start_pos: Option<(i32, i32)>,
     moving_selection_content: Option<PixelsType>,
-    move_start_info: Option<((i32, i32), (i32, i32, i32, i32))>, 
+    move_start_info: Option<((i32, i32), (i32, i32, i32, i32))>,
 
     copied_content: Option<PixelsType>,
 
@@ -74,22 +84,25 @@ pub struct SpriteEngine{
     idx: usize,
     upto_date: bool,
     start_row: i32,
-    frame_hash: i32
+    frame_hash: i32,
 }
 
-impl SpriteEngine{
-    pub fn new() -> Self{
+impl SpriteEngine {
+    pub fn new() -> Self {
         let mut sprite_sheet = Vec::new();
-        if let Err(_) = read_sheet(&mut sprite_sheet) { 
-            sprite_sheet = vec![vec![vec![COLORS::BLANK; SPRITE_SIZE]; SPRITE_SIZE]; INITIAL_SPRITE_SHEET_SIZE];
+        if let Err(_) = read_sheet(&mut sprite_sheet) {
+            sprite_sheet = vec![
+                vec![vec![COLORS::BLANK; SPRITE_SIZE]; SPRITE_SIZE];
+                INITIAL_SPRITE_SHEET_SIZE
+            ];
             let _ = write_sheet(&sprite_sheet);
         }
 
-        SpriteEngine { 
+        SpriteEngine {
             pixels: vec![vec![COLORS::BLACK; SCREEN_SIZE]; SCREEN_SIZE * 2],
             mouse: MousePress::default(),
             selected_color: COLORS::BLACK,
-            sprite_sheet: sprite_sheet,
+            sprite_sheet,
             tool: Tools::Pencil,
             selection: None,
             selection_start_pos: None,
@@ -106,27 +119,35 @@ impl SpriteEngine{
             idx: 0,
             upto_date: true,
             start_row: 0,
-            frame_hash: 0
+            frame_hash: 0,
         }
     }
 
-    fn set_pix(&mut self, y: usize, x: usize, col: COLORS){
-        if self.sprite_sheet[self.idx][y][x] == col { return; }
+    fn set_pix(&mut self, y: usize, x: usize, col: COLORS) {
+        if self.sprite_sheet[self.idx][y][x] == col {
+            return;
+        }
         self.new_changes.push((y, x, self.sprite_sheet[self.idx][y][x]));
         self.upto_date = false;
         self.sprite_sheet[self.idx][y][x] = col;
     }
 
     fn stamp_selection(&mut self) {
-        if let (Some(content), Some((x1, y1, _, _))) = (self.moving_selection_content.take(), self.selection) {
+        if let (Some(content), Some((x1, y1, _, _))) =
+            (self.moving_selection_content.take(), self.selection)
+        {
             let h = content.len();
             let w = content[0].len();
-    
+
             for r in 0..h {
                 for c in 0..w {
                     let target_y = y1 as isize + r as isize;
                     let target_x = x1 as isize + c as isize;
-                    if target_y >= 0 && target_y < SPRITE_SIZE as isize && target_x >= 0 && target_x < SPRITE_SIZE as isize {
+                    if target_y >= 0
+                        && target_y < SPRITE_SIZE as isize
+                        && target_x >= 0
+                        && target_x < SPRITE_SIZE as isize
+                    {
                         self.set_pix(target_y as usize, target_x as usize, content[r][c]);
                     }
                 }
@@ -136,14 +157,15 @@ impl SpriteEngine{
     }
 
     fn handle_click(&mut self, y: usize, x: usize) {
-        match self.tool{
+        match self.tool {
             Tools::Pencil => {
                 self.set_pix(y, x, self.selected_color);
-            },
+            }
             Tools::Fill => {
                 let col = self.sprite_sheet[self.idx][y][x];
                 let mut q: Vec<(i32, i32)> = vec![(y as i32, x as i32)];
-                let mut visited: [[bool; SPRITE_SIZE]; SPRITE_SIZE] = [[false; SPRITE_SIZE]; SPRITE_SIZE];
+                let mut visited: [[bool; SPRITE_SIZE]; SPRITE_SIZE] =
+                    [[false; SPRITE_SIZE]; SPRITE_SIZE];
                 while q.len() > 0 {
                     let t = q.pop().unwrap();
 
@@ -156,31 +178,46 @@ impl SpriteEngine{
                     for dir in DIRS {
                         let ny = t.0 + dir.0;
                         let nx = t.1 + dir.1;
-                        if ny >= 0 && ny < SPRITE_SIZE as i32 && nx >= 0 && nx < SPRITE_SIZE as i32 && col == self.sprite_sheet[self.idx][ny as usize][nx as usize] {
+                        if ny >= 0
+                            && ny < SPRITE_SIZE as i32
+                            && nx >= 0
+                            && nx < SPRITE_SIZE as i32
+                            && col == self.sprite_sheet[self.idx][ny as usize][nx as usize]
+                        {
                             q.push((ny, nx));
                         }
                     }
                 }
-            },
+            }
             Tools::Eraser => {
                 self.set_pix(y, x, COLORS::BLANK);
-            },
-            Tools::Select => {},
+            }
+            Tools::Select => {}
         };
     }
 
     fn draw_canvas(&mut self) {
-        for y in 0..SPRITE_SIZE as i32{
-            for x in 0..SPRITE_SIZE as i32{
+        for y in 0..SPRITE_SIZE as i32 {
+            for x in 0..SPRITE_SIZE as i32 {
                 let mut col = self.sprite_sheet[self.idx][y as usize][x as usize];
                 if col == COLORS::BLANK {
                     col = if (y + x) % 2 == 0 { COLORS::SILVER } else { COLORS::WHITE };
                 }
-                rect_fill(&mut self.pixels, CANVAS_X+x*PIXEL_SIZE, DRAW_Y+y*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE, col);
+                rect_fill(
+                    &mut self.pixels,
+                    CANVAS_X + x * PIXEL_SIZE,
+                    DRAW_Y + y * PIXEL_SIZE,
+                    PIXEL_SIZE,
+                    PIXEL_SIZE,
+                    col,
+                );
             }
         }
-        
-        let on_canvas = self.mouse.x >= CANVAS_X && self.mouse.x < CANVAS_X+(SPRITE_SIZE as i32*PIXEL_SIZE) && self.mouse.y >= DRAW_Y && self.mouse.y < DRAW_Y+(SPRITE_SIZE as i32*PIXEL_SIZE);
+
+        let on_canvas = self.mouse.x >= CANVAS_X
+            && self.mouse.x < CANVAS_X + (SPRITE_SIZE as i32 * PIXEL_SIZE)
+            && self.mouse.y >= DRAW_Y
+            && self.mouse.y < DRAW_Y + (SPRITE_SIZE as i32 * PIXEL_SIZE);
         let grid_x = ((self.mouse.x - CANVAS_X) / PIXEL_SIZE).max(0).min(SPRITE_SIZE as i32 - 1);
         let grid_y = ((self.mouse.y - DRAW_Y) / PIXEL_SIZE).max(0).min(SPRITE_SIZE as i32 - 1);
 
@@ -189,14 +226,15 @@ impl SpriteEngine{
                 if let Some((x1, y1, x2, y2)) = self.selection {
                     if grid_x >= x1 && grid_x <= x2 && grid_y >= y1 && grid_y <= y2 {
                         self.move_start_info = Some(((grid_x, grid_y), self.selection.unwrap()));
-        
+
                         if self.moving_selection_content.is_none() {
                             let w = (x2 - x1 + 1) as usize;
                             let h = (y2 - y1 + 1) as usize;
                             let mut content = vec![vec![COLORS::BLANK; w]; h];
                             for r in 0..h {
                                 for c in 0..w {
-                                    content[r][c] = self.sprite_sheet[self.idx][y1 as usize + r][x1 as usize + c];
+                                    content[r][c] = self.sprite_sheet[self.idx][y1 as usize + r]
+                                        [x1 as usize + c];
                                     self.set_pix(y1 as usize + r, x1 as usize + c, COLORS::BLANK);
                                 }
                             }
@@ -218,7 +256,12 @@ impl SpriteEngine{
                 if let Some((start_grid, start_rect)) = self.move_start_info {
                     let dx = grid_x - start_grid.0;
                     let dy = grid_y - start_grid.1;
-                    self.selection = Some((start_rect.0 + dx, start_rect.1 + dy, start_rect.2 + dx, start_rect.3 + dy));
+                    self.selection = Some((
+                        start_rect.0 + dx,
+                        start_rect.1 + dy,
+                        start_rect.2 + dx,
+                        start_rect.3 + dy,
+                    ));
                 } else if let Some(start_pos) = self.selection_start_pos {
                     let x1 = start_pos.0.min(grid_x);
                     let y1 = start_pos.1.min(grid_y);
@@ -232,7 +275,9 @@ impl SpriteEngine{
                 self.selection_start_pos = None;
             }
 
-            if let (Some(content), Some((x1, y1, _, _))) = (self.moving_selection_content.as_ref(), self.selection) {
+            if let (Some(content), Some((x1, y1, _, _))) =
+                (self.moving_selection_content.as_ref(), self.selection)
+            {
                 let h = content.len();
                 let w = content[0].len();
                 for r in 0..h {
@@ -242,7 +287,11 @@ impl SpriteEngine{
                         let draw_y = DRAW_Y + (y1 + r as i32) * PIXEL_SIZE;
 
                         if col == COLORS::BLANK {
-                            col = if (draw_y + draw_x) % 2 == 0 { COLORS::SILVER } else { COLORS::WHITE };
+                            col = if (draw_y + draw_x) % 2 == 0 {
+                                COLORS::SILVER
+                            } else {
+                                COLORS::WHITE
+                            };
                         }
                         rect_fill(&mut self.pixels, draw_x, draw_y, PIXEL_SIZE, PIXEL_SIZE, col);
                     }
@@ -255,9 +304,8 @@ impl SpriteEngine{
                 let w = (x2 - x1 + 1) * PIXEL_SIZE;
                 let h = (y2 - y1 + 1) * PIXEL_SIZE;
                 rect(&mut self.pixels, x, y, w, h, COLORS::WHITE);
-                rect(&mut self.pixels, x-1, y-1, w+2, h+2, COLORS::BLACK);
+                rect(&mut self.pixels, x - 1, y - 1, w + 2, h + 2, COLORS::BLACK);
             }
-
         } else {
             if self.mouse.pressed && on_canvas {
                 self.handle_click(grid_y as usize, grid_x as usize);
@@ -269,81 +317,115 @@ impl SpriteEngine{
         }
     }
 
-    fn tool_button(&mut self, x: i32, y: i32, tool: Tools){
-        for dy in 1..BUTTON_WIDTH-1{
-            for dx in 1..BUTTON_WIDTH-1{
-                set_pix(&mut self.pixels, y + dy, x + dx, image_from_tool(tool)[dy as usize - 1][dx as usize - 1]);
+    fn tool_button(&mut self, x: i32, y: i32, tool: Tools) {
+        for dy in 1..BUTTON_WIDTH - 1 {
+            for dx in 1..BUTTON_WIDTH - 1 {
+                set_pix(
+                    &mut self.pixels,
+                    y + dy,
+                    x + dx,
+                    image_from_tool(tool)[dy as usize - 1][dx as usize - 1],
+                );
             }
         }
 
         if self.mouse.just_pressed {
             if self.mouse.x != -1 {
-                if self.mouse.x >= x && self.mouse.x < x + BUTTON_WIDTH && self.mouse.y >= y && self.mouse.y < y + BUTTON_WIDTH {
+                if self.mouse.x >= x
+                    && self.mouse.x < x + BUTTON_WIDTH
+                    && self.mouse.y >= y
+                    && self.mouse.y < y + BUTTON_WIDTH
+                {
                     self.tool = tool;
                 }
             }
         }
 
         if self.tool == tool {
-            rect(&mut self.pixels, x, y, BUTTON_WIDTH-1, BUTTON_WIDTH-1, COLORS::WHITE);
+            rect(&mut self.pixels, x, y, BUTTON_WIDTH - 1, BUTTON_WIDTH - 1, COLORS::WHITE);
         }
     }
 
-    fn color_button(&mut self, x: i32, y: i32, col: COLORS){
-        for dy in 1..BUTTON_WIDTH-1{
-            for dx in 1..BUTTON_WIDTH-1{
+    fn color_button(&mut self, x: i32, y: i32, col: COLORS) {
+        for dy in 1..BUTTON_WIDTH - 1 {
+            for dx in 1..BUTTON_WIDTH - 1 {
                 set_pix(&mut self.pixels, y + dy, x + dx, col);
             }
         }
 
         if self.mouse.just_pressed {
             if self.mouse.x != -1 {
-                if self.mouse.x >= x && self.mouse.x < x + BUTTON_WIDTH && self.mouse.y >= y && self.mouse.y < y + BUTTON_WIDTH {
+                if self.mouse.x >= x
+                    && self.mouse.x < x + BUTTON_WIDTH
+                    && self.mouse.y >= y
+                    && self.mouse.y < y + BUTTON_WIDTH
+                {
                     self.selected_color = col;
                 }
             }
         }
 
-        rect(&mut self.pixels, x, y, BUTTON_WIDTH-1, BUTTON_WIDTH-1, COLORS::GRAY);
+        rect(&mut self.pixels, x, y, BUTTON_WIDTH - 1, BUTTON_WIDTH - 1, COLORS::GRAY);
         if self.selected_color == col {
-            rect(&mut self.pixels, x, y, BUTTON_WIDTH-1, BUTTON_WIDTH-1, COLORS::WHITE);
+            rect(&mut self.pixels, x, y, BUTTON_WIDTH - 1, BUTTON_WIDTH - 1, COLORS::WHITE);
         }
     }
 
-    fn handle_undo_redo(&mut self){
+    fn handle_undo_redo(&mut self) {
         let mut t = 0;
 
-        if self.keyboard.keys_pressed.contains(&VirtualKeyCode::LControl) && self.keyboard.keys_pressed.contains(&VirtualKeyCode::Z) { t = 1; } 
-        else if self.keyboard.keys_pressed.contains(&VirtualKeyCode::LControl) && self.keyboard.keys_pressed.contains(&VirtualKeyCode::R) { t = -1; }
+        if self.keyboard.keys_pressed.contains(&VirtualKeyCode::LControl)
+            && self.keyboard.keys_pressed.contains(&VirtualKeyCode::Z)
+        {
+            t = 1;
+        } else if self.keyboard.keys_pressed.contains(&VirtualKeyCode::LControl)
+            && self.keyboard.keys_pressed.contains(&VirtualKeyCode::R)
+        {
+            t = -1;
+        }
 
         if t != 0 {
-            if self.last_frame_ur { self.continuous_ur_frames += 1 }
-            else { self.continuous_ur_frames = 0 };
+            if self.last_frame_ur {
+                self.continuous_ur_frames += 1
+            } else {
+                self.continuous_ur_frames = 0
+            };
             self.last_frame_ur = true;
             if (self.continuous_ur_frames < UNDO_REDO_FRAME_DELAY && self.continuous_ur_frames > 0)
-                || (self.continuous_ur_frames % UNDO_REDO_CONTINUOUS_FRAME_DIVISOR != 0) {
+                || (self.continuous_ur_frames % UNDO_REDO_CONTINUOUS_FRAME_DIVISOR != 0)
+            {
                 return;
             }
 
             let popped = if t == 1 { self.undo_stack.pop() } else { self.redo_stack.pop() };
-            if let Some(changes) = popped{
+            if let Some(changes) = popped {
                 self.selection = None;
                 self.selection_start_pos = None;
                 self.move_start_info = None;
                 let mut pushing: Vec<(usize, usize, COLORS)> = Vec::new();
-                for change in changes{
-                    pushing.push((change.0, change.1, self.sprite_sheet[self.idx][change.0][change.1]));
+                for change in changes {
+                    pushing.push((
+                        change.0,
+                        change.1,
+                        self.sprite_sheet[self.idx][change.0][change.1],
+                    ));
                     self.sprite_sheet[self.idx][change.0][change.1] = change.2;
                 }
-                if t == 1 { self.redo_stack.push(pushing) } else { self.undo_stack.push(pushing) };
+                if t == 1 {
+                    self.redo_stack.push(pushing)
+                } else {
+                    self.undo_stack.push(pushing)
+                };
             }
         } else {
             self.last_frame_ur = false;
         }
     }
 
-    fn handle_copy_paste(&mut self){
-        if self.keyboard.keys_pressed.contains(&VirtualKeyCode::LControl) && self.keyboard.keys_just_pressed.contains(&VirtualKeyCode::C) {
+    fn handle_copy_paste(&mut self) {
+        if self.keyboard.keys_pressed.contains(&VirtualKeyCode::LControl)
+            && self.keyboard.keys_just_pressed.contains(&VirtualKeyCode::C)
+        {
             if self.moving_selection_content.is_some() {
                 self.copied_content = self.moving_selection_content.clone();
             } else if let Some((x1, y1, x2, y2)) = self.selection {
@@ -352,13 +434,16 @@ impl SpriteEngine{
                 let mut content = vec![vec![COLORS::BLANK; w]; h];
                 for r in 0..h {
                     for c in 0..w {
-                        content[r][c] = self.sprite_sheet[self.idx][y1 as usize + r][x1 as usize + c];
+                        content[r][c] =
+                            self.sprite_sheet[self.idx][y1 as usize + r][x1 as usize + c];
                     }
                 }
                 self.copied_content = Some(content);
             }
         }
-        if self.keyboard.keys_pressed.contains(&VirtualKeyCode::LControl) && self.keyboard.keys_just_pressed.contains(&VirtualKeyCode::V) {
+        if self.keyboard.keys_pressed.contains(&VirtualKeyCode::LControl)
+            && self.keyboard.keys_just_pressed.contains(&VirtualKeyCode::V)
+        {
             if let Some(content) = self.copied_content.clone() {
                 self.stamp_selection();
                 let w = content[0].len() as i32;
@@ -371,16 +456,25 @@ impl SpriteEngine{
         }
     }
 
-    fn util_button(&mut self, x: i32, y: i32, util: Utils){
-        for dy in 1..BUTTON_WIDTH-1{
-            for dx in 1..BUTTON_WIDTH-1{
-                set_pix(&mut self.pixels, y + dy, x + dx, image_from_util(util)[dy as usize - 1][dx as usize - 1]);
+    fn util_button(&mut self, x: i32, y: i32, util: Utils) {
+        for dy in 1..BUTTON_WIDTH - 1 {
+            for dx in 1..BUTTON_WIDTH - 1 {
+                set_pix(
+                    &mut self.pixels,
+                    y + dy,
+                    x + dx,
+                    image_from_util(util)[dy as usize - 1][dx as usize - 1],
+                );
             }
         }
 
         if self.mouse.just_pressed {
             if self.mouse.x != -1 {
-                if self.mouse.x >= x && self.mouse.x < x + BUTTON_WIDTH && self.mouse.y >= y && self.mouse.y < y + BUTTON_WIDTH {
+                if self.mouse.x >= x
+                    && self.mouse.x < x + BUTTON_WIDTH
+                    && self.mouse.y >= y
+                    && self.mouse.y < y + BUTTON_WIDTH
+                {
                     match util {
                         Utils::FlipVert => {
                             if self.moving_selection_content.is_some() {
@@ -391,11 +485,15 @@ impl SpriteEngine{
                                 let cloned = self.sprite_sheet[self.idx].clone();
                                 for r in 0..h {
                                     for c in 0..w {
-                                        self.set_pix(y1 as usize + r, x1 as usize + c, cloned[y2 as usize - r][x1 as usize + c]);
+                                        self.set_pix(
+                                            y1 as usize + r,
+                                            x1 as usize + c,
+                                            cloned[y2 as usize - r][x1 as usize + c],
+                                        );
                                     }
                                 }
                             }
-                        },
+                        }
                         Utils::FlipHor => {
                             if self.moving_selection_content.is_some() {
                                 let h = self.moving_selection_content.as_ref().unwrap().len();
@@ -408,28 +506,37 @@ impl SpriteEngine{
                                 let cloned = self.sprite_sheet[self.idx].clone();
                                 for r in 0..h {
                                     for c in 0..w {
-                                        self.set_pix(y1 as usize + r, x1 as usize + c, cloned[y1 as usize + r][x2 as usize - c]);
+                                        self.set_pix(
+                                            y1 as usize + r,
+                                            x1 as usize + c,
+                                            cloned[y1 as usize + r][x2 as usize - c],
+                                        );
                                     }
                                 }
                             }
-                        },
+                        }
                         Utils::Clear => {
                             if self.moving_selection_content.is_some() {
                                 let h = self.moving_selection_content.as_ref().unwrap().len();
                                 for i in 0..h {
-                                    self.moving_selection_content.as_mut().unwrap()[i].fill(COLORS::BLANK);
+                                    self.moving_selection_content.as_mut().unwrap()[i]
+                                        .fill(COLORS::BLANK);
                                 }
                             } else if let Some((x1, y1, x2, y2)) = self.selection {
                                 let w = (x2 - x1 + 1) as usize;
                                 let h = (y2 - y1 + 1) as usize;
                                 for r in 0..h {
                                     for c in 0..w {
-                                        self.set_pix(y1 as usize + r, x1 as usize + c, COLORS::BLANK);
+                                        self.set_pix(
+                                            y1 as usize + r,
+                                            x1 as usize + c,
+                                            COLORS::BLANK,
+                                        );
                                     }
                                 }
                             } else {
-                                for i in 0..SPRITE_SIZE{
-                                    for j in 0..SPRITE_SIZE{
+                                for i in 0..SPRITE_SIZE {
+                                    for j in 0..SPRITE_SIZE {
                                         self.set_pix(i, j, COLORS::BLANK);
                                     }
                                 }
@@ -445,69 +552,114 @@ impl SpriteEngine{
         }
     }
 
-    fn sprite_small(&mut self, idx: i32, true_idx: i32){
+    fn sprite_small(&mut self, idx: i32, true_idx: i32) {
         let y = SPRITESHEET_Y + (idx / SPRITESHEET_COLS) * SPRITE_PREVIEW_SIZE;
         let x = CANVAS_X + (idx % SPRITESHEET_COLS) * SPRITE_PREVIEW_SIZE;
-        for i in 0..SPRITE_PREVIEW_SIZE{
-            for j in 0..SPRITE_PREVIEW_SIZE{
-                set_pix(&mut self.pixels, y + i, x + j, self.sprite_sheet[true_idx as usize][i as usize*2][j as usize*2]);
+        for i in 0..SPRITE_PREVIEW_SIZE {
+            for j in 0..SPRITE_PREVIEW_SIZE {
+                set_pix(
+                    &mut self.pixels,
+                    y + i,
+                    x + j,
+                    self.sprite_sheet[true_idx as usize][i as usize * 2][j as usize * 2],
+                );
             }
         }
 
         rect(&mut self.pixels, x, y, SPRITE_PREVIEW_SIZE, SPRITE_PREVIEW_SIZE, COLORS::GRAY);
 
-        if self.mouse.just_pressed && self.mouse.x != -1{
-                if self.mouse.x >= x && self.mouse.x < x + SPRITE_PREVIEW_SIZE && self.mouse.y >= y && self.mouse.y < y + SPRITE_PREVIEW_SIZE {
-                    self.idx = true_idx as usize;
-                    self.selection = None;
-                    self.selection_start_pos = None;
-                    self.move_start_info = None;
-                }
+        if self.mouse.just_pressed && self.mouse.x != -1 {
+            if self.mouse.x >= x
+                && self.mouse.x < x + SPRITE_PREVIEW_SIZE
+                && self.mouse.y >= y
+                && self.mouse.y < y + SPRITE_PREVIEW_SIZE
+            {
+                self.idx = true_idx as usize;
+                self.selection = None;
+                self.selection_start_pos = None;
+                self.move_start_info = None;
+            }
         }
     }
 
-    pub fn update_start_row(&mut self, delta: f32){
-        if self.frame_hash == 0 && self.mouse.x >= CANVAS_X && self.mouse.x < CANVAS_X + SPRITE_PREVIEW_SIZE * SPRITESHEET_COLS && self.mouse.y >= SPRITESHEET_Y && self.mouse.y < SPRITESHEET_Y + SPRITE_PREVIEW_SIZE * SPRITESHEET_ROWS{
+    pub fn update_start_row(&mut self, delta: f32) {
+        if self.frame_hash == 0
+            && self.mouse.x >= CANVAS_X
+            && self.mouse.x < CANVAS_X + SPRITE_PREVIEW_SIZE * SPRITESHEET_COLS
+            && self.mouse.y >= SPRITESHEET_Y
+            && self.mouse.y < SPRITESHEET_Y + SPRITE_PREVIEW_SIZE * SPRITESHEET_ROWS
+        {
             if delta > 0.0 {
                 self.start_row -= 1;
             } else if delta < 0.0 {
                 self.start_row += 1;
             }
-            self.start_row = self.start_row.max(0).min(self.sprite_sheet.len() as i32 / SPRITESHEET_COLS - SPRITESHEET_ROWS);
+            self.start_row = self
+                .start_row
+                .max(0)
+                .min(self.sprite_sheet.len() as i32 / SPRITESHEET_COLS - SPRITESHEET_ROWS);
         }
     }
 
-    fn draw_sprite_sheet(&mut self){
+    fn draw_sprite_sheet(&mut self) {
         let sprites_to_show = (SPRITESHEET_COLS * SPRITESHEET_ROWS) as usize;
         let start_idx = self.start_row * SPRITESHEET_COLS;
-        for i in start_idx..start_idx+sprites_to_show as i32{
-            self.sprite_small(i-start_idx, i);
+        for i in start_idx..start_idx + sprites_to_show as i32 {
+            self.sprite_small(i - start_idx, i);
         }
-        
+
         let start_idx_usize = start_idx as usize;
-        if self.idx >= start_idx_usize && self.idx < start_idx_usize+sprites_to_show {
-            let y = SPRITESHEET_Y + ((self.idx - start_idx_usize) as i32 / SPRITESHEET_COLS) * SPRITE_PREVIEW_SIZE;
-            let x = CANVAS_X + ((self.idx - start_idx_usize) as i32 % SPRITESHEET_COLS) * SPRITE_PREVIEW_SIZE;
-            rect(&mut self.pixels, x as i32, y as i32, SPRITE_PREVIEW_SIZE, SPRITE_PREVIEW_SIZE, COLORS::WHITE);
+        if self.idx >= start_idx_usize && self.idx < start_idx_usize + sprites_to_show {
+            let y = SPRITESHEET_Y
+                + ((self.idx - start_idx_usize) as i32 / SPRITESHEET_COLS) * SPRITE_PREVIEW_SIZE;
+            let x = CANVAS_X
+                + ((self.idx - start_idx_usize) as i32 % SPRITESHEET_COLS) * SPRITE_PREVIEW_SIZE;
+            rect(
+                &mut self.pixels,
+                x as i32,
+                y as i32,
+                SPRITE_PREVIEW_SIZE,
+                SPRITE_PREVIEW_SIZE,
+                COLORS::WHITE,
+            );
         }
 
         let scroll_height = (SPRITE_PREVIEW_SIZE * SPRITESHEET_ROWS) as f32;
         let scroll_start = scroll_height * (start_idx as f32 / self.sprite_sheet.len() as f32);
-        let scroll_end = scroll_height * ((start_idx_usize + sprites_to_show) as f32 / self.sprite_sheet.len() as f32);
-        rect_fill(&mut self.pixels, CANVAS_X + SPRITE_PREVIEW_SIZE * SPRITESHEET_COLS, SPRITESHEET_Y + scroll_start as i32, PIXEL_SIZE, (scroll_end - scroll_start) as i32, COLORS::WHITE);
+        let scroll_end = scroll_height
+            * ((start_idx_usize + sprites_to_show) as f32 / self.sprite_sheet.len() as f32);
+        rect_fill(
+            &mut self.pixels,
+            CANVAS_X + SPRITE_PREVIEW_SIZE * SPRITESHEET_COLS,
+            SPRITESHEET_Y + scroll_start as i32,
+            PIXEL_SIZE,
+            (scroll_end - scroll_start) as i32,
+            COLORS::WHITE,
+        );
 
         let add_x = CANVAS_X + SPRITE_PREVIEW_SIZE * (SPRITESHEET_COLS - 1) + 8;
-        rect_fill(&mut self.pixels, add_x, ADD_SPRITE_BUTTON_Y, ADD_SPRITE_BUTTON_SIZE, ADD_SPRITE_BUTTON_SIZE, COLORS::GRAY);
+        rect_fill(
+            &mut self.pixels,
+            add_x,
+            ADD_SPRITE_BUTTON_Y,
+            ADD_SPRITE_BUTTON_SIZE,
+            ADD_SPRITE_BUTTON_SIZE,
+            COLORS::GRAY,
+        );
 
-        for y in ADD_SPRITE_BUTTON_Y+2..ADD_SPRITE_BUTTON_Y+7{
+        for y in ADD_SPRITE_BUTTON_Y + 2..ADD_SPRITE_BUTTON_Y + 7 {
             set_pix(&mut self.pixels, y, add_x + 4, COLORS::BLACK);
         }
-        for x in 2..7{
+        for x in 2..7 {
             set_pix(&mut self.pixels, ADD_SPRITE_BUTTON_Y + 4, add_x + x, COLORS::BLACK);
         }
 
-
-        if self.mouse.just_pressed && self.mouse.x >= add_x && self.mouse.x < add_x + ADD_SPRITE_BUTTON_SIZE && self.mouse.y > ADD_SPRITE_BUTTON_Y && self.mouse.y < ADD_SPRITE_BUTTON_Y + ADD_SPRITE_BUTTON_SIZE{
+        if self.mouse.just_pressed
+            && self.mouse.x >= add_x
+            && self.mouse.x < add_x + ADD_SPRITE_BUTTON_SIZE
+            && self.mouse.y > ADD_SPRITE_BUTTON_Y
+            && self.mouse.y < ADD_SPRITE_BUTTON_Y + ADD_SPRITE_BUTTON_SIZE
+        {
             let adding = vec![vec![vec![COLORS::BLANK; SPRITE_SIZE]; SPRITE_SIZE]; SPRITES_TO_ADD];
             self.sprite_sheet.extend(adding);
             let _ = write_sheet(&self.sprite_sheet);
@@ -521,26 +673,36 @@ impl SpriteEngine{
         //clear(&mut self.pixels, COLORS::GRAY);
 
         // rect(&mut self.pixels, 14, 8, COLOR_BUTTON_WIDTH*8 + 3, COLOR_BUTTON_WIDTH * 2 + 3, COLORS::WHITE);
-        for (i, col) in ALL_COLORS.iter().enumerate(){
-            if *col == COLORS::BLANK { continue; }
+        for (i, col) in ALL_COLORS.iter().enumerate() {
+            if *col == COLORS::BLANK {
+                continue;
+            }
             let idx = i as i32 - 1;
-            self.color_button(CANVAS_X + (idx % COLORS_PER_ROW) * BUTTON_WIDTH, COLOR_PALETTE_Y + BUTTON_WIDTH * (idx >= COLORS_PER_ROW) as i32, *col);
+            self.color_button(
+                CANVAS_X + (idx % COLORS_PER_ROW) * BUTTON_WIDTH,
+                COLOR_PALETTE_Y + BUTTON_WIDTH * (idx >= COLORS_PER_ROW) as i32,
+                *col,
+            );
         }
 
-        for (i, tool) in [Tools::Pencil, Tools::Eraser, Tools::Fill, Tools::Select].iter().enumerate(){
+        for (i, tool) in
+            [Tools::Pencil, Tools::Eraser, Tools::Fill, Tools::Select].iter().enumerate()
+        {
             let idx = i as i32;
             self.tool_button(4 + (idx % COLORS_PER_ROW) * BUTTON_WIDTH, TOOLS_Y, *tool);
         }
 
-        for (i, util) in [Utils::FlipHor, Utils::FlipVert, Utils::Clear].iter().enumerate(){
+        for (i, util) in [Utils::FlipHor, Utils::FlipVert, Utils::Clear].iter().enumerate() {
             let idx = i as i32;
             self.util_button(UTILS_X + (idx % COLORS_PER_ROW) * BUTTON_WIDTH, TOOLS_Y, *util);
         }
         self.util_button(SAVE_X, TOOLS_Y, Utils::Save);
 
         let mut sprite_text = "Editing sprite ".to_owned() + &self.idx.to_string();
-        if !self.upto_date { sprite_text += &"*".to_owned() };
-        print_scr_mid(&mut self.pixels, CANVAS_X, DRAW_Y-8, COLORS::GRAY, sprite_text);
+        if !self.upto_date {
+            sprite_text += &"*".to_owned()
+        };
+        print_scr_mid(&mut self.pixels, CANVAS_X, DRAW_Y - 8, COLORS::GRAY, sprite_text);
         self.draw_canvas();
         self.handle_copy_paste();
 
@@ -552,7 +714,7 @@ impl SpriteEngine{
         };
         self.keyboard.keys_just_pressed.clear();
 
-        if self.new_changes.len() > 0{
+        if self.new_changes.len() > 0 {
             self.undo_stack.push(self.new_changes.clone());
             self.redo_stack.clear();
             self.new_changes = Vec::new();

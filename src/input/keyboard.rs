@@ -58,6 +58,6 @@ pub fn key_from_str(str: &str) -> Option<VirtualKeyCode> {
         "Back" => Some(VirtualKeyCode::Back),
         "Enter" => Some(VirtualKeyCode::Return),
         "Space" => Some(VirtualKeyCode::Space),
-        _ => None
+        _ => None,
     }
 }
