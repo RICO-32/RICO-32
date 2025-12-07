@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use std::{ops::Deref, time::Instant};
 
 use pixels::{Pixels, SurfaceTexture};
@@ -233,22 +234,31 @@ impl RicoEngine {
     }
 }
 
-//Hydrate the screen based on scaling factors and stuff
 fn copy_pixels_into_buffer(pixels: &PixelsType, buffer: &mut [u8], start_x: usize, start_y: usize) {
     let height = pixels.len();
     let width = pixels[0].len();
-    for (y, row) in pixels.iter().enumerate().take(height) {
-        for (x, pix) in row.iter().enumerate().take(width) {
-            for dy in 0..SCALE {
-                for dx in 0..SCALE {
-                    let idx = ((y * SCALE + dy) * WINDOW_WIDTH + (x * SCALE + dx))
-                        + start_y * WINDOW_WIDTH
-                        + start_x;
-                    let (r, g, b, a) = pix.rgba();
-                    buffer[idx * 4..idx * 4 + 4].copy_from_slice(&[r, g, b, a]);
-                }
+
+    let mut buf_tmp = vec![0u8; width * height * SCALE * SCALE * 4];
+
+    buf_tmp.par_chunks_mut(width * SCALE * 4).enumerate().for_each(|(out_y, row)| {
+        let src_y = out_y / SCALE;
+
+        for (x, pix) in pixels[src_y].iter().enumerate().take(width) {
+            let (r, g, b, a) = pix.rgba();
+            let base = x * SCALE * 4;
+            for dx in 0..SCALE {
+                let i = base + dx * 4;
+                row[i..i + 4].copy_from_slice(&[r, g, b, a]);
             }
         }
+    });
+
+    for y in 0..height * SCALE {
+        let dst_row = ((start_y + y) * WINDOW_WIDTH + start_x) * 4;
+        let src_row = y * width * SCALE * 4;
+
+        buffer[dst_row..dst_row + width * SCALE * 4]
+            .copy_from_slice(&buf_tmp[src_row..src_row + width * SCALE * 4]);
     }
 }
 
