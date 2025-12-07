@@ -9,7 +9,7 @@ use crate::{
     render::{
         colors::{Colors, ALL_COLORS},
         pixels::{
-            clear, image_from_tool, image_from_util, print_scr_mid, rect, rect_fill, set_pix,
+            clear, draw, image_from_tool, image_from_util, print_scr_mid, rect, rect_fill, set_pix,
         },
         sprite_sheet::{read_sheet, write_sheet},
     },
@@ -324,16 +324,7 @@ impl SpriteEngine {
     }
 
     fn tool_button(&mut self, x: i32, y: i32, tool: Tools) {
-        for dy in 1..BUTTON_WIDTH - 1 {
-            for dx in 1..BUTTON_WIDTH - 1 {
-                set_pix(
-                    &mut self.pixels,
-                    y + dy,
-                    x + dx,
-                    image_from_tool(tool)[dy as usize - 1][dx as usize - 1],
-                );
-            }
-        }
+        draw(&mut self.pixels, x + 1, y + 1, &image_from_tool(tool));
 
         if self.mouse.just_pressed
             && self.mouse.x != -1
@@ -351,11 +342,7 @@ impl SpriteEngine {
     }
 
     fn color_button(&mut self, x: i32, y: i32, col: Colors) {
-        for dy in 1..BUTTON_WIDTH - 1 {
-            for dx in 1..BUTTON_WIDTH - 1 {
-                set_pix(&mut self.pixels, y + dy, x + dx, col);
-            }
-        }
+        rect_fill(&mut self.pixels, x + 1, y + 1, BUTTON_WIDTH - 1, BUTTON_WIDTH - 1, col);
 
         if self.mouse.just_pressed
             && self.mouse.x != -1
@@ -458,16 +445,7 @@ impl SpriteEngine {
     }
 
     fn util_button(&mut self, x: i32, y: i32, util: Utils) {
-        for dy in 1..BUTTON_WIDTH - 1 {
-            for dx in 1..BUTTON_WIDTH - 1 {
-                set_pix(
-                    &mut self.pixels,
-                    y + dy,
-                    x + dx,
-                    image_from_util(util)[dy as usize - 1][dx as usize - 1],
-                );
-            }
-        }
+        draw(&mut self.pixels, x + 1, y + 1, &image_from_util(util));
 
         if self.mouse.just_pressed
             && self.mouse.x != -1

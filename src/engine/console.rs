@@ -7,7 +7,7 @@ use crate::{
     input::mouse::MousePress,
     render::{
         colors::Colors,
-        pixels::{circle, clear, print_scr_mid, rect_fill, set_pix},
+        pixels::{circle, clear, draw, print_scr_mid, rect_fill},
     },
     scripting::lua::LogTypes,
 };
@@ -76,16 +76,8 @@ impl ConsoleEngine {
             RESTART_BUTTON.3,
             Colors::Silver,
         );
-        for y in 0..7 {
-            for x in 0..7 {
-                set_pix(
-                    &mut self.pixels,
-                    RESTART_BUTTON.1 + 1 + y,
-                    RESTART_BUTTON.0 + 3 + x,
-                    RESTART_IMAGE[y as usize][x as usize],
-                );
-            }
-        }
+
+        draw(&mut self.pixels, RESTART_BUTTON.0 + 3, RESTART_BUTTON.1 + 1, &RESTART_IMAGE);
     }
 
     fn assess_game_control(&mut self) {

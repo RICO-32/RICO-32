@@ -24,12 +24,14 @@ pub fn set_pix(pixels: &mut PixelsType, y: i32, x: i32, col: Colors) {
     pixels[y as usize][x as usize] = col;
 }
 
-pub fn draw(pixels: &mut PixelsType, x: i32, y: i32, img: &PixelsType) {
-    let (width, height): (usize, usize) = (32, 32);
-
-    for i in 0..width {
-        for (j, _) in img.iter().enumerate().take(height) {
-            set_pix(pixels, y + j as i32, x + i as i32, img[j][i]);
+pub fn draw<P, R>(pixels: &mut PixelsType, x: i32, y: i32, img: &P)
+where
+    P: AsRef<[R]>,
+    R: AsRef<[Colors]>,
+{
+    for (j, row) in img.as_ref().iter().enumerate() {
+        for (i, col) in row.as_ref().iter().enumerate() {
+            set_pix(pixels, y + j as i32, x + i as i32, *col);
         }
     }
 }
