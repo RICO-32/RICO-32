@@ -37,12 +37,6 @@ const RESTART_IMAGE: [[Colors; 7]; 7] = [
 
 impl Default for ConsoleEngine {
     fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl ConsoleEngine {
-    pub fn new() -> Self {
         ConsoleEngine {
             pixels: Colors::pixels(),
             last_time: Instant::now(),
@@ -51,7 +45,9 @@ impl ConsoleEngine {
             restart: false,
         }
     }
+}
 
+impl ConsoleEngine {
     fn draw_game_control(&mut self) {
         rect_fill(
             &mut self.pixels,

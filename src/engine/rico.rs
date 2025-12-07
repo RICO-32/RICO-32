@@ -34,7 +34,7 @@ pub trait ScreenEngine {
 }
 
 enum StateEngines {
-    GameEngine(GameEngine),
+    GameEngine(Box<GameEngine>),
     SpriteEngine(Box<SpriteEngine>),
 }
 
@@ -49,16 +49,10 @@ pub struct RicoEngine {
 
 impl Default for RicoEngine {
     fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl RicoEngine {
-    pub fn new() -> Self {
         let game_eng = GameEngine::default();
         let sprite_eng = SpriteEngine::default();
         let state_engines = vec![
-            StateEngines::GameEngine(game_eng),
+            StateEngines::GameEngine(Box::new(game_eng)),
             StateEngines::SpriteEngine(Box::new(sprite_eng)),
         ];
 
@@ -67,7 +61,9 @@ impl RicoEngine {
             state_engines,
         }
     }
+}
 
+impl RicoEngine {
     //Base boot function, needs to take in whole self cause borrowing bs
     pub fn start(mut self) -> Result<(), Box<dyn std::error::Error>> {
         let event_loop = EventLoop::new();

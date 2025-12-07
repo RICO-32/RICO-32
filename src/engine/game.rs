@@ -18,17 +18,11 @@ pub struct GameEngine {
 
 impl Default for GameEngine {
     fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl GameEngine {
-    pub fn new() -> Self {
         let script_engine = ScriptEngine::new("scripts");
 
         let mut eng = GameEngine {
             script_engine,
-            console_engine: ConsoleEngine::new(),
+            console_engine: ConsoleEngine::default(),
             lua_api: Rc::from(RefCell::from(LuaAPI::default())),
         };
 
@@ -44,7 +38,9 @@ impl GameEngine {
 
         eng
     }
+}
 
+impl GameEngine {
     fn add_errors<T: Error>(&mut self, err: T) {
         let msg = err.to_string();
 
@@ -78,7 +74,7 @@ impl GameEngine {
         self.console_engine.update(&self.lua_api.borrow().logs);
 
         if self.console_engine.restart {
-            *self = GameEngine::new();
+            *self = GameEngine::default();
         }
     }
 }

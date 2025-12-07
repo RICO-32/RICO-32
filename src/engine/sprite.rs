@@ -91,12 +91,6 @@ pub struct SpriteEngine {
 
 impl Default for SpriteEngine {
     fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl SpriteEngine {
-    pub fn new() -> Self {
         let mut sprite_sheet = Vec::new();
         if read_sheet(&mut sprite_sheet).is_err() {
             sprite_sheet = vec![
@@ -130,7 +124,9 @@ impl SpriteEngine {
             frame_hash: 0,
         }
     }
+}
 
+impl SpriteEngine {
     fn set_pix(&mut self, y: usize, x: usize, col: Colors) {
         if self.sprite_sheet[self.idx][y][x] == col {
             return;
