@@ -1,5 +1,5 @@
 use rayon::prelude::*;
-use std::{ops::Deref, time::Instant};
+use std::time::Instant;
 
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
@@ -27,10 +27,9 @@ pub type PixelsType = Vec<Vec<Colors>>;
  * Game for now, sprite in the future, maybe IDE
  */
 pub trait ScreenEngine {
-    type Pixels<'a>: Deref<Target = PixelsType>
-    where
-        Self: 'a;
-    fn pixels(&self) -> Self::Pixels<'_>;
+    fn pixels(&self) -> &PixelsType;
+
+    fn reset_inputs(&mut self);
 }
 
 enum StateEngines {
@@ -206,6 +205,8 @@ impl RicoEngine {
         self.nav_engine.update();
         let pixels = self.nav_engine.pixels();
         copy_pixels_into_buffer(pixels, buffer, 0, 0);
+        self.nav_engine.reset_inputs();
+
         match self.state_engines[self.nav_engine.selected] {
             StateEngines::GameEngine(ref mut eng) => {
                 if self.nav_engine.just_switched {
@@ -214,20 +215,29 @@ impl RicoEngine {
 
                 eng.update();
 
-                let pixels = eng.pixels();
-                copy_pixels_into_buffer(pixels.deref(), buffer, 0, NAV_BAR_HEIGHT * SCALE);
+                let mut lua_engine = eng.lua_api.borrow_mut();
+                handle_engine_update(buffer, &mut *lua_engine, 0, NAV_BAR_HEIGHT * SCALE);
 
-                let pixels = eng.console_engine.pixels();
-                copy_pixels_into_buffer(pixels, buffer, 0, WINDOW_WIDTH + (NAV_BAR_HEIGHT * SCALE));
+                let console = &mut eng.console_engine;
+                handle_engine_update(buffer, console, 0, WINDOW_WIDTH + (NAV_BAR_HEIGHT * SCALE));
             }
             StateEngines::SpriteEngine(ref mut eng) => {
                 eng.update();
-                let pixels = eng.pixels();
-
-                copy_pixels_into_buffer(pixels, buffer, 0, NAV_BAR_HEIGHT * SCALE);
+                handle_engine_update(buffer, &mut **eng, 0, NAV_BAR_HEIGHT * SCALE);
             }
         }
     }
+}
+
+fn handle_engine_update(
+    buffer: &mut [u8],
+    eng: &mut dyn ScreenEngine,
+    start_x: usize,
+    start_y: usize,
+) {
+    let pixels = eng.pixels();
+    copy_pixels_into_buffer(pixels, buffer, start_x, start_y);
+    eng.reset_inputs();
 }
 
 fn copy_pixels_into_buffer(pixels: &PixelsType, buffer: &mut [u8], start_x: usize, start_y: usize) {
@@ -272,11 +282,6 @@ fn bind_keyboard(keyboard: &mut Keyboard, state: ElementState, keycode: VirtualK
     }
 }
 
-/* IMPORTANT:
- * This function does not automatically fix just_pressed every frame.
- * Either do that in rico's update or the update of the engine that holds the mouse, see
- * game_engine.rs for example.
- */
 fn bind_mouse_input(mouse: &mut MousePress, button: MouseButton, state: ElementState) {
     if button == MouseButton::Left {
         match state {

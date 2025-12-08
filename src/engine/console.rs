@@ -113,8 +113,5 @@ impl ConsoleEngine {
             };
             print_scr_mid(&mut self.pixels, 1, 6 * i as i32 + 2 + 3 * 6, col, log.to_string());
         }
-        if self.mouse.just_pressed {
-            self.mouse.just_pressed = false;
-        };
     }
 }

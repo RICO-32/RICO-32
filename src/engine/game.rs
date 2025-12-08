@@ -1,9 +1,7 @@
-use std::cell::Ref;
 use std::error::Error;
 use std::{cell::RefCell, rc::Rc};
 
 use crate::engine::console::ConsoleEngine;
-use crate::engine::rico::{PixelsType, ScreenEngine};
 use crate::engine::script::ScriptEngine;
 use crate::scripting::lua::{LogTypes, LuaAPI};
 use crate::time::sync;
@@ -64,11 +62,6 @@ impl GameEngine {
             if let Err(err) = self.script_engine.call_update(dt) {
                 self.add_errors(err);
             }
-
-            if self.lua_api.borrow().mouse.just_pressed {
-                self.lua_api.borrow_mut().mouse.just_pressed = false;
-            };
-            self.lua_api.borrow_mut().keyboard.keys_just_pressed.clear();
         }
 
         self.console_engine.update(&self.lua_api.borrow().logs);
@@ -76,12 +69,5 @@ impl GameEngine {
         if self.console_engine.restart {
             *self = GameEngine::default();
         }
-    }
-}
-
-impl ScreenEngine for GameEngine {
-    type Pixels<'a> = Ref<'a, PixelsType>;
-    fn pixels(&self) -> Self::Pixels<'_> {
-        Ref::map(self.lua_api.borrow(), |api| &api.pixels)
     }
 }

@@ -1,3 +1,5 @@
+use crate::engine::rico::ScreenEngine;
+use macro_procs::ScreenEngine;
 use mlua::prelude::LuaResult;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -38,6 +40,7 @@ impl fmt::Display for LogTypes {
     }
 }
 
+#[derive(ScreenEngine)]
 pub struct LuaAPI {
     pub mouse: MousePress,
     pub keyboard: Keyboard,

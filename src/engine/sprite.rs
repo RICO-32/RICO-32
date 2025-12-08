@@ -670,11 +670,6 @@ impl SpriteEngine {
         self.handle_undo_redo();
         self.draw_sprite_sheet();
 
-        if self.mouse.just_pressed {
-            self.mouse.just_pressed = false;
-        };
-        self.keyboard.keys_just_pressed.clear();
-
         if !self.new_changes.is_empty() {
             self.undo_stack.push(self.new_changes.clone());
             self.redo_stack.clear();

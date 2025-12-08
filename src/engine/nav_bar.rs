@@ -61,9 +61,5 @@ impl NavEngine {
             }
             cur_x += option.len() as i32 * 4 + 5;
         }
-
-        if self.mouse.just_pressed {
-            self.mouse.just_pressed = false;
-        };
     }
 }

@@ -13,10 +13,6 @@ pub struct ScriptEngine {
 }
 
 impl ScriptEngine {
-    /* Will also handle rebooting
-     * Redo the engine initialization whenever restarting the game in the engine
-     * Call new, boot, and call_start
-     */
     pub fn new(scripts_dir: &str) -> Self {
         let options = LuaOptions::new();
         let lua = Lua::new_with(StdLib::ALL_SAFE, options).expect("Could not load lua state");
