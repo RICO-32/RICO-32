@@ -24,6 +24,7 @@ pub fn set_pix(pixels: &mut PixelsType, y: i32, x: i32, col: Colors) {
     pixels[y as usize][x as usize] = col;
 }
 
+//Generics so we can pass in both vecs and arrays as whats necessary
 pub fn draw<P, R>(pixels: &mut PixelsType, x: i32, y: i32, img: &P)
 where
     P: AsRef<[R]>,
@@ -123,6 +124,7 @@ pub fn rect(pixels: &mut PixelsType, x: i32, y: i32, w: i32, h: i32, col: Colors
     set_pix(pixels, y + h, x + w, col);
 }
 
+//This kinda gives weird results we might wanna switch out the algorithm at some point
 pub fn circle(pixels: &mut PixelsType, cx: i32, cy: i32, r: i32, col: Colors) {
     let r2 = r * r;
     for x in cx - r..=cx + r {
@@ -146,6 +148,7 @@ pub fn clear(pixels: &mut PixelsType, col: Colors) {
     }
 }
 
+//I like doing constant images this way so we can modify them easily
 pub fn image_from_tool(
     tool: Tools,
 ) -> [[Colors; BUTTON_WIDTH as usize - 2]; BUTTON_WIDTH as usize - 2] {

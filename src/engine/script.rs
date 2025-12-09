@@ -24,7 +24,7 @@ impl ScriptEngine {
         engine
     }
 
-    //Define all lua API functions here
+    //Maybe we should move this to the actual lua api but wtv for now
     pub fn register_api(&mut self, lua_api: Rc<RefCell<LuaAPI>>) -> LuaResult<()> {
         let lua_state = self.lua.create_userdata(LuaAPIHandle(lua_api.clone()))?;
         self.lua.globals().set("rico", lua_state)?;

@@ -14,6 +14,7 @@ impl Default for MousePress {
     }
 }
 
+//Important so that lua can access them
 impl UserData for MousePress {
     fn add_fields<F: mlua::UserDataFields<Self>>(fields: &mut F) {
         fields.add_field_method_get("just_pressed", |_, this| Ok(this.just_pressed));

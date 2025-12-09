@@ -3,7 +3,7 @@ use std::time::Instant;
 use macro_procs::ScreenEngine;
 
 use crate::{
-    engine::rico::{PixelsType, ScreenEngine},
+    engine::rico::{PixelsType, ScreenEngine, SCREEN_SIZE},
     input::mouse::MousePress,
     render::{
         colors::Colors,
@@ -38,7 +38,7 @@ const RESTART_IMAGE: [[Colors; 7]; 7] = [
 impl Default for ConsoleEngine {
     fn default() -> Self {
         ConsoleEngine {
-            pixels: Colors::pixels(),
+            pixels: Colors::pixels(SCREEN_SIZE, SCREEN_SIZE),
             last_time: Instant::now(),
             halted: false,
             mouse: MousePress::default(),
@@ -48,6 +48,7 @@ impl Default for ConsoleEngine {
 }
 
 impl ConsoleEngine {
+    //Just UI stuff
     fn draw_game_control(&mut self) {
         rect_fill(
             &mut self.pixels,
@@ -76,6 +77,7 @@ impl ConsoleEngine {
         draw(&mut self.pixels, RESTART_BUTTON.0 + 3, RESTART_BUTTON.1 + 1, &RESTART_IMAGE);
     }
 
+    //I should really make a helper button class or just a few funcs huh
     fn assess_game_control(&mut self) {
         if self.mouse.just_pressed
             && self.mouse.x >= HALT_BUTTON.0
@@ -106,7 +108,9 @@ impl ConsoleEngine {
         clear(&mut self.pixels, Colors::Gray);
         self.draw_game_control();
         self.assess_game_control();
+        //19 definitely should be dynamically calculated but wtv for now
         for (i, log) in logs[logs.len().saturating_sub(19)..].iter().enumerate() {
+            //Maybe make constants for colors in future
             let col = match log {
                 LogTypes::Err(_) => Colors::Maroon,
                 LogTypes::Ok(_) => Colors::Black,

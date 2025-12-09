@@ -21,7 +21,7 @@ pub struct NavEngine {
 impl NavEngine {
     pub fn new(options: Vec<String>) -> Self {
         NavEngine {
-            pixels: vec![vec![Colors::Black; SCREEN_SIZE]; NAV_BAR_HEIGHT],
+            pixels: Colors::pixels(SCREEN_SIZE, NAV_BAR_HEIGHT),
             mouse: MousePress::default(),
             options,
             selected: 0,

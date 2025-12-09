@@ -9,6 +9,8 @@ pub struct Keyboard {
 }
 
 pub fn key_from_str(str: &str) -> Option<VirtualKeyCode> {
+    //Only keys that we wanna support within the engine
+    //Dont add others just to make sure lua doesn't have full access
     match str {
         "1" => Some(VirtualKeyCode::Key1),
         "2" => Some(VirtualKeyCode::Key2),

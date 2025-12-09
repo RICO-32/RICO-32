@@ -1,4 +1,4 @@
-use crate::engine::rico::{PixelsType, SCREEN_SIZE};
+use crate::engine::rico::PixelsType;
 use std::fmt;
 use std::str::FromStr;
 
@@ -23,9 +23,10 @@ pub enum Colors {
     Pink,
 }
 
+//Theres so much duplicated implementation in this file but idk a better way to do this
 impl Colors {
-    pub fn pixels() -> PixelsType {
-        vec![vec![Colors::Black; SCREEN_SIZE]; SCREEN_SIZE]
+    pub fn pixels(width: usize, height: usize) -> PixelsType {
+        vec![vec![Colors::Black; width]; height]
     }
 
     pub fn rgba(self) -> (u8, u8, u8, u8) {
@@ -51,6 +52,7 @@ impl Colors {
     }
 }
 
+//So that we can parse to strings for get_pix primarily
 impl fmt::Display for Colors {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
@@ -76,6 +78,7 @@ impl fmt::Display for Colors {
     }
 }
 
+//So we can parse from strings for all lua calls
 impl FromStr for Colors {
     type Err = ();
 

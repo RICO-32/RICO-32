@@ -8,6 +8,7 @@ use crate::time::sync;
 
 pub const BASE_FPS: i32 = 60;
 
+//This class is literally just an orchestrator between the actual lua game and console
 pub struct GameEngine {
     pub script_engine: ScriptEngine,
     pub console_engine: ConsoleEngine,
@@ -24,6 +25,7 @@ impl Default for GameEngine {
             lua_api: Rc::from(RefCell::from(LuaAPI::default())),
         };
 
+        //Register all loaders if something errors just print to console screen
         if let Err(err) = eng.script_engine.register_api(eng.lua_api.clone()) {
             eng.add_errors(err);
         };
@@ -42,20 +44,22 @@ impl GameEngine {
     fn add_errors<T: Error>(&mut self, err: T) {
         let msg = err.to_string();
 
+        //Filter .rs stuff so the user only sees their part of the code that messed up
         let mut cleaned = msg
             .lines()
             .filter(|line| !line.contains(".rs"))
             .map(|x| x.to_string())
             .collect::<Vec<_>>();
 
+        //Just cleaner imo
         cleaned.push(" ".to_string());
         for chunk in cleaned.iter() {
             self.lua_api.borrow_mut().add_log(LogTypes::Err(chunk.to_string()));
         }
     }
 
-    //Syncs with frame rate, runs all queued up commands from this prev frame, calls main update
     pub fn update(&mut self) {
+        //Halting is in console so make sure thats not true
         if !self.console_engine.halted {
             let dt = sync(&mut self.console_engine.last_time, self.lua_api.borrow().frame_rate);
 
@@ -64,8 +68,10 @@ impl GameEngine {
             }
         }
 
+        //Might wanna store logs in the actual console at some point but thats kinda janky
         self.console_engine.update(&self.lua_api.borrow().logs);
 
+        //Nuclear option but I gen dont see the problem we do wanna restart everything
         if self.console_engine.restart {
             *self = GameEngine::default();
         }

@@ -32,14 +32,15 @@ pub trait ScreenEngine {
     fn reset_inputs(&mut self);
 }
 
+// Make sure to box new engines, just more efficient to just store a pointer
 enum StateEngines {
     GameEngine(Box<GameEngine>),
     SpriteEngine(Box<SpriteEngine>),
 }
 
-/* Add bindings for diff engines in this struct
+/* Add bindings for diff engines in this struct in the vector
  * All engines are different screens on the console
- * Engines should implement the Engine trait
+ * Screen engines should auto derive the ScreenEngine trait
  */
 pub struct RicoEngine {
     nav_engine: NavEngine,
@@ -55,6 +56,7 @@ impl Default for RicoEngine {
             StateEngines::SpriteEngine(Box::new(sprite_eng)),
         ];
 
+        //Change here if want diff names for engines
         RicoEngine {
             nav_engine: NavEngine::new(vec!["Game".to_string(), "Sprite".to_string()]),
             state_engines,
@@ -102,6 +104,7 @@ impl RicoEngine {
 
                     WindowEvent::KeyboardInput { input, .. } => {
                         if let Some(keycode) = input.virtual_keycode {
+                            //Use match for finding which engine we're using rn
                             match self.state_engines[self.nav_engine.selected] {
                                 StateEngines::GameEngine(ref mut eng) => {
                                     let mut lua_api = eng.lua_api.borrow_mut();
@@ -120,6 +123,8 @@ impl RicoEngine {
                     }
 
                     WindowEvent::MouseWheel { delta, .. } => {
+                        //If let cause we only need scroll wheels for sprite rn, switch to match
+                        //later
                         if let StateEngines::SpriteEngine(ref mut eng) =
                             self.state_engines[self.nav_engine.selected]
                         {
@@ -136,6 +141,7 @@ impl RicoEngine {
                         bind_mouse_input(&mut self.nav_engine.mouse, button, state);
                         match self.state_engines[self.nav_engine.selected] {
                             StateEngines::GameEngine(ref mut eng) => {
+                                //Make these binding functions if we need more input
                                 bind_mouse_input(
                                     &mut eng.lua_api.borrow_mut().mouse,
                                     button,
@@ -149,8 +155,10 @@ impl RicoEngine {
                         };
                     }
 
+                    //Cursor moving is complex cause we wanna set pos to -1 if not on the engine
                     WindowEvent::CursorMoved { position, .. } => {
                         let scale = window.scale_factor();
+                        //Weird that its different than normal position but wtv
                         let logical = position.to_logical::<f32>(scale);
 
                         bind_mouse_move(
@@ -203,9 +211,7 @@ impl RicoEngine {
     //Make sure to update engines here based on which screen it's on
     pub fn update(&mut self, buffer: &mut [u8]) {
         self.nav_engine.update();
-        let pixels = self.nav_engine.pixels();
-        copy_pixels_into_buffer(pixels, buffer, 0, 0);
-        self.nav_engine.reset_inputs();
+        handle_engine_update(buffer, &mut self.nav_engine, 0, 0);
 
         match self.state_engines[self.nav_engine.selected] {
             StateEngines::GameEngine(ref mut eng) => {
@@ -229,17 +235,24 @@ impl RicoEngine {
     }
 }
 
+//Make sure to position correctly with the start x and y
 fn handle_engine_update(
     buffer: &mut [u8],
     eng: &mut dyn ScreenEngine,
     start_x: usize,
     start_y: usize,
 ) {
+    //Uses screen engine implementations to actually render that specific engine
     let pixels = eng.pixels();
     copy_pixels_into_buffer(pixels, buffer, start_x, start_y);
     eng.reset_inputs();
 }
 
+/* IMPORTANT:
+ * Currently parallalized with rayon but its lowkey useless
+ * It spends half the time just switching mutex locks so we might wanna just single
+ * thread this. Shouldn't change too much, we're pretty efficient alr.
+ */
 fn copy_pixels_into_buffer(pixels: &PixelsType, buffer: &mut [u8], start_x: usize, start_y: usize) {
     let height = pixels.len();
     let width = pixels[0].len();
@@ -271,6 +284,7 @@ fn copy_pixels_into_buffer(pixels: &PixelsType, buffer: &mut [u8], start_x: usiz
 fn bind_keyboard(keyboard: &mut Keyboard, state: ElementState, keycode: VirtualKeyCode) {
     match state {
         ElementState::Pressed => {
+            //This is weird but idk a better way to do it
             if !keyboard.keys_pressed.contains(&keycode) {
                 keyboard.keys_just_pressed.insert(keycode);
             }
@@ -282,6 +296,8 @@ fn bind_keyboard(keyboard: &mut Keyboard, state: ElementState, keycode: VirtualK
     }
 }
 
+//Im so sad this doesn't give me access to mouse position, it'd be sm easier to
+//do the -1, -1 thing just here
 fn bind_mouse_input(mouse: &mut MousePress, button: MouseButton, state: ElementState) {
     if button == MouseButton::Left {
         match state {
@@ -332,6 +348,7 @@ fn bind_mouse_move(
         mouse.x -= start_x as i32;
         mouse.y -= start_y as i32;
 
+        //Wanna switch to the size of the screen instead of the tiny screen pixels
         mouse.x /= SCALE as i32;
         mouse.y /= SCALE as i32;
     };

@@ -34,7 +34,7 @@ pub enum Utils {
 
 //I SWEAR THIS IS BETTER THAN ALL THE MAGIC NUMBERS
 pub const BUTTON_WIDTH: i32 = 12;
-const SPRITE_SIZE: usize = 32;
+pub const SPRITE_SIZE: usize = 32;
 const DRAW_Y: i32 = 52;
 const FRAME_RATE: i32 = 60;
 const PIXEL_SIZE: i32 = 3;
@@ -101,7 +101,7 @@ impl Default for SpriteEngine {
         }
 
         SpriteEngine {
-            pixels: vec![vec![Colors::Black; SCREEN_SIZE]; SCREEN_SIZE * 2],
+            pixels: Colors::pixels(SCREEN_SIZE, SCREEN_SIZE * 2),
             mouse: MousePress::default(),
             selected_color: Colors::Black,
             sprite_sheet,
@@ -232,7 +232,7 @@ impl SpriteEngine {
                         if self.moving_selection_content.is_none() {
                             let w = (x2 - x1 + 1) as usize;
                             let h = (y2 - y1 + 1) as usize;
-                            let mut content = vec![vec![Colors::Blank; w]; h];
+                            let mut content = Colors::pixels(w, h);
                             for (r, row) in content.iter_mut().enumerate().take(h) {
                                 for (c, col) in row.iter_mut().enumerate().take(w) {
                                     *col = self.sprite_sheet[self.idx][y1 as usize + r]
@@ -416,7 +416,7 @@ impl SpriteEngine {
             } else if let Some((x1, y1, x2, y2)) = self.selection {
                 let w = (x2 - x1 + 1) as usize;
                 let h = (y2 - y1 + 1) as usize;
-                let mut content = vec![vec![Colors::Blank; w]; h];
+                let mut content = Colors::pixels(w, h);
                 for (r, row) in content.iter_mut().enumerate().take(h) {
                     for (c, col) in row.iter_mut().enumerate().take(w) {
                         *col = self.sprite_sheet[self.idx][y1 as usize + r][x1 as usize + c];
@@ -621,7 +621,7 @@ impl SpriteEngine {
             && self.mouse.y > ADD_SPRITE_BUTTON_Y
             && self.mouse.y < ADD_SPRITE_BUTTON_Y + ADD_SPRITE_BUTTON_SIZE
         {
-            let adding = vec![vec![vec![Colors::Blank; SPRITE_SIZE]; SPRITE_SIZE]; SPRITES_TO_ADD];
+            let adding = vec![Colors::pixels(SPRITE_SIZE, SPRITE_SIZE); SPRITES_TO_ADD];
             self.sprite_sheet.extend(adding);
             let _ = write_sheet(&self.sprite_sheet);
         }

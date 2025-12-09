@@ -1,4 +1,5 @@
 use crate::engine::rico::ScreenEngine;
+use crate::engine::sprite::SPRITE_SIZE;
 use macro_procs::ScreenEngine;
 use mlua::prelude::LuaResult;
 use std::collections::HashMap;
@@ -25,11 +26,14 @@ use crate::{
     },
 };
 
+//Not using normal Result type so we can add warnings in the future
 pub enum LogTypes {
     Ok(String),
     Err(String),
 }
 
+//Just so that I can .to_string() cause they're both gonna be displayed to the console in raw string
+//anyway
 impl fmt::Display for LogTypes {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
@@ -54,7 +58,7 @@ impl Default for LuaAPI {
     fn default() -> Self {
         LuaAPI {
             frame_rate: BASE_FPS,
-            pixels: Colors::pixels(),
+            pixels: Colors::pixels(SCREEN_SIZE, SCREEN_SIZE),
             logs: Vec::new(),
             sprites: HashMap::new(),
             mouse: MousePress::default(),
@@ -67,6 +71,7 @@ impl LuaAPI {
     pub fn add_log(&mut self, log: LogTypes) {
         let msg = log.to_string();
 
+        //Useful for wrapping lines I dont wanna implement scrolling in logs :/
         for chunk in msg.as_bytes().chunks(30) {
             let chunk_string = String::from_utf8(chunk.to_vec()).unwrap();
             let part: LogTypes = match log {
@@ -81,6 +86,8 @@ impl LuaAPI {
 #[derive(Clone)]
 pub struct LuaAPIHandle(pub Rc<RefCell<LuaAPI>>);
 
+//Just helper to auto return error if they give a bad color to any draw utils
+//Used like everywhere modify carefully
 fn col_from_str(col: String) -> LuaResult<Colors> {
     match col.parse::<Colors>() {
         Ok(c) => Ok(c),
@@ -142,10 +149,12 @@ impl UserData for LuaAPIHandle {
 
         methods.add_method_mut("draw", |_, this, (x, y, idx): (i32, i32, i32)| {
             let mut eng = this.0.borrow_mut(); // mutable borrow once
+
+            //Hashmap just to prevent omega loading sprites literally every frame
             let img = if let Some(i) = eng.sprites.get(&idx) {
                 i.clone()
             } else {
-                let mut loaded: PixelsType = vec![vec![Colors::Black; 32]; 32];
+                let mut loaded: PixelsType = Colors::pixels(SPRITE_SIZE, SPRITE_SIZE);
                 if let Err(err) = read_image_idx(&mut loaded, idx as usize) {
                     return Err(mlua::Error::RuntimeError(err.to_string()));
                 };
