@@ -48,7 +48,11 @@ The console is designed to be simple yet powerful, allowing developers to create
 ## Screenshots
 
 ### GIF of Tetris Example
-![ezgif-66742301f2ba23f0](https://github.com/user-attachments/assets/d14c9ba0-433c-43ab-841a-33a669e46b75)
+![TETRISRICO](https://github.com/user-attachments/assets/bf24e719-d5b9-487a-964a-db928732d384)
+
+### GIF of Platformer Example
+![ezgif-6b0bad010cd3138b](https://github.com/user-attachments/assets/1e577a1e-ec80-4495-8166-a6d24eb36ce6)
+
 
 **more examples eventually...**
 
