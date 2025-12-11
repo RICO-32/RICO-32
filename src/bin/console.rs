@@ -1,4 +1,9 @@
+use base64::engine::general_purpose;
+use base64::Engine as _;
+use bincode::config::standard;
+use flate2::read::GzDecoder;
 use pixels::{Pixels, SurfaceTexture};
+use std::{env, io::Read};
 use winit::{
     dpi::LogicalSize,
     event::{Event, WindowEvent},
@@ -11,7 +16,7 @@ use rico_32::{
         game::GameEngine,
         rico::{bind_keyboard, bind_mouse_input, bind_mouse_move, handle_engine_update},
     },
-    scripting::cartridge::get_cart,
+    scripting::cartridge::{get_cart, Cartridge},
 };
 
 pub const SCREEN_SIZE: usize = 128;
@@ -28,7 +33,26 @@ fn main() {
         .build(&event_loop)
         .expect("Could not create RICO-32 window!");
 
-    let cart = get_cart().expect("Could not load/create cartridge");
+    let args: Vec<String> = env::args().collect();
+    let cart = if args.len() == 2 {
+        let cart = if let Some(value) = args[1].strip_prefix("--with-cart=") {
+            let compressed_bytes =
+                general_purpose::STANDARD.decode(value).expect("Could not decode");
+            let mut decoder = GzDecoder::new(&compressed_bytes[..]);
+            let mut decompressed = Vec::new();
+            decoder.read_to_end(&mut decompressed).expect("Could not decode cart");
+            let (cart, _): (Cartridge, usize) =
+                bincode::decode_from_slice(&decompressed, standard())
+                    .expect("Could not decode cart");
+            cart
+        } else {
+            get_cart().expect("Could not load/create cartridge")
+        };
+        cart
+    } else {
+        get_cart().expect("Could not load/create cartridge")
+    };
+
     let mut eng = GameEngine::new(cart);
 
     let surface_texture = SurfaceTexture::new(WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32, &window);
