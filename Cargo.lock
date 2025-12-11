@@ -1219,7 +1219,6 @@ name = "rico-32"
 version = "0.2.1"
 dependencies = [
  "bincode",
- "byteorder",
  "macro_procs",
  "mlua",
  "pixels",

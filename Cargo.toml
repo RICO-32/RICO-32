@@ -12,7 +12,6 @@ macro_procs = { path = "./macro_procs", version = "0.1.0" }
 winit = "0.28"
 pixels = "0.12"
 mlua = {version = "0.11.4", features = ["lua54", "vendored"] }
-byteorder = "1.5.0"
 rayon = "1.11.0"
 bincode = "2.0.1"
 walkdir = "2.5.0"
