@@ -256,7 +256,7 @@ impl RicoEngine {
 }
 
 //Make sure to position correctly with the start x and y
-fn handle_engine_update(
+pub fn handle_engine_update(
     buffer: &mut [u8],
     eng: &mut dyn ScreenEngine,
     start_x: usize,
@@ -273,7 +273,12 @@ fn handle_engine_update(
  * It spends half the time just switching mutex locks so we might wanna just single
  * thread this. Shouldn't change too much, we're pretty efficient alr.
  */
-fn copy_pixels_into_buffer(pixels: &PixelsType, buffer: &mut [u8], start_x: usize, start_y: usize) {
+pub fn copy_pixels_into_buffer(
+    pixels: &PixelsType,
+    buffer: &mut [u8],
+    start_x: usize,
+    start_y: usize,
+) {
     let height = pixels.len();
     let width = pixels[0].len();
 
@@ -301,7 +306,7 @@ fn copy_pixels_into_buffer(pixels: &PixelsType, buffer: &mut [u8], start_x: usiz
     }
 }
 
-fn bind_keyboard(keyboard: &mut Keyboard, state: ElementState, keycode: VirtualKeyCode) {
+pub fn bind_keyboard(keyboard: &mut Keyboard, state: ElementState, keycode: VirtualKeyCode) {
     match state {
         ElementState::Pressed => {
             //This is weird but idk a better way to do it
@@ -318,7 +323,7 @@ fn bind_keyboard(keyboard: &mut Keyboard, state: ElementState, keycode: VirtualK
 
 //Im so sad this doesn't give me access to mouse position, it'd be sm easier to
 //do the -1, -1 thing just here
-fn bind_mouse_input(mouse: &mut MousePress, button: MouseButton, state: ElementState) {
+pub fn bind_mouse_input(mouse: &mut MousePress, button: MouseButton, state: ElementState) {
     if button == MouseButton::Left {
         match state {
             ElementState::Pressed => {
@@ -333,7 +338,7 @@ fn bind_mouse_input(mouse: &mut MousePress, button: MouseButton, state: ElementS
     }
 }
 
-fn check_mouse_bounds(
+pub fn check_mouse_bounds(
     mouse: &mut MousePress,
     start_x: usize,
     start_y: usize,
@@ -353,7 +358,7 @@ fn check_mouse_bounds(
     false
 }
 
-fn bind_mouse_move(
+pub fn bind_mouse_move(
     mouse: &mut MousePress,
     logical_position: LogicalPosition<f32>,
     start_x: usize,

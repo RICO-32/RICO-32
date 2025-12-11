@@ -43,20 +43,24 @@ impl Default for Cartridge {
     }
 }
 
-pub fn load_cartridge() -> Result<Cartridge, Box<dyn Error>> {
-    let cart = match fs::read(BIN_PATH) {
+pub fn get_cart() -> Result<Cartridge, Box<dyn Error>> {
+    match fs::read(BIN_PATH) {
         Ok(data) => {
             let (cart, _len): (Cartridge, usize) =
                 bincode::decode_from_slice(&data, bincode::config::standard())?;
-            cart
+            Ok(cart)
         }
         Err(_) => {
             let cart = Cartridge::default();
             let encoded = bincode::encode_to_vec(&cart, bincode::config::standard())?;
             fs::write(BIN_PATH, encoded)?;
-            cart
+            Ok(cart)
         }
-    };
+    }
+}
+
+pub fn load_cartridge() -> Result<Cartridge, Box<dyn Error>> {
+    let cart = get_cart()?;
 
     if Path::new(PATH).exists() {
         fs::remove_dir_all(PATH)?;
@@ -74,19 +78,7 @@ pub fn load_cartridge() -> Result<Cartridge, Box<dyn Error>> {
 }
 
 pub fn update_sprites(sprite_sheet: &[PixelsType]) -> Result<(), Box<dyn Error>> {
-    let mut cart = match fs::read(BIN_PATH) {
-        Ok(data) => {
-            let (cart, _len): (Cartridge, usize) =
-                bincode::decode_from_slice(&data, bincode::config::standard())?;
-            cart
-        }
-        Err(_) => {
-            let cart = Cartridge::default();
-            let encoded = bincode::encode_to_vec(&cart, bincode::config::standard())?;
-            fs::write(BIN_PATH, encoded)?;
-            cart
-        }
-    };
+    let mut cart = get_cart()?;
     cart.sprite_sheet = sprite_sheet.to_vec();
 
     let encoded: Vec<u8> = bincode::encode_to_vec(cart, bincode::config::standard())?;
@@ -95,20 +87,7 @@ pub fn update_sprites(sprite_sheet: &[PixelsType]) -> Result<(), Box<dyn Error>>
 }
 
 pub fn update_scripts() -> Result<(), Box<dyn Error>> {
-    let mut cart = match fs::read(BIN_PATH) {
-        Ok(data) => {
-            let (cart, _len): (Cartridge, usize) =
-                bincode::decode_from_slice(&data, bincode::config::standard())?;
-            cart
-        }
-        Err(_) => {
-            let cart = Cartridge::default();
-            let encoded = bincode::encode_to_vec(&cart, bincode::config::standard())?;
-            fs::write(BIN_PATH, encoded)?;
-            cart
-        }
-    };
-
+    let mut cart = get_cart()?;
     let mut scripts = HashMap::new();
 
     for entry in WalkDir::new(PATH)
