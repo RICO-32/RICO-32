@@ -31,9 +31,12 @@ impl GameEngine {
         if let Err(err) = eng.script_engine.boot() {
             eng.add_errors(err);
         };
-        if let Err(err) = eng.script_engine.call_start() {
-            eng.add_errors(err);
-        };
+
+        if eng.script_engine.call_start().is_err() {
+            eng.add_errors(mlua::Error::RuntimeError(
+                "Could not find function start in main.lua".to_string(),
+            ));
+        }
 
         eng
     }
@@ -60,8 +63,10 @@ impl GameEngine {
         if !self.console_engine.halted {
             let dt = sync(&mut self.console_engine.last_time, self.lua_api.borrow().frame_rate);
 
-            if let Err(err) = self.script_engine.call_update(dt) {
-                self.add_errors(err);
+            if self.script_engine.call_update(dt).is_err() {
+                self.add_errors(mlua::Error::RuntimeError(
+                    "Could not find function update in main.lua".to_string(),
+                ));
             }
         }
 
