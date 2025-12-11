@@ -1219,6 +1219,7 @@ name = "rico-32"
 version = "0.2.1"
 dependencies = [
  "bincode",
+ "flate2",
  "macro_procs",
  "mlua",
  "pixels",

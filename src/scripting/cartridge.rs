@@ -1,10 +1,18 @@
-use std::{collections::HashMap, error::Error, fs, path::Path};
+use std::{
+    collections::HashMap,
+    error::Error,
+    fs,
+    io::{Read, Write},
+    path::Path,
+};
+
+use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 
 use crate::{
     engine::{rico::PixelsType, sprite::SPRITE_SIZE},
     render::colors::Colors,
 };
-use bincode::{Decode, Encode};
+use bincode::{config::standard, Decode, Encode};
 use walkdir::WalkDir;
 
 #[derive(Encode, Decode, Debug, Clone)]
@@ -43,17 +51,31 @@ impl Default for Cartridge {
     }
 }
 
+fn write_cart(cart: &Cartridge) -> Result<(), Box<dyn Error>> {
+    let encoded = bincode::encode_to_vec(cart, bincode::config::standard())?;
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    encoder.write_all(&encoded)?;
+    let compressed_bytes = encoder.finish()?;
+    fs::write(BIN_PATH, compressed_bytes)?;
+    Ok(())
+}
+
+fn load_file() -> Result<Cartridge, Box<dyn Error>> {
+    let compressed_bytes = fs::read(BIN_PATH)?;
+    let mut decoder = GzDecoder::new(&compressed_bytes[..]);
+    let mut decompressed = Vec::new();
+    decoder.read_to_end(&mut decompressed)?;
+    let (cart, _) = bincode::decode_from_slice(&decompressed, standard())?;
+
+    Ok(cart)
+}
+
 pub fn get_cart() -> Result<Cartridge, Box<dyn Error>> {
-    match fs::read(BIN_PATH) {
-        Ok(data) => {
-            let (cart, _len): (Cartridge, usize) =
-                bincode::decode_from_slice(&data, bincode::config::standard())?;
-            Ok(cart)
-        }
+    match load_file() {
+        Ok(data) => Ok(data),
         Err(_) => {
             let cart = Cartridge::default();
-            let encoded = bincode::encode_to_vec(&cart, bincode::config::standard())?;
-            fs::write(BIN_PATH, encoded)?;
+            write_cart(&cart)?;
             Ok(cart)
         }
     }
@@ -80,9 +102,7 @@ pub fn load_cartridge() -> Result<Cartridge, Box<dyn Error>> {
 pub fn update_sprites(sprite_sheet: &[PixelsType]) -> Result<(), Box<dyn Error>> {
     let mut cart = get_cart()?;
     cart.sprite_sheet = sprite_sheet.to_vec();
-
-    let encoded: Vec<u8> = bincode::encode_to_vec(cart, bincode::config::standard())?;
-    fs::write(BIN_PATH, &encoded)?;
+    write_cart(&cart)?;
     Ok(())
 }
 
@@ -102,8 +122,7 @@ pub fn update_scripts() -> Result<(), Box<dyn Error>> {
     }
 
     cart.scripts = scripts;
+    write_cart(&cart)?;
 
-    let encoded: Vec<u8> = bincode::encode_to_vec(cart, bincode::config::standard())?;
-    fs::write(BIN_PATH, &encoded)?;
     Ok(())
 }

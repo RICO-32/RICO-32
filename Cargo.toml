@@ -16,3 +16,4 @@ mlua = {version = "0.11.4", features = ["lua54", "vendored"] }
 rayon = "1.11.0"
 bincode = "2.0.1"
 walkdir = "2.5.0"
+flate2 = "1.1.5"
