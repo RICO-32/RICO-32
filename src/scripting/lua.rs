@@ -1,8 +1,6 @@
 use crate::engine::rico::ScreenEngine;
-use crate::engine::sprite::SPRITE_SIZE;
 use macro_procs::ScreenEngine;
 use mlua::prelude::LuaResult;
-use std::collections::HashMap;
 use std::rc::Rc;
 use std::{cell::RefCell, fmt};
 
@@ -21,8 +19,7 @@ use crate::{
         colors::Colors,
         pixels::{
             circle, clear, draw, print_scr, print_scr_mid, print_scr_mini, rect, rect_fill, set_pix,
-        },
-        sprite_sheet::read_image_idx,
+        }
     },
 };
 
@@ -50,24 +47,22 @@ pub struct LuaAPI {
     pub keyboard: Keyboard,
     pub frame_rate: i32,
     pub pixels: PixelsType,
-    pub sprites: HashMap<i32, PixelsType>,
+    pub sprites: Vec<PixelsType>,
     pub logs: Vec<LogTypes>,
 }
 
-impl Default for LuaAPI {
-    fn default() -> Self {
+impl LuaAPI {
+    pub fn new(sprite_sheet: Vec<PixelsType>) -> Self {
         LuaAPI {
             frame_rate: BASE_FPS,
             pixels: Colors::pixels(SCREEN_SIZE, SCREEN_SIZE),
             logs: Vec::new(),
-            sprites: HashMap::new(),
+            sprites: sprite_sheet,
             mouse: MousePress::default(),
             keyboard: Keyboard::default(),
         }
     }
-}
 
-impl LuaAPI {
     pub fn add_log(&mut self, log: LogTypes) {
         let msg = log.to_string();
 
@@ -147,23 +142,16 @@ impl UserData for LuaAPIHandle {
             },
         );
 
-        methods.add_method_mut("draw", |_, this, (x, y, idx): (i32, i32, i32)| {
-            let mut eng = this.0.borrow_mut(); // mutable borrow once
+        methods.add_method_mut("draw", |_, this, (x, y, idx): (i32, i32, usize)| {
+            let mut eng = this.0.borrow_mut(); 
+            
+            if idx >= eng.sprites.len() {
+                return Err(mlua::Error::RuntimeError("Index too large".to_string()));
+            }
 
-            //Hashmap just to prevent omega loading sprites literally every frame
-            let img = if let Some(i) = eng.sprites.get(&idx) {
-                i.clone()
-            } else {
-                let mut loaded: PixelsType = Colors::pixels(SPRITE_SIZE, SPRITE_SIZE);
-                if let Err(err) = read_image_idx(&mut loaded, idx as usize) {
-                    return Err(mlua::Error::RuntimeError(err.to_string()));
-                };
-
-                eng.sprites.insert(idx, loaded);
-                eng.sprites.get(&idx).unwrap().clone()
-            };
-
-            draw(&mut eng.pixels, x, y, &img);
+            let img = eng.sprites[idx].clone();
+            let pixels = &mut eng.pixels;
+            draw(pixels, x, y, &img);
             Ok(())
         });
 
@@ -228,3 +216,4 @@ impl UserData for LuaAPIHandle {
         });
     }
 }
+

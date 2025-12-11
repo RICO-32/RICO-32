@@ -1,8 +1,11 @@
+use bincode::{Decode, Encode};
+
 use crate::engine::rico::PixelsType;
 use std::fmt;
 use std::str::FromStr;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Encode, Decode)]
 pub enum Colors {
     Blank = 0,
     Black,

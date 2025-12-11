@@ -4,16 +4,12 @@ use macro_procs::ScreenEngine;
 use winit::event::VirtualKeyCode;
 
 use crate::{
-    engine::rico::{PixelsType, ScreenEngine, SCREEN_SIZE},
-    input::{keyboard::Keyboard, mouse::MousePress},
-    render::{
+    engine::rico::{PixelsType, ScreenEngine, SCREEN_SIZE}, input::{keyboard::Keyboard, mouse::MousePress}, render::{
         colors::{Colors, ALL_COLORS},
         pixels::{
             clear, draw, image_from_tool, image_from_util, print_scr_mid, rect, rect_fill, set_pix,
         },
-        sprite_sheet::{read_sheet, write_sheet},
-    },
-    time::sync,
+    }, scripting::cartridge::update_sprites, time::sync
 };
 
 #[derive(Copy, Clone, PartialEq)]
@@ -53,7 +49,6 @@ const ADD_SPRITE_BUTTON_SIZE: i32 = 9;
 const UNDO_REDO_FRAME_DELAY: i32 = 25;
 const UNDO_REDO_CONTINUOUS_FRAME_DIVISOR: i32 = 2;
 const FRAME_HASH_MODULO: i32 = 7;
-const INITIAL_SPRITE_SHEET_SIZE: usize = 60;
 const SPRITES_TO_ADD: usize = 6;
 
 const DIRS: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
@@ -89,17 +84,8 @@ pub struct SpriteEngine {
     frame_hash: i32,
 }
 
-impl Default for SpriteEngine {
-    fn default() -> Self {
-        let mut sprite_sheet = Vec::new();
-        if read_sheet(&mut sprite_sheet).is_err() {
-            sprite_sheet = vec![
-                vec![vec![Colors::Blank; SPRITE_SIZE]; SPRITE_SIZE];
-                INITIAL_SPRITE_SHEET_SIZE
-            ];
-            let _ = write_sheet(&sprite_sheet);
-        }
-
+impl SpriteEngine {
+    pub fn new(sprite_sheet: Vec<PixelsType>) -> Self {
         SpriteEngine {
             pixels: Colors::pixels(SCREEN_SIZE, SCREEN_SIZE * 2),
             mouse: MousePress::default(),
@@ -124,9 +110,7 @@ impl Default for SpriteEngine {
             frame_hash: 0,
         }
     }
-}
 
-impl SpriteEngine {
     fn set_pix(&mut self, y: usize, x: usize, col: Colors) {
         if self.sprite_sheet[self.idx][y][x] == col {
             return;
@@ -514,7 +498,7 @@ impl SpriteEngine {
                 }
                 Utils::Save => {
                     self.upto_date = true;
-                    let _ = write_sheet(&self.sprite_sheet);
+                    let _ = update_sprites(&self.sprite_sheet);
                 }
             }
         }
@@ -623,7 +607,7 @@ impl SpriteEngine {
         {
             let adding = vec![Colors::pixels(SPRITE_SIZE, SPRITE_SIZE); SPRITES_TO_ADD];
             self.sprite_sheet.extend(adding);
-            let _ = write_sheet(&self.sprite_sheet);
+            let _ = update_sprites(&self.sprite_sheet);
         }
     }
 

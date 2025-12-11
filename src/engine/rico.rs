@@ -1,5 +1,5 @@
 use rayon::prelude::*;
-use std::time::Instant;
+use std::{fs, path::Path, time::Instant};
 
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
@@ -11,8 +11,7 @@ use winit::{
 
 use super::{game::GameEngine, nav_bar::NavEngine, sprite::SpriteEngine};
 use crate::{
-    input::{keyboard::Keyboard, mouse::MousePress},
-    render::colors::Colors,
+    input::{keyboard::Keyboard, mouse::MousePress}, render::colors::Colors, scripting::cartridge::{load_cartridge, update_scripts, PATH}
 };
 
 pub const SCREEN_SIZE: usize = 128;
@@ -49,8 +48,9 @@ pub struct RicoEngine {
 
 impl Default for RicoEngine {
     fn default() -> Self {
-        let game_eng = GameEngine::default();
-        let sprite_eng = SpriteEngine::default();
+        let cart = load_cartridge().expect("Could not load/create cartridge");
+        let game_eng = GameEngine::new(cart.clone());
+        let sprite_eng = SpriteEngine::new(cart.sprite_sheet);
         let state_engines = vec![
             StateEngines::GameEngine(Box::new(game_eng)),
             StateEngines::SpriteEngine(Box::new(sprite_eng)),
@@ -205,6 +205,13 @@ impl RicoEngine {
                 },
                 _ => {}
             }
+
+            if *control_flow == ControlFlow::Exit {
+                let _ = update_scripts();
+                if Path::new(PATH).exists() {
+                    let _ = fs::remove_dir_all(PATH);
+                }
+            }
         });
     }
 
@@ -221,11 +228,17 @@ impl RicoEngine {
 
                 eng.update();
 
-                let mut lua_engine = eng.lua_api.borrow_mut();
-                handle_engine_update(buffer, &mut *lua_engine, 0, NAV_BAR_HEIGHT * SCALE);
+                handle_engine_update(buffer, &mut *eng.lua_api.borrow_mut(), 0, NAV_BAR_HEIGHT * SCALE);
 
                 let console = &mut eng.console_engine;
                 handle_engine_update(buffer, console, 0, WINDOW_WIDTH + (NAV_BAR_HEIGHT * SCALE));
+
+                if console.restart {
+                    let _ = update_scripts();
+                    let cart = load_cartridge().expect("Could not load/create cartridge");
+                    let game_eng = GameEngine::new(cart);
+                    *eng = Box::new(game_eng);
+                }
             }
             StateEngines::SpriteEngine(ref mut eng) => {
                 eng.update();

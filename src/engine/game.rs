@@ -3,6 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::engine::console::ConsoleEngine;
 use crate::engine::script::ScriptEngine;
+use crate::scripting::cartridge::Cartridge;
 use crate::scripting::lua::{LogTypes, LuaAPI};
 use crate::time::sync;
 
@@ -15,14 +16,15 @@ pub struct GameEngine {
     pub lua_api: Rc<RefCell<LuaAPI>>,
 }
 
-impl Default for GameEngine {
-    fn default() -> Self {
-        let script_engine = ScriptEngine::new("scripts");
+impl GameEngine {
+    pub fn new(cart: Cartridge) -> Self {
+        let script_engine = ScriptEngine::new(cart.scripts);
+        let lua_api = Rc::from(RefCell::from(LuaAPI::new(cart.sprite_sheet)));
 
         let mut eng = GameEngine {
             script_engine,
+            lua_api,
             console_engine: ConsoleEngine::default(),
-            lua_api: Rc::from(RefCell::from(LuaAPI::default())),
         };
 
         //Register all loaders if something errors just print to console screen
@@ -38,9 +40,7 @@ impl Default for GameEngine {
 
         eng
     }
-}
 
-impl GameEngine {
     fn add_errors<T: Error>(&mut self, err: T) {
         let msg = err.to_string();
 
@@ -70,10 +70,5 @@ impl GameEngine {
 
         //Might wanna store logs in the actual console at some point but thats kinda janky
         self.console_engine.update(&self.lua_api.borrow().logs);
-
-        //Nuclear option but I gen dont see the problem we do wanna restart everything
-        if self.console_engine.restart {
-            *self = GameEngine::default();
-        }
     }
 }

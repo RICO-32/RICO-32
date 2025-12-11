@@ -2,24 +2,24 @@ use mlua::prelude::*;
 
 use mlua::StdLib;
 use std::cell::RefCell;
-use std::fs;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::scripting::lua::{LuaAPI, LuaAPIHandle};
 
 pub struct ScriptEngine {
     pub lua: Lua,
-    scripts_dir: String,
+    scripts: HashMap<String, String>
 }
 
 impl ScriptEngine {
-    pub fn new(scripts_dir: &str) -> Self {
+    pub fn new(scripts: HashMap<String, String>) -> Self {
         let options = LuaOptions::new();
         let lua = Lua::new_with(StdLib::ALL_SAFE, options).expect("Could not load lua state");
 
-        let engine = ScriptEngine { lua, scripts_dir: String::from(scripts_dir) };
+        let engine = ScriptEngine { lua, scripts };
 
-        engine.register_loader().expect("Could not register Lua moldule loader");
+        engine.register_loader().expect("Could not register Lua module loader");
 
         engine
     }
@@ -36,24 +36,37 @@ impl ScriptEngine {
      * Keeps Lua API the same
      */
     fn register_loader(&self) -> LuaResult<()> {
-        let scripts = self.scripts_dir.clone();
         let lua = &self.lua;
+        let scripts = self.scripts.clone();
 
         let loader = lua.create_function(move |lua, module: String| {
-            let path1 = format!("{}/{}.lua", scripts, module.replace(".", "/"));
-            let path2 = format!("{}/{}/init.lua", scripts, module.replace(".", "/"));
+            let path1 = format!("{}.lua", module.replace(".", "/"));
+            let path2 = format!("{}/init.lua", module.replace(".", "/"));
+            //
+            // Try both module.lua and module/init.lua
+            let code = scripts.get(&path1).or_else(|| scripts.get(&path2));
 
-            let code = fs::read_to_string(&path1)
-                .or_else(|_| fs::read_to_string(&path2))
-                .or_else(|_| Ok::<String, String>(String::from("")))
-                .unwrap();
+            match code {
+                Some(src) => {
+                    let func = lua.load(src.as_str()).into_function()?;
 
-            let func = lua.load(&code).into_function()?;
-            Ok(func)
+                    Ok(mlua::MultiValue::from_vec(vec![
+                            mlua::Value::Function(func),
+                            mlua::Value::String(lua.create_string(&path1)?),
+                    ]))
+                }
+                None => {
+                    Ok(mlua::MultiValue::from_vec(vec![
+                            mlua::Value::Nil,
+                            mlua::Value::String(lua.create_string(
+                                    &format!("module '{}' not found", module)
+                            )?),
+                    ]))
+                }
+            }
         })?;
 
-        //Simply overwrite the inbuilt package loader with ours
-        let globals = self.lua.globals();
+        let globals = lua.globals();
         let package: LuaTable = globals.get("package")?;
         let searchers: LuaTable = package.get("searchers")?;
         searchers.raw_insert(1, loader)?;
@@ -63,9 +76,13 @@ impl ScriptEngine {
 
     //Execs the main lua file, mainly for global stuff
     pub fn boot(&self) -> LuaResult<()> {
-        let path = format!("{}/main.lua", self.scripts_dir);
-        let code = fs::read_to_string(path)?;
-        self.lua.load(&code).exec()
+        let path = "main.lua";
+        match self.scripts.get(path) {
+            Some(code) => self.lua.load(code).exec(),
+            None => {
+                return Err(mlua::Error::RuntimeError("Could not find main file".to_string()));
+            }
+        }
     }
 
     /* Calls start() in main.Lua
