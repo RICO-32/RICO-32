@@ -21,6 +21,7 @@ A fantasy console inspired by PICO-8, built with Rust for performance and Lua fo
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Sprite Engine](#sprite-engine)
+- [Cartridge & Lua Files](#cartridge--lua-files)
 - [API Reference](#api-reference)
 - [Examples](#examples)
 - [Contributing](#contributing)
@@ -90,9 +91,11 @@ The console is designed to be simple yet powerful, allowing developers to create
 
 ## Quick Start
 
-1. **Create your game script**: Edit `scripts/main.lua` to start building your game.
+1. **Run RICO-32**: Execute `cargo run --release` and your RICO-32 will start!
 
-2. **Run your game**: Execute `cargo run` and your game will start!
+2. **Create your game scripts**: Edit `r32/main.lua` to start building your game.
+   
+3. **Build the game**: Use the sprite engine to create and edit sprites and the console to debug your game.
 
 ### Example Game
 
@@ -169,6 +172,14 @@ function update(dt)
     rico:draw(80, 48, 5)
 end
 ```
+
+## Cartridge & Lua Files
+
+- Lua files are **extracted to `r32/`** next to the executable and cartridge when a game is loaded.
+- Users can **edit files externally** with their favorite editor.
+- Restarting the game from the inbuilt console writes to the cartridge with whatever changes have been made to the scripts.
+- Final save occurs on VM exit, and the temporary `r32/` folder is deleted automatically.
+- Sprites are **never written to disk**, remaining fully in memory and must be saved to the cartridge using the checkmark within the sprite editor.
 
 ## API Reference
 
@@ -277,13 +288,13 @@ The following 16 colors are available:
 
 ## Examples
 
-The project includes several example games in the `scripts/examples/` directory:
+The project includes several example games in the `examples/` directory:
 
 - **Platformer**: A simple platformer game
 - **Shooter**: A top-down shooter example
 - **Tetris**: Classic Tetris implementation
 
-To run an example, copy its contents to `scripts/main.lua` or modify `scripts/main.lua` to require the example module.
+To run an example, simply copy the example.r32 to file the root as main.r32.
 
 ## Contributing
 
