@@ -4,12 +4,16 @@ use macro_procs::ScreenEngine;
 use winit::event::VirtualKeyCode;
 
 use crate::{
-    engine::rico::{PixelsType, ScreenEngine, SCREEN_SIZE}, input::{keyboard::Keyboard, mouse::MousePress}, render::{
+    engine::rico::{PixelsType, ScreenEngine, SCREEN_SIZE},
+    input::{keyboard::Keyboard, mouse::MousePress},
+    render::{
         colors::{Colors, ALL_COLORS},
         pixels::{
             clear, draw, image_from_tool, image_from_util, print_scr_mid, rect, rect_fill, set_pix,
         },
-    }, scripting::cartridge::update_sprites, time::sync
+    },
+    scripting::cartridge::update_sprites,
+    time::sync,
 };
 
 #[derive(Copy, Clone, PartialEq)]

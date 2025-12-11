@@ -10,7 +10,7 @@ use walkdir::WalkDir;
 #[derive(Encode, Decode, Debug, Clone)]
 pub struct Cartridge {
     pub sprite_sheet: Vec<PixelsType>,
-    pub scripts: HashMap<String, String>
+    pub scripts: HashMap<String, String>,
 }
 
 pub const PATH: &str = "r32/";
@@ -38,7 +38,7 @@ impl Default for Cartridge {
         scripts.insert("main.lua".to_string(), HELLO_WORLD.to_string());
         Cartridge {
             sprite_sheet: vec![vec![vec![Colors::Blank; SPRITE_SIZE]; SPRITE_SIZE]; 60],
-            scripts
+            scripts,
         }
     }
 }
@@ -62,7 +62,7 @@ pub fn load_cartridge() -> Result<Cartridge, Box<dyn Error>> {
         fs::remove_dir_all(PATH)?;
     }
     for (file, content) in &cart.scripts {
-        let f_path = PATH.to_owned() + &file;
+        let f_path = PATH.to_owned() + file;
         if let Some(parent) = Path::new(&f_path).parent() {
             fs::create_dir_all(parent)?;
         }
@@ -73,7 +73,7 @@ pub fn load_cartridge() -> Result<Cartridge, Box<dyn Error>> {
     Ok(cart)
 }
 
-pub fn update_sprites(sprite_sheet: &Vec<PixelsType>) -> Result<(), Box<dyn Error>> {
+pub fn update_sprites(sprite_sheet: &[PixelsType]) -> Result<(), Box<dyn Error>> {
     let mut cart = match fs::read(BIN_PATH) {
         Ok(data) => {
             let (cart, _len): (Cartridge, usize) =
@@ -89,10 +89,7 @@ pub fn update_sprites(sprite_sheet: &Vec<PixelsType>) -> Result<(), Box<dyn Erro
     };
     cart.sprite_sheet = sprite_sheet.to_vec();
 
-    let encoded: Vec<u8> = bincode::encode_to_vec(
-        cart,
-        bincode::config::standard()
-    )?;
+    let encoded: Vec<u8> = bincode::encode_to_vec(cart, bincode::config::standard())?;
     fs::write(BIN_PATH, &encoded)?;
     Ok(())
 }
@@ -127,10 +124,7 @@ pub fn update_scripts() -> Result<(), Box<dyn Error>> {
 
     cart.scripts = scripts;
 
-    let encoded: Vec<u8> = bincode::encode_to_vec(
-        cart,
-        bincode::config::standard()
-    )?;
+    let encoded: Vec<u8> = bincode::encode_to_vec(cart, bincode::config::standard())?;
     fs::write(BIN_PATH, &encoded)?;
     Ok(())
 }

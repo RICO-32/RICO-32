@@ -19,7 +19,7 @@ use crate::{
         colors::Colors,
         pixels::{
             circle, clear, draw, print_scr, print_scr_mid, print_scr_mini, rect, rect_fill, set_pix,
-        }
+        },
     },
 };
 
@@ -143,8 +143,8 @@ impl UserData for LuaAPIHandle {
         );
 
         methods.add_method_mut("draw", |_, this, (x, y, idx): (i32, i32, usize)| {
-            let mut eng = this.0.borrow_mut(); 
-            
+            let mut eng = this.0.borrow_mut();
+
             if idx >= eng.sprites.len() {
                 return Err(mlua::Error::RuntimeError("Index too large".to_string()));
             }
@@ -216,4 +216,3 @@ impl UserData for LuaAPIHandle {
         });
     }
 }
-

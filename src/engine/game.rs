@@ -21,11 +21,8 @@ impl GameEngine {
         let script_engine = ScriptEngine::new(cart.scripts);
         let lua_api = Rc::from(RefCell::from(LuaAPI::new(cart.sprite_sheet)));
 
-        let mut eng = GameEngine {
-            script_engine,
-            lua_api,
-            console_engine: ConsoleEngine::default(),
-        };
+        let mut eng =
+            GameEngine { script_engine, lua_api, console_engine: ConsoleEngine::default() };
 
         //Register all loaders if something errors just print to console screen
         if let Err(err) = eng.script_engine.register_api(eng.lua_api.clone()) {

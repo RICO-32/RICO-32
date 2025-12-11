@@ -9,7 +9,7 @@ use crate::scripting::lua::{LuaAPI, LuaAPIHandle};
 
 pub struct ScriptEngine {
     pub lua: Lua,
-    scripts: HashMap<String, String>
+    scripts: HashMap<String, String>,
 }
 
 impl ScriptEngine {
@@ -51,18 +51,16 @@ impl ScriptEngine {
                     let func = lua.load(src.as_str()).into_function()?;
 
                     Ok(mlua::MultiValue::from_vec(vec![
-                            mlua::Value::Function(func),
-                            mlua::Value::String(lua.create_string(&path1)?),
+                        mlua::Value::Function(func),
+                        mlua::Value::String(lua.create_string(&path1)?),
                     ]))
                 }
-                None => {
-                    Ok(mlua::MultiValue::from_vec(vec![
-                            mlua::Value::Nil,
-                            mlua::Value::String(lua.create_string(
-                                    &format!("module '{}' not found", module)
-                            )?),
-                    ]))
-                }
+                None => Ok(mlua::MultiValue::from_vec(vec![
+                    mlua::Value::Nil,
+                    mlua::Value::String(
+                        lua.create_string(format!("module '{}' not found", module))?,
+                    ),
+                ])),
             }
         })?;
 
@@ -79,9 +77,7 @@ impl ScriptEngine {
         let path = "main.lua";
         match self.scripts.get(path) {
             Some(code) => self.lua.load(code).exec(),
-            None => {
-                return Err(mlua::Error::RuntimeError("Could not find main file".to_string()));
-            }
+            None => Err(mlua::Error::RuntimeError("Could not find main file".to_string())),
         }
     }
 
