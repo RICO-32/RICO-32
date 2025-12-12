@@ -108,7 +108,7 @@ pub fn update_sprites(sprite_sheet: &[PixelsType]) -> Result<(), Box<dyn Error>>
 
 pub fn update_scripts() -> Result<(), Box<dyn Error>> {
     let mut cart = get_cart()?;
-    let mut scripts = HashMap::new();
+    cart.scripts.clear();
 
     for entry in WalkDir::new(PATH)
         .into_iter()
@@ -116,12 +116,12 @@ pub fn update_scripts() -> Result<(), Box<dyn Error>> {
         .filter(|e| e.file_type().is_file() && e.file_name().to_str().unwrap().ends_with(".lua"))
     {
         let path = entry.path();
-        let rel = path.strip_prefix(PATH).unwrap().to_string_lossy().to_string();
+        //That replace took 20 minutes to debug btw
+        let rel = path.strip_prefix(PATH).unwrap().to_string_lossy().to_string().replace("\\", "/");
         let contents = fs::read_to_string(path)?;
-        scripts.insert(rel, contents);
+        cart.scripts.insert(rel, contents);
     }
 
-    cart.scripts = scripts;
     write_cart(&cart)?;
 
     Ok(())

@@ -1,5 +1,13 @@
 use rayon::prelude::*;
-use std::{fs, path::Path, time::Instant};
+use std::{
+    error::Error,
+    path::Path,
+    time::{Duration, Instant},
+};
+
+use notify::RecursiveMode;
+use notify_debouncer_mini::{new_debouncer, DebouncedEventKind};
+use std::sync::mpsc::channel;
 
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
@@ -13,7 +21,7 @@ use super::{game::GameEngine, nav_bar::NavEngine, sprite::SpriteEngine};
 use crate::{
     input::{keyboard::Keyboard, mouse::MousePress},
     render::colors::Colors,
-    scripting::cartridge::{load_cartridge, update_scripts, PATH},
+    scripting::cartridge::{get_cart, load_cartridge, update_scripts, PATH},
 };
 
 pub const SCREEN_SIZE: usize = 128;
@@ -48,6 +56,31 @@ pub struct RicoEngine {
     state_engines: Vec<StateEngines>,
 }
 
+fn watch_folder() -> Result<(), Box<dyn Error>> {
+    let (tx, rx) = channel();
+
+    // Create a debouncer to avoid getting multiple events for the same change
+    let mut debouncer = new_debouncer(Duration::from_millis(500), tx)?;
+
+    // Add path to be watched
+    debouncer.watcher().watch(Path::new(PATH), RecursiveMode::Recursive)?;
+
+    for result in rx {
+        match result {
+            Ok(events) => {
+                for event in events {
+                    if event.kind == DebouncedEventKind::Any {
+                        update_scripts()?;
+                    }
+                }
+            }
+            Err(e) => println!("Watch error: {:?}", e),
+        }
+    }
+
+    Ok(())
+}
+
 impl Default for RicoEngine {
     fn default() -> Self {
         let cart = load_cartridge().expect("Could not load/create cartridge");
@@ -57,6 +90,10 @@ impl Default for RicoEngine {
             StateEngines::GameEngine(Box::new(game_eng)),
             StateEngines::SpriteEngine(Box::new(sprite_eng)),
         ];
+
+        std::thread::spawn(|| {
+            watch_folder().expect("Failed to start folder watcher");
+        });
 
         //Change here if want diff names for engines
         RicoEngine {
@@ -207,13 +244,6 @@ impl RicoEngine {
                 },
                 _ => {}
             }
-
-            if *control_flow == ControlFlow::Exit {
-                let _ = update_scripts();
-                if Path::new(PATH).exists() {
-                    let _ = fs::remove_dir_all(PATH);
-                }
-            }
         });
     }
 
@@ -241,8 +271,7 @@ impl RicoEngine {
                 handle_engine_update(buffer, console, 0, WINDOW_WIDTH + (NAV_BAR_HEIGHT * SCALE));
 
                 if console.restart {
-                    let _ = update_scripts();
-                    let cart = load_cartridge().expect("Could not load/create cartridge");
+                    let cart = get_cart().expect("Could not load/create cartridge");
                     let game_eng = GameEngine::new(cart);
                     **eng = game_eng;
                 }

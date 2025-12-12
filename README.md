@@ -187,15 +187,17 @@ end
 
 - Lua files are **extracted to `r32/`** next to the executable and cartridge when a game is loaded.
 - Users can **edit files externally** with their favorite editor.
-- Restarting the game from the built-in console writes to the cartridge with whatever changes have been made to the scripts.
-- Final save occurs on VM exit, and the temporary `r32/` folder is deleted automatically.
-- Sprites are **never written to disk**, remaining fully in memory, and must be saved to the cartridge using the checkmark within the sprite editor.
+- RICO-32 automatically watches the r32/ folder for any changes made through any IDE and auto recompiles the cartridge to be instantly loaded whenever the game is restarted through restarting the whole engine or the inbuilt game restart.
+- Sprites are **never written to r32/**, remaining fully in memory and the cartridge, and must be saved to the cartridge using the checkmark within the sprite editor.
+- Cartridges fully contain all information related to all RICO-32 games, and thus RICO-32 games can be shared easily by sharing .r32 files or using their Base64 version.
 - Cartridges can be encoded and decoded into base64 for easy sharing using the following commands.
   ```bash
   cargo run --release --bin cart encode <cartridge_file_path>
   cargo run --release --bin cart decode <full_base64_string> 
   ```
   The encoded string will be pasted into the console for easy access and the decoded .r32 cartridge will be stored in main.r32 automatically for easy usage through the normal RICO-32 and game-only view.
+
+### Note: all changes made to the r32/ directory while RICO-32 is not running will be discarded and overwritten with the cartridge upon initial RICO-32 startup.
 
 ## API Reference
 
