@@ -1,5 +1,9 @@
 # RICO-32
 
+<p align="center">
+  <img src="https://github.com/RICO-32.png" alt="RICO-32 profile picture" width="200"/>
+</p>
+
 <div align="center">
 
 **The Rust Imaginary Console Offline**
