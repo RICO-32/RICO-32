@@ -45,6 +45,7 @@ The console is designed to be simple yet powerful, allowing developers to create
 - **Frame Rate Control**: Configurable frame rate with delta time support
 - **Modular Architecture**: Clean separation between game engine, console engine, and scripting
 - **Hot Reload Support**: Restart functionality for rapid iteration
+- **Full cartridge support**: .r32 files are cartridges that can be shared with other users. RICO-32 will auto-load main.r32 from the root directory, so make sure to have the main cartridge there.
 
 ## Screenshots
 
@@ -96,6 +97,15 @@ The console is designed to be simple yet powerful, allowing developers to create
 2. **Create your game scripts**: Edit `r32/main.lua` to start building your game.
    
 3. **Build the game**: Use the sprite engine to create and edit sprites and the console to debug your game.
+
+4. Running just the game without the debugging and editor features can be done by running. The main.r32 cartridge will be used.
+```bash
+cargo run --release --bin console
+```
+The following can be added in order to run the console as a standalone exe without any need for on-disk file cartridge storage. The base64 string can be generated using commands described in [Cartridge & Lua Files](#cartridge--lua-files).
+```bash
+cargo run --release --bin console -- --with-cart=<full_base64_string>
+```
 
 ### Example Game
 
@@ -177,9 +187,15 @@ end
 
 - Lua files are **extracted to `r32/`** next to the executable and cartridge when a game is loaded.
 - Users can **edit files externally** with their favorite editor.
-- Restarting the game from the inbuilt console writes to the cartridge with whatever changes have been made to the scripts.
+- Restarting the game from the built-in console writes to the cartridge with whatever changes have been made to the scripts.
 - Final save occurs on VM exit, and the temporary `r32/` folder is deleted automatically.
-- Sprites are **never written to disk**, remaining fully in memory and must be saved to the cartridge using the checkmark within the sprite editor.
+- Sprites are **never written to disk**, remaining fully in memory, and must be saved to the cartridge using the checkmark within the sprite editor.
+- Cartridges can be encoded and decoded into base64 for easy sharing using the following commands.
+  ```bash
+  cargo run --release --bin cart encode <cartridge_file_path>
+  cargo run --release --bin cart decode <full_base64_string> 
+  ```
+  The encoded string will be pasted into the console for easy access and the decoded .r32 cartridge will be stored in main.r32 automatically for easy usage through the normal RICO-32 and game-only view.
 
 ## API Reference
 
