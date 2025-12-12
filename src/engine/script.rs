@@ -42,13 +42,18 @@ impl ScriptEngine {
         let loader = lua.create_function(move |lua, module: String| {
             let path1 = format!("{}.lua", module.replace(".", "/"));
             let path2 = format!("{}/init.lua", module.replace(".", "/"));
-            //
+
             // Try both module.lua and module/init.lua
-            let code = scripts.get(&path1).or_else(|| scripts.get(&path2));
+            let (path, code) =
+                match scripts.get_key_value(&path1).or_else(|| scripts.get_key_value(&path2)) {
+                    Some((p, c)) => (p.clone(), Some(c.clone())),
+                    None => (path1.clone(), None),
+                };
 
             match code {
                 Some(src) => {
-                    let func = lua.load(src.as_str()).into_function()?;
+                    let func =
+                        lua.load(src.as_str()).set_name("@".to_owned() + &path).into_function()?;
 
                     Ok(mlua::MultiValue::from_vec(vec![
                         mlua::Value::Function(func),
@@ -76,7 +81,7 @@ impl ScriptEngine {
     pub fn boot(&self) -> LuaResult<()> {
         let path = "main.lua";
         match self.scripts.get(path) {
-            Some(code) => self.lua.load(code).exec(),
+            Some(code) => self.lua.load(code).set_name("@".to_owned() + path).exec(),
             None => Err(mlua::Error::RuntimeError("Could not find main file".to_string())),
         }
     }

@@ -47,7 +47,7 @@ impl GameEngine {
         //Filter .rs stuff so the user only sees their part of the code that messed up
         let mut cleaned = msg
             .lines()
-            .filter(|line| !line.contains(".rs"))
+            //.filter(|line| !line.contains(".rs"))
             .map(|x| x.to_string())
             .collect::<Vec<_>>();
 
@@ -63,10 +63,8 @@ impl GameEngine {
         if !self.console_engine.halted {
             let dt = sync(&mut self.console_engine.last_time, self.lua_api.borrow().frame_rate);
 
-            if self.script_engine.call_update(dt).is_err() {
-                self.add_errors(mlua::Error::RuntimeError(
-                    "Could not find function update in main.lua".to_string(),
-                ));
+            if let Err(err) = self.script_engine.call_update(dt) {
+                self.add_errors(err);
             }
         }
 
