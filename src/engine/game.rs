@@ -31,17 +31,15 @@ impl GameEngine {
         if let Err(err) = eng.script_engine.boot() {
             eng.add_errors(err);
         };
-
-        if eng.script_engine.call_start().is_err() {
-            eng.add_errors(mlua::Error::RuntimeError(
-                "Could not find function start in main.lua".to_string(),
-            ));
-        }
+        if let Err(err) = eng.script_engine.call_start() {
+            eng.add_errors(err);
+        };
 
         eng
     }
 
     fn add_errors<T: Error>(&mut self, err: T) {
+        self.console_engine.halted = true;
         let msg = err.to_string();
 
         //Filter .rs stuff so the user only sees their part of the code that messed up
