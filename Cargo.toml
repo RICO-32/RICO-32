@@ -1,6 +1,6 @@
 [package]
 name = "rico-32"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 description = "A simple VM console with a game engine and scripting language"
 license = "MIT"
